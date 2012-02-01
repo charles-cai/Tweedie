@@ -282,7 +282,6 @@
 			};
 			buildConfigurationList = 221BB01214C26FD200EAB938 /* Build configuration list for PBXProject "Tweed" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
