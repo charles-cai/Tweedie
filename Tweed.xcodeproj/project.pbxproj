@@ -259,6 +259,7 @@
 			buildPhases = (
 				221BB01414C26FD200EAB938 /* Sources */,
 				221BB01514C26FD200EAB938 /* Frameworks */,
+				22D5ADD914D919EB00756854 /* ShellScript */,
 				221BB01614C26FD200EAB938 /* Resources */,
 				221BB01714C26FD200EAB938 /* Sources */,
 				221BB01814C26FD200EAB938 /* Frameworks */,
@@ -282,6 +283,7 @@
 			};
 			buildConfigurationList = 221BB01214C26FD200EAB938 /* Build configuration list for PBXProject "Tweed" */;
 			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
@@ -318,6 +320,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		22D5ADD914D919EB00756854 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = "/bin/sh -x ../xojs/build.sh ../Tweed/www/js";
+			shellScript = "";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		221BB01414C26FD200EAB938 /* Sources */ = {
@@ -389,6 +408,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
 				SDKROOT = iphoneos;
+				XOJS = ../xojs;
 			};
 			name = Debug;
 		};
@@ -407,6 +427,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
+				XOJS = ../xojs;
 			};
 			name = Release;
 		};
