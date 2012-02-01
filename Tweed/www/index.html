@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+    if (navigator.userAgent.indexOf("OS 5_") !== -1)
+    {
+      document.write('<script src="js/libs/phonegap-1.3.0.js"><' + '/script><script src="js/libs/ChildBrowser.js"><' + '/script>');
+      document.addEventListener("deviceready", function()
+      {
+        main();
+      });
+    }
+    else
+    {
+      window.addEventListener("DOMContentLoaded", function()
+      {
+        main();
+      });
+    }
+    </script>
+    <script src="js/xo.js"></script>
+    <script src="js/KEYS.js"></script>
+    <script src="js/prefix.js"></script>
+    <script src="js/Metrics.js"></script>
+    <script src="js/Tweet.js"></script>
+    <script src="js/Tweets.js"></script>
+    <script src="js/TweetLists.js"></script>
+    <script src="js/TweetFetcher.js"></script>
+    <script src="js/Account.js"></script>
+    <!-- <script src="js/oembed/Embedly.js"></script> -->
+    <script src="js/oembed/TwitterUrlExpander.js"></script>
+    <script src="js/oembed/readability.js"></script>
+    <script src="js/app.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+  </head>
+  <body>
+    <div id="root-dialog"></div>
+    <div id="root"></div>
+    <div id="main" class="template">
+      <div class="main">
+        <div class="col right">
+          <div class="pane compose" data-action-click="ComposeTweet">
+            Compose...
+          </div>
+          <div class="pane lists">
+            <div class="lists-title">{{name}}</div>
+            {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
+            <div class="current-lists">
+              {{#lists ViewSet}}
+                {{#_ View.Drop name:m.name()}}
+                  <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>
+                    <div class="title">{{title}}<span class="unread unread{{unread}}">{{unread}}</span></div>
+                  </div>
+                {{/_}}
+              {{/lists}}
+              {{#_ View.Drop}}
+                <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>
+                  <input placeholder="Create list or search..." data-action-change="NewList">
+                </div>
+              {{/_}}
+            </div>
+          </div>
+          {{#_ View}}
+            <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">
+              <div class="list-header">
+                <div class="title">
+                  {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}
+                  {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}
+                </div>
+              </div>
+              <div class="source">Source: 
+                {{^editMode}}
+                  {{#current_list}}
+                    <span class="tag">{{type}}</span>
+                  {{/current_list}}
+                {{/editMode}}
+                {{#editMode}}
+                  {{#current_list View}}
+                    {{:istweets}}return this.$model.type() === 'tweets' ? 'selected' : ''{{/isfavs}}
+                    {{:isfavs}}return this.$model.type() === 'favs' ? 'selected' : ''{{/isfavs}}
+                    {{:issearches}}return this.$model.type() === 'searches' ? 'selected' : ''{{/isfavs}}
+                    {{:isdms}}return this.$model.type() === 'dms' ? 'selected' : ''{{/isdms}}
+                    <select data-action-change="ChangeTweetSource">
+                      <option value="tweets" {{istweets}}>tweets</option>
+                      <option value="favs" {{isfavs}}>favs</options>
+                      <option value="searches" {{issearches}}>searches</option>
+                      <option value="dms" {{isdms}}>dms</option>
+                    </select>
+                  {{/current_list}}
+                {{/editMode}}
+              </div>
+              <div class="viz">Visual: 
+                {{^editMode}}
+                  {{#current_list}}
+                    <span class="tag">{{viz}}</span>
+                  {{/current_list}}
+                {{/editMode}}
+                {{#editMode}}
+                  {{#current_list View}}
+                    <select data-action-change="ChangeViz">
+                      <option value="list" {{viz_list}}>list</option>
+                      <option value="stack" {{viz_stack}}>stack</options>
+                    </select>
+                  {{/current_list}}
+                {{/editMode}}
+              </div>
+              {{#current_list}}
+                {{#_ View.Drop}}
+                  <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>
+                    Include:
+                    {{#includeTags}}
+                      {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}
+                    {{/includeTags}}
+                  </div>
+                {{/_}}
+                {{#_ View.Drop}}
+                  <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>
+                    Exclude:
+                    {{#excludeTags}}
+                      {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}
+                    {{/excludeTags}}
+                  </div>
+                {{/_}}
+              {{/current_list}}
+              <div class="list-footer">
+                {{#editMode}}
+                  {{#current_list}}
+                    {{#canRemove}}
+                      <div class="button danger" data-action-click="RemoveList">Remove</div>
+                    {{/canRemove}}
+                  {{/current_list}}
+                  <div class="clear"></div>
+                {{/editMode}}
+              </div>
+            </div>
+          {{/_}}
+        </div>
+        <div class="col middle2">
+          <div class="pane tweets">
+            {{#current_list View updateOn:"viz"}}
+              {{:viz_list}}return this.$model.viz() === 'list' ? 'selected' : ''{{/viz_list}}
+              {{:viz_stack}}return this.$model.viz() === 'stack' ? 'selected' : ''{{/viz_stack}}
+              {{#viz_list}}
+                {{#tweets ViewSet.LiveList name:"tweets"}}
+                  {{>tweet}}
+                {{/tweets}}
+              {{/viz_list}}
+              {{#viz_stack}}
+                {{#tweets ViewSet.StackedList.LiveList name:"tweets" key:"conversation"}}
+                  {{>tweet}}
+                {{/tweets}}
+              {{/viz_stack}}
+            {{/current_list}}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="tweet" class="template">
+      {{#_ View}}
+        <div class="tweet" data-action-click="{{#has_children}}OpenTweet{{/has_children}}">
+          {{#retweet}}
+            {{>inner_tweet}}
+          {{/retweet}}
+          {{^retweet}}
+            {{>inner_tweet}}
+          {{/retweet}}
+          {{#is_retweet}}
+            <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
+          {{/is_retweet}}
+          <div class="actions">
+            {{#has_children}}{{:child_count}}return this.$model.children.length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
+            <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
+            <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
+            <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>
+          </div>
+          <div class="tags">
+            {{#tags}}
+              {{#_ View.Drag}}<div {{{drag_attributes}}} class="tag screen-name {{dragging}}">{{title}}</div>{{/_}}
+            {{/tags}}
+          </div>
+          {{#has_children}}
+            <div class="nested-tweets">
+              {{#open}}
+                {{#children}}
+                  <div class="tweet">
+                    {{>inner_tweet}}
+                  </div>
+                {{/children}}
+              {{/open}}
+            </div>
+          {{/has_children}}
+        </div>
+      {{/_ View}}
+    </div>
+    <div id="inner_tweet" class="template">
+      <img class="icon" src={{profile_image_url}}>
+      <div class="body">
+        <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp">{{created_since}}</span>
+        <div class="text">{{{entifiedText}}}</div>
+        {{#embed_photo_url}}
+          <img class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">
+        {{/embed_photo_url}}
+        {{^embed_photo_url}}
+          {{#embed_video_html}}
+            <div class="video">{{{embed_video_html}}}</div>
+          {{/embed_video_html}}
+        {{/embed_photo_url}}
+      </div>
+    </div>
+    <div id="create-list" class="template">
+      <div class="create-list-modal">
+        Name: <input>
+      </div>
+    </div>
+    <div id="readability" class="template">
+      <div class="dialog readability{{#show}} show{{/show}}" data-action-click="ReadClose">
+        <div class="inner" id="readability-scroller">
+          <div>
+            {{#title}}
+              <div class="title">{{{title}}}</div>
+              <div class="text">{{{text}}}</div>
+              <div class="footer pages{{pages}}">More &gt;</div>
+            {{/title}}
+            {{^title}}
+              Loading ...
+            {{/title}}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="imageview" class="template">
+      <div class="dialog image-view">
+        <div class="inner">
+          <img src="{{url}}">
+        </div>
+      </div>
+    </div>
+    <div id="videoview" class="template">
+      <div class="dialog image-view">
+        <div class="inner">
+          {{{embed}}}
+        </div>
+      </div>
+    </div>
+    <div id="tweet_dialog" class="template">
+      <div class="dialog tweet-dialog">
+        <div class="inner">
+          <div class="tweet-dialog-header">
+            {{#isTweet}}Tweet{{/isTweet}}
+            {{#isRetweet}}Retweet{{/isRetweet}}
+            {{#isReply}}Reply{{/isReply}}
+            {{#isDM}}Private message to @{{screen_name}}{{/isDM}}
+          </div>
+          <div class="tweet-dialog-body">
+            {{#isEdit}}{{#_ View.Input}}<textarea type="url" class="tweet-text-edit" autofocus="autofocus" name="text" {{{input_attributes}}}>{{text}}</textarea>{{/_}}{{/isEdit}}
+            {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}
+          </div>
+          <div class="tweet-dialog-footer">
+            <div class="controls">
+              {{#isEdit}}<div class="tweet-count" >{{count}}</div>{{/isEdit}}
+              <div class="button" data-action-click="CancelButton">Cancel</div>
+              {{#isTweet}}<div class="button primary" data-action-click="TweetButton">Tweet</div>{{/isTweet}}
+              {{#isRetweet}}<div class="button primary" data-action-click="RetweetButton">Retweet</div>{{/isRetweet}}
+              {{#isReply}}<div class="button primary" data-action-click="RetweetButton">Reply</div>{{/isReply}}
+              {{#isDM}}<div class="button primary" data-action-click="DMButton">Send</div>{{/isDM}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
