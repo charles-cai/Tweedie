@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2211DD6C14D90F6D00FB0635 /* www in Resources */ = {isa = PBXBuildFile; fileRef = 2211DD6B14D90F6D00FB0635 /* www */; };
 		221BB02014C26FD300EAB938 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 221BB01F14C26FD200EAB938 /* Foundation.framework */; };
 		221BB02214C26FD300EAB938 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 221BB02114C26FD300EAB938 /* UIKit.framework */; };
 		221BB02414C26FD300EAB938 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 221BB02314C26FD300EAB938 /* CoreGraphics.framework */; };
@@ -36,30 +37,10 @@
 		22AE1C7014D3747E006CFF53 /* ChildBrowserCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 22AE1C6C14D3747E006CFF53 /* ChildBrowserCommand.m */; };
 		22AE1C7114D3747E006CFF53 /* ChildBrowserViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 22AE1C6E14D3747E006CFF53 /* ChildBrowserViewController.m */; };
 		22AE1C7214D3747E006CFF53 /* ChildBrowserViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 22AE1C6F14D3747E006CFF53 /* ChildBrowserViewController.xib */; };
-		22B23BDD14D8F6EB006CEE82 /* style.css in Resources */ = {isa = PBXBuildFile; fileRef = 22B23BC314D8F6EB006CEE82 /* style.css */; };
-		22B23BDE14D8F6EB006CEE82 /* bg.gif in Resources */ = {isa = PBXBuildFile; fileRef = 22B23BC514D8F6EB006CEE82 /* bg.gif */; };
-		22B23BDF14D8F6EB006CEE82 /* everything-spritev2.png in Resources */ = {isa = PBXBuildFile; fileRef = 22B23BC614D8F6EB006CEE82 /* everything-spritev2.png */; };
-		22B23BE014D8F6EB006CEE82 /* spinner.gif in Resources */ = {isa = PBXBuildFile; fileRef = 22B23BC714D8F6EB006CEE82 /* spinner.gif */; };
-		22B23BE114D8F6EB006CEE82 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 22B23BC814D8F6EB006CEE82 /* index.html */; };
-		22B23BE214D8F6EB006CEE82 /* Account.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BCA14D8F6EB006CEE82 /* Account.js */; };
-		22B23BE314D8F6EB006CEE82 /* app.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BCB14D8F6EB006CEE82 /* app.js */; };
-		22B23BE414D8F6EB006CEE82 /* KEYS.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BCC14D8F6EB006CEE82 /* KEYS.js */; };
-		22B23BE514D8F6EB006CEE82 /* ChildBrowser.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BCE14D8F6EB006CEE82 /* ChildBrowser.js */; };
-		22B23BE614D8F6EB006CEE82 /* phonegap-1.3.0.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BCF14D8F6EB006CEE82 /* phonegap-1.3.0.js */; };
-		22B23BE714D8F6EB006CEE82 /* Metrics.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD014D8F6EB006CEE82 /* Metrics.js */; };
-		22B23BE814D8F6EB006CEE82 /* Embedly.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD214D8F6EB006CEE82 /* Embedly.js */; };
-		22B23BE914D8F6EB006CEE82 /* NullUrlExpander.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD314D8F6EB006CEE82 /* NullUrlExpander.js */; };
-		22B23BEA14D8F6EB006CEE82 /* readability.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD414D8F6EB006CEE82 /* readability.js */; };
-		22B23BEB14D8F6EB006CEE82 /* TwitterUrlExpander.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD514D8F6EB006CEE82 /* TwitterUrlExpander.js */; };
-		22B23BEC14D8F6EB006CEE82 /* prefix.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD614D8F6EB006CEE82 /* prefix.js */; };
-		22B23BED14D8F6EB006CEE82 /* Tweet.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD714D8F6EB006CEE82 /* Tweet.js */; };
-		22B23BEE14D8F6EB006CEE82 /* TweetFetcher.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD814D8F6EB006CEE82 /* TweetFetcher.js */; };
-		22B23BEF14D8F6EB006CEE82 /* TweetLists.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BD914D8F6EB006CEE82 /* TweetLists.js */; };
-		22B23BF014D8F6EB006CEE82 /* Tweets.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BDA14D8F6EB006CEE82 /* Tweets.js */; };
-		22B23BF114D8F6EB006CEE82 /* xo.js in Sources */ = {isa = PBXBuildFile; fileRef = 22B23BDC14D8F6EB006CEE82 /* xo.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2211DD6B14D90F6D00FB0635 /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; path = www; sourceTree = "<group>"; };
 		221BB01B14C26FD200EAB938 /* Tweed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tweed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		221BB01F14C26FD200EAB938 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		221BB02114C26FD300EAB938 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
@@ -96,27 +77,6 @@
 		22AE1C6D14D3747E006CFF53 /* ChildBrowserViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChildBrowserViewController.h; sourceTree = "<group>"; };
 		22AE1C6E14D3747E006CFF53 /* ChildBrowserViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ChildBrowserViewController.m; sourceTree = "<group>"; };
 		22AE1C6F14D3747E006CFF53 /* ChildBrowserViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ChildBrowserViewController.xib; sourceTree = "<group>"; };
-		22B23BC314D8F6EB006CEE82 /* style.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; path = style.css; sourceTree = "<group>"; };
-		22B23BC514D8F6EB006CEE82 /* bg.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = bg.gif; sourceTree = "<group>"; };
-		22B23BC614D8F6EB006CEE82 /* everything-spritev2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "everything-spritev2.png"; sourceTree = "<group>"; };
-		22B23BC714D8F6EB006CEE82 /* spinner.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = spinner.gif; sourceTree = "<group>"; };
-		22B23BC814D8F6EB006CEE82 /* index.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
-		22B23BCA14D8F6EB006CEE82 /* Account.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Account.js; sourceTree = "<group>"; };
-		22B23BCB14D8F6EB006CEE82 /* app.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = app.js; sourceTree = "<group>"; };
-		22B23BCC14D8F6EB006CEE82 /* KEYS.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = KEYS.js; sourceTree = "<group>"; };
-		22B23BCE14D8F6EB006CEE82 /* ChildBrowser.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = ChildBrowser.js; sourceTree = "<group>"; };
-		22B23BCF14D8F6EB006CEE82 /* phonegap-1.3.0.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "phonegap-1.3.0.js"; sourceTree = "<group>"; };
-		22B23BD014D8F6EB006CEE82 /* Metrics.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Metrics.js; sourceTree = "<group>"; };
-		22B23BD214D8F6EB006CEE82 /* Embedly.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Embedly.js; sourceTree = "<group>"; };
-		22B23BD314D8F6EB006CEE82 /* NullUrlExpander.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = NullUrlExpander.js; sourceTree = "<group>"; };
-		22B23BD414D8F6EB006CEE82 /* readability.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = readability.js; sourceTree = "<group>"; };
-		22B23BD514D8F6EB006CEE82 /* TwitterUrlExpander.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = TwitterUrlExpander.js; sourceTree = "<group>"; };
-		22B23BD614D8F6EB006CEE82 /* prefix.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = prefix.js; sourceTree = "<group>"; };
-		22B23BD714D8F6EB006CEE82 /* Tweet.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Tweet.js; sourceTree = "<group>"; };
-		22B23BD814D8F6EB006CEE82 /* TweetFetcher.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = TweetFetcher.js; sourceTree = "<group>"; };
-		22B23BD914D8F6EB006CEE82 /* TweetLists.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = TweetLists.js; sourceTree = "<group>"; };
-		22B23BDA14D8F6EB006CEE82 /* Tweets.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Tweets.js; sourceTree = "<group>"; };
-		22B23BDC14D8F6EB006CEE82 /* xo.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = xo.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +114,7 @@
 		221BB00D14C26FD200EAB938 = {
 			isa = PBXGroup;
 			children = (
+				2211DD6B14D90F6D00FB0635 /* www */,
 				221BB03914C26FD300EAB938 /* Tweed */,
 				221BB01E14C26FD200EAB938 /* Frameworks */,
 				221BB01C14C26FD200EAB938 /* Products */,
@@ -191,7 +152,6 @@
 		221BB03914C26FD300EAB938 /* Tweed */ = {
 			isa = PBXGroup;
 			children = (
-				22B23BC114D8F6EB006CEE82 /* www */,
 				221BB04214C26FD300EAB938 /* PhoneGap.framework */,
 				221BB04414C26FD300EAB938 /* Resources */,
 				221BB05D14C26FD300EAB938 /* Classes */,
@@ -290,82 +250,6 @@
 			name = ChildBrowser;
 			sourceTree = "<group>";
 		};
-		22B23BC114D8F6EB006CEE82 /* www */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BC214D8F6EB006CEE82 /* css */,
-				22B23BC414D8F6EB006CEE82 /* img */,
-				22B23BC814D8F6EB006CEE82 /* index.html */,
-				22B23BC914D8F6EB006CEE82 /* js */,
-			);
-			path = www;
-			sourceTree = "<group>";
-		};
-		22B23BC214D8F6EB006CEE82 /* css */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BC314D8F6EB006CEE82 /* style.css */,
-			);
-			path = css;
-			sourceTree = "<group>";
-		};
-		22B23BC414D8F6EB006CEE82 /* img */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BC514D8F6EB006CEE82 /* bg.gif */,
-				22B23BC614D8F6EB006CEE82 /* everything-spritev2.png */,
-				22B23BC714D8F6EB006CEE82 /* spinner.gif */,
-			);
-			path = img;
-			sourceTree = "<group>";
-		};
-		22B23BC914D8F6EB006CEE82 /* js */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BCA14D8F6EB006CEE82 /* Account.js */,
-				22B23BCB14D8F6EB006CEE82 /* app.js */,
-				22B23BCC14D8F6EB006CEE82 /* KEYS.js */,
-				22B23BCD14D8F6EB006CEE82 /* libs */,
-				22B23BD014D8F6EB006CEE82 /* Metrics.js */,
-				22B23BD114D8F6EB006CEE82 /* oembed */,
-				22B23BD614D8F6EB006CEE82 /* prefix.js */,
-				22B23BD714D8F6EB006CEE82 /* Tweet.js */,
-				22B23BD814D8F6EB006CEE82 /* TweetFetcher.js */,
-				22B23BD914D8F6EB006CEE82 /* TweetLists.js */,
-				22B23BDA14D8F6EB006CEE82 /* Tweets.js */,
-				22B23BDB14D8F6EB006CEE82 /* viz */,
-				22B23BDC14D8F6EB006CEE82 /* xo.js */,
-			);
-			path = js;
-			sourceTree = "<group>";
-		};
-		22B23BCD14D8F6EB006CEE82 /* libs */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BCE14D8F6EB006CEE82 /* ChildBrowser.js */,
-				22B23BCF14D8F6EB006CEE82 /* phonegap-1.3.0.js */,
-			);
-			path = libs;
-			sourceTree = "<group>";
-		};
-		22B23BD114D8F6EB006CEE82 /* oembed */ = {
-			isa = PBXGroup;
-			children = (
-				22B23BD214D8F6EB006CEE82 /* Embedly.js */,
-				22B23BD314D8F6EB006CEE82 /* NullUrlExpander.js */,
-				22B23BD414D8F6EB006CEE82 /* readability.js */,
-				22B23BD514D8F6EB006CEE82 /* TwitterUrlExpander.js */,
-			);
-			path = oembed;
-			sourceTree = "<group>";
-		};
-		22B23BDB14D8F6EB006CEE82 /* viz */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = viz;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -430,11 +314,7 @@
 				221BB05C14C26FD300EAB938 /* PhoneGap.plist in Resources */,
 				22AE1C5F14D1D014006CFF53 /* icon-72.png in Resources */,
 				22AE1C7214D3747E006CFF53 /* ChildBrowserViewController.xib in Resources */,
-				22B23BDD14D8F6EB006CEE82 /* style.css in Resources */,
-				22B23BDE14D8F6EB006CEE82 /* bg.gif in Resources */,
-				22B23BDF14D8F6EB006CEE82 /* everything-spritev2.png in Resources */,
-				22B23BE014D8F6EB006CEE82 /* spinner.gif in Resources */,
-				22B23BE114D8F6EB006CEE82 /* index.html in Resources */,
+				2211DD6C14D90F6D00FB0635 /* www in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,22 +329,6 @@
 				221BB06014C26FD300EAB938 /* AppDelegate.m in Sources */,
 				22AE1C7014D3747E006CFF53 /* ChildBrowserCommand.m in Sources */,
 				22AE1C7114D3747E006CFF53 /* ChildBrowserViewController.m in Sources */,
-				22B23BE214D8F6EB006CEE82 /* Account.js in Sources */,
-				22B23BE314D8F6EB006CEE82 /* app.js in Sources */,
-				22B23BE414D8F6EB006CEE82 /* KEYS.js in Sources */,
-				22B23BE514D8F6EB006CEE82 /* ChildBrowser.js in Sources */,
-				22B23BE614D8F6EB006CEE82 /* phonegap-1.3.0.js in Sources */,
-				22B23BE714D8F6EB006CEE82 /* Metrics.js in Sources */,
-				22B23BE814D8F6EB006CEE82 /* Embedly.js in Sources */,
-				22B23BE914D8F6EB006CEE82 /* NullUrlExpander.js in Sources */,
-				22B23BEA14D8F6EB006CEE82 /* readability.js in Sources */,
-				22B23BEB14D8F6EB006CEE82 /* TwitterUrlExpander.js in Sources */,
-				22B23BEC14D8F6EB006CEE82 /* prefix.js in Sources */,
-				22B23BED14D8F6EB006CEE82 /* Tweet.js in Sources */,
-				22B23BEE14D8F6EB006CEE82 /* TweetFetcher.js in Sources */,
-				22B23BEF14D8F6EB006CEE82 /* TweetLists.js in Sources */,
-				22B23BF014D8F6EB006CEE82 /* Tweets.js in Sources */,
-				22B23BF114D8F6EB006CEE82 /* xo.js in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
