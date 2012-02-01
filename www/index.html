@@ -214,16 +214,18 @@
     <div id="readability" class="template">
       <div class="dialog readability{{#show}} show{{/show}}" data-action-click="ReadClose">
         <div class="inner" id="readability-scroller">
-          <div>
-            {{#title}}
-              <div class="title">{{{title}}}</div>
-              <div class="text">{{{text}}}</div>
-              <div class="footer pages{{pages}}">More &gt;</div>
-            {{/title}}
-            {{^title}}
-              Loading ...
-            {{/title}}
-          </div>
+          {{#title}}
+            <div class="title">{{{title}}}</div>
+            <div class="text">{{{text}}}</div>
+            <div class="footer pages1-{{pages}}">o</div>
+            <div class="footer pages2-{{pages}}">o o</div>
+            <div class="footer pages3-{{pages}}">o o o</div>
+            <div class="footer pages4-{{pages}}">o o o o</div>
+            <div class="footer pages5-{{pages}}">o o o o o</div>
+          {{/title}}
+          {{^title}}
+            Loading ...
+          {{/title}}
         </div>
       </div>
     </div>

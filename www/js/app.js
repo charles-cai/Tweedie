@@ -261,7 +261,7 @@ function main()
           function()
           {
             var r = document.querySelector("#readability-scroller .text");
-            var pages = Math.ceil(r.scrollWidth / r.offsetWidth);
+            var pages = Math.min(5, Math.ceil((r.scrollWidth + 10) / (r.offsetWidth + 10))); // 10 == column gap
             mv.property("pages", pages);
           }
         );
