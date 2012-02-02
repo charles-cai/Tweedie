@@ -44,6 +44,7 @@ var editView = null;
 function main()
 {
   var selectedListView = null;
+  var scrollView = null;
 
   var account = new Account();
 
@@ -65,6 +66,50 @@ function main()
   {
     models.emit("update");
   });
+  
+  function onScrollView(evt)
+  {
+    switch (evt)
+    {
+      case "liveList.scroll.toTop":
+        Log.metric("nav", "list.scrollToTop");
+        break;
+      case "liveList.scroll.insertAbove":
+        Log.metric("nav", "list.insertAtTop");
+        break;
+      case "liveList.scroll.insertBelow":
+        Log.metric("nav", "list.scrollDown");
+        break;
+    }
+  }
+  
+  function selectList(m, v)
+  {
+    var sv = RootView.getViewByName("tweets");
+    if (sv !== scrollView)
+    {
+      scrollView && scrollView.removeEventListener("liveList.scroll.toTop liveList.scroll.insertAbove liveList.scroll.insertBelow", onScrollView);
+      scrollView = sv;
+      scrollView && scrollView.on("liveList.scroll.toTop liveList.scroll.insertAbove liveList.scroll.insertBelow", onScrollView);
+    }
+    if (models.current_list() !== m)
+    {
+      Log.metric("nav", "list:select");
+    }
+    scrollView.scrollToTop(models.current_list() !== m);
+    models.current_list(m);
+    var last = m.tweets().models[0];
+    m.lastRead(last && last.id());
+    m.velocity(0);
+    editList(null);
+    if (selectedListView)
+    {
+      selectedListView.property("selected", false);
+      selectedListView = null;
+    }
+    selectedListView = v;
+    selectedListView.property("selected", true);
+  }
 
   partials = findTemplates();
   new RootView(
@@ -77,20 +122,7 @@ function main()
     {
       onSelectList: function(m, v)
       {
-        Log.metric("nav", "selectList");
-        RootView.getViewByName("tweets").scrollToTop(models.current_list() !== m);
-        models.current_list(m);
-        var last = m.tweets().models[0];
-        m.lastRead(last && last.id());
-        m.velocity(0);
-        editList(null);
-        if (selectedListView)
-        {
-          selectedListView.property("selected", false);
-          selectedListView = null;
-        }
-        selectedListView = v;
-        selectedListView.property("selected", true);
+        selectList(m, v);
         switch (m.type())
         {
           case "searches":
@@ -151,13 +183,13 @@ function main()
       {
         if (models.current_list().canEdit())
         {
-          Log.metric("nav", "editList");
+          Log.metric("nav", "list:edit");
           editList(v);
         }
       },
       onRemoveList: function(m, v, e)
       {
-        Log.metric("nav", "removeList");
+        Log.metric("nav", "list:remove");
         account.tweetLists.removeList(models.current_list());
         editList(null);
         models.current_list(account.tweetLists.lists.models[0]);
@@ -166,19 +198,19 @@ function main()
       },
       onDropInclude: function(m, v)
       {
-        Log.metric("nav", "addInclude");
+        Log.metric("nav", "add:include");
         account.tweetLists.addIncludeTag(models.current_list(), v.dropped());
       },
       onDropExclude: function(m, v)
       {
-        Log.metric("nav", "addExclude");
+        Log.metric("nav", "add:exclude");
         account.tweetLists.addExcludeTag(models.current_list(), v.dropped());
       },
       onKillInclude: function(m)
       {
         if (editView && editView.property("editMode"))
         {
-          Log.metric("nav", "removeInclude");
+          Log.metric("nav", "remove:include");
           account.tweetLists.removeIncludeTag(models.current_list(), m);
         }
       },
@@ -186,7 +218,7 @@ function main()
       {
         if (editView && editView.property("editMode"))
         {
-          Log.metric("nav", "removeExclude");
+          Log.metric("nav", "remove:exclude");
           account.tweetLists.removeExcludeTag(models.current_list(), m);
         }
       },
@@ -238,12 +270,29 @@ function main()
       {
         Log.metric("details", "url");
         var readModel = new ReadabilityModel();
+        var pagenr = 0;
+        var maxpagenr = 0;
         var mv = new ModalView(
         {
           node: document.getElementById("root-dialog"),
           template: partials.readability,
           partials: partials,
-          model: readModel
+          model: readModel,
+          controller:
+          {
+            onForward: function()
+            {
+              var r = document.querySelector("#readability-scroller .text");
+              pagenr = Math.min(maxpagenr - 1, pagenr + 1);
+              r.style.WebkitTransform = "translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)";
+            },
+            onBackward: function()
+            {
+              var r = document.querySelector("#readability-scroller .text");
+              pagenr = Math.max(0, pagenr - 1);
+              r.style.WebkitTransform = "translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)";
+            }
+          }
         });
         mv.addListener(mv.node(), "click", function(e)
         {
@@ -261,8 +310,9 @@ function main()
           function()
           {
             var r = document.querySelector("#readability-scroller .text");
-            var pages = Math.min(5, Math.ceil((r.scrollWidth + 10) / (r.offsetWidth + 10))); // 10 == column gap
-            mv.property("pages", pages);
+            var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+            maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+            mv.property("pages", Math.min(5, maxpagenr));
           }
         );
       },
@@ -323,8 +373,7 @@ function main()
     }
   });
 
-  selectedListView = RootView.getViewByName("main");
-  selectedListView.property("selected", true);
+  selectList(models.current_list(), RootView.getViewByName("main"));
 
   account.open();
 

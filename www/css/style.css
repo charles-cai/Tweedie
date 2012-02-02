@@ -600,6 +600,7 @@ body
 }
 .readability .inner
 {
+  overflow: hidden;
 }
 .readability .inner img
 {
@@ -619,9 +620,14 @@ body
   font-size: 14px;
   -webkit-column-count: 2;
   -webkit-column-gap: 10px;
-  overflow: scroll;
-  -webkit-overflow-scrolling: touch;
-  height: 800px;
+  height: 788px;
+  -webkit-transform: translate3d(0,0,0);
+  -webkit-transition: -webkit-transform 0.2s ease;
+}
+.readability .text a
+{
+  color: inherit;
+  text-decoration: inherit;
 }
 .readability .footer
 {

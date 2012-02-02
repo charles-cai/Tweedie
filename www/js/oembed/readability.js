@@ -36,6 +36,11 @@ var Readability =
         catch (e)
         {
           Log.exception("Readability failure", e);
+          model.delayUpdate(function()
+          {
+            this.title("Failed");
+            this.text(url);
+          });
         }
         return true;
       }

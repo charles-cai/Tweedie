@@ -1675,6 +1675,13 @@ var View = exports.View = Class(Model,
     return this._stage;
   },
 
+  action: function(name, args)
+  {
+    args = args || {};
+    args.type = name;
+    return RootView._onEvent(name, args);
+  },
+
   identity: function()
   {
     return View.buildIdentity(this.$renderer, this.$model);
@@ -2332,6 +2339,7 @@ var LiveListViewMixin =
 
           count = Math.min(this._liveList._count, this._liveList._page);
           this._liveList._count = 0;
+          this.action("liveList.scroll.insertAbove", { count: count });
           diff = this._prependModels(staging, count);
           this._appendModels(staging, count, this._liveList._page);
           node.style.WebkitTransition = "-webkit-transform " + Math.min(count * 0.25, 1) + "s ease";
@@ -2393,11 +2401,13 @@ var LiveListViewMixin =
     duration = 1000 * (duration || Math.min(Math.max(start / 500, 0.2), 1));
     if (now || !duration)
     {
+      this.action("liveList.scroll.toTop", { animated: false });
       node.scrollTop = 0;
       return true;
     }
     else
     {
+      this.action("liveList.scroll.toTop", { animated: true });
       var startTime = Date.now();
       return Co.Forever(this,
         function()
@@ -2437,6 +2447,7 @@ var LiveListViewMixin =
         if (offset < limit)
         {
           self._appendModels(node, offset, limit);
+          self.action("liveList.scroll.insertBelow", { count: limit - offset });
         }
       }
       else if (container.scrollTop === 0)
@@ -2755,6 +2766,8 @@ var RootView = exports.RootView = Class(View,
       {
         var _maybeClick = null;
         var _maybeDrag = null;
+        var _maybeSwipe = null;
+        var _swipeStart = null;
         var _dragContainer = null;
         var _dragOffset = null;
         var _dropTargets = null;
@@ -2785,7 +2798,8 @@ var RootView = exports.RootView = Class(View,
         {
           if (evt.targetTouches.length === 1)
           {
-            var target = evt.targetTouches[0].target;
+            var touch = evt.targetTouches[0];
+            var target = touch.target;
             if (getComputedStyle(target, null).WebkitUserDrag === "element")
             {
               _maybeDrag = target;
@@ -2796,28 +2810,42 @@ var RootView = exports.RootView = Class(View,
             else
             {
               _maybeClick = target;
+              _maybeSwipe = RootView._findSwipeTarget(target);
+              _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
             }
           }
         });
         target.addEventListener("touchend", function(evt)
         {
-          if (evt.targetTouches.length === 0 && _maybeClick)
+          if (evt.targetTouches.length === 0)
           {
-            switch (_maybeClick.nodeName)
+            if (_maybeClick)
             {
-              case "INPUT":
-              case "TEXTAREA":
-                break;
-              default:
-                var cevt = document.createEvent("MouseEvents");
-                cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
-                _maybeClick.dispatchEvent(cevt);
-                evt.preventDefault();
-                evt.stopPropagation();
-                break;
+              switch (_maybeClick.nodeName)
+              {
+                case "INPUT":
+                case "TEXTAREA":
+                  break;
+                default:
+                  var cevt = document.createEvent("MouseEvents");
+                  cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
+                  _maybeClick.dispatchEvent(cevt);
+                  evt.preventDefault();
+                  evt.stopPropagation();
+                  break;
+              }
+            }
+            else if (_maybeSwipe)
+            {
+              eventHandler(
+              {
+                type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
+                target: _maybeSwipe,
+              });
             }
           }
           _maybeClick = null;
+          _maybeSwipe = null;
           if (_maybeDrag)
           {
             while (_dragContainer.firstChild)
@@ -2881,6 +2909,17 @@ var RootView = exports.RootView = Class(View,
               }
               evt.preventDefault();
             }
+            else if (_maybeSwipe)
+            {
+              if (_maybeSwipe !== RootView._findSwipeTarget(evt.targetTouches[0].target))
+              {
+                _maybeSwipe = null;
+              }
+              else
+              {
+                _swipeStart.hdir = evt.pageX > _swipeStart.x ? "l2r" : "r2l";
+              }
+            }
           }
         });
       }
@@ -2903,6 +2942,18 @@ var RootView = exports.RootView = Class(View,
         {
           return dropTarget;
         }
+      }
+    }
+    return null;
+  },
+
+  _findSwipeTarget: function(target)
+  {
+    for (; target; target = target.parentElement)
+    {
+      if (target && target.dataset && (target.dataset.actionSwipeRight || target.dataset.actionSwipeLeft))
+      {
+        return target;
       }
     }
     return null;
