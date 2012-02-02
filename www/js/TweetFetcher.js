@@ -10,7 +10,7 @@ var TweetFetcher = xo.Class(Events,
     {
       oauth_consumer_key: KEYS.twitter.oauth_consumer_key,
       oauth_consumer_secret: KEYS.twitter.oauth_consumer_secret,
-      callback: Environment.isTouch() ? "http://aanon4.github.com/callback/" : location.origin + "/callback",
+      callback: KEYS.twitter.callback,
       oauth_token: config.oauth && config.oauth.oauth_token,
       oauth_token_secret: config.oauth && config.oauth.oauth_token_secret,
 
@@ -357,7 +357,7 @@ var TweetFetcher = xo.Class(Events,
         try
         {
           var json = r().json();
-          this._account.incoming("searches", json.results);
+          this.emit("searches", json.results);
         }
         catch (e)
         {

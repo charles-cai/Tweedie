@@ -31,7 +31,7 @@ var Account = Class(Events,
           var v = RootView.getViewByName("activity");
           v.property("activity", Math.max(0, (v.property("activity") || 0) + (activity ? 1 : -1)));
         });
-        if (info.userInfo.screen_name)
+        if (info.userInfo && info.userInfo.screen_name)
         {
           this.tweetLists.screenname = "@" + info.userInfo.screen_name;
           this.emit("screenNameChange");
