@@ -44,7 +44,6 @@ var editView = null;
 function main()
 {
   var selectedListView = null;
-  var scrollView = null;
 
   var account = new Account();
 
@@ -67,36 +66,13 @@ function main()
     models.emit("update");
   });
   
-  function onScrollView(evt)
-  {
-    switch (evt)
-    {
-      case "liveList.scroll.toTop":
-        Log.metric("nav", "list.scrollToTop");
-        break;
-      case "liveList.scroll.insertAbove":
-        Log.metric("nav", "list.insertAtTop");
-        break;
-      case "liveList.scroll.insertBelow":
-        Log.metric("nav", "list.scrollDown");
-        break;
-    }
-  }
-  
   function selectList(m, v)
   {
-    var sv = RootView.getViewByName("tweets");
-    if (sv !== scrollView)
-    {
-      scrollView && scrollView.removeEventListener("liveList.scroll.toTop liveList.scroll.insertAbove liveList.scroll.insertBelow", onScrollView);
-      scrollView = sv;
-      scrollView && scrollView.on("liveList.scroll.toTop liveList.scroll.insertAbove liveList.scroll.insertBelow", onScrollView);
-    }
     if (models.current_list() !== m)
     {
       Log.metric("nav", "list:select");
     }
-    scrollView.scrollToTop(models.current_list() !== m);
+    RootView.getViewByName("tweets").scrollToTop(models.current_list() !== m);
     models.current_list(m);
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());
@@ -278,19 +254,45 @@ function main()
           template: partials.readability,
           partials: partials,
           model: readModel,
+          properties:
+          {
+            pages: 0,
+            pagenr: 0,
+            translate: "",
+          },
           controller:
           {
             onForward: function()
             {
-              var r = document.querySelector("#readability-scroller .text");
-              pagenr = Math.min(maxpagenr - 1, pagenr + 1);
-              r.style.WebkitTransform = "translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)";
+              Co.Routine(this,
+                function()
+                {
+                  var r = document.querySelector("#readability-scroller .text");
+                  pagenr = Math.min(maxpagenr - 1, pagenr + 1);
+                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                  Co.Sleep(0.2);
+                },
+                function()
+                {
+                  mv.pagenr(pagenr);
+                }
+              );
             },
             onBackward: function()
             {
-              var r = document.querySelector("#readability-scroller .text");
-              pagenr = Math.max(0, pagenr - 1);
-              r.style.WebkitTransform = "translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)";
+              Co.Routine(this,
+                function()
+                {
+                  var r = document.querySelector("#readability-scroller .text");
+                  pagenr = Math.max(0, pagenr - 1);
+                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                  Co.Sleep(0.2);
+                },
+                function()
+                {
+                  mv.pagenr(pagenr);
+                }
+              );
             }
           }
         });
@@ -312,7 +314,8 @@ function main()
             var r = document.querySelector("#readability-scroller .text");
             var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
             maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-            mv.property("pages", Math.min(5, maxpagenr));
+            mv.pages(Math.min(10, maxpagenr));
+            mv.pagenr(0);
           }
         );
       },

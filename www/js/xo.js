@@ -189,7 +189,14 @@ var Events = exports.Events =
       {
         for (var i = 0, len = e.length; i < len; i += 2)
         {
-          e[i].apply(e[i+1], arguments);
+          try
+          {
+            e[i].apply(e[i+1], arguments);
+          }
+          catch (_)
+          {
+            Log.exception("emit", _);
+          }
         }
         return true;
       }
@@ -293,6 +300,11 @@ var Log = exports.Log = Mixin({}, Events,
         console[type].apply(console, args);
       }
     }
+  },
+
+  action: function(type, action, event)
+  {
+    Log.emit("action", { type: type, action: action, event: event });
   },
 
   metric: function(category, action, value, description)
@@ -1675,11 +1687,13 @@ var View = exports.View = Class(Model,
     return this._stage;
   },
 
-  action: function(name, args)
+  action: function(name, evt)
   {
-    args = args || {};
-    args.type = name;
-    return RootView._onEvent(name, args);
+    evt = evt || {};
+    evt.type = name;
+    evt.target = evt.target || this.node();
+    evt.view = evt.view || this;
+    return RootView._onEvent(evt);
   },
 
   identity: function()
@@ -2339,7 +2353,7 @@ var LiveListViewMixin =
 
           count = Math.min(this._liveList._count, this._liveList._page);
           this._liveList._count = 0;
-          this.action("liveList.scroll.insertAbove", { count: count });
+          this.action("scroll-insert-above", { count: count });
           diff = this._prependModels(staging, count);
           this._appendModels(staging, count, this._liveList._page);
           node.style.WebkitTransition = "-webkit-transform " + Math.min(count * 0.25, 1) + "s ease";
@@ -2401,13 +2415,13 @@ var LiveListViewMixin =
     duration = 1000 * (duration || Math.min(Math.max(start / 500, 0.2), 1));
     if (now || !duration)
     {
-      this.action("liveList.scroll.toTop", { animated: false });
+      this.action("scroll-to-top", { animated: false });
       node.scrollTop = 0;
       return true;
     }
     else
     {
-      this.action("liveList.scroll.toTop", { animated: true });
+      this.action("scroll-to-top", { animated: true });
       var startTime = Date.now();
       return Co.Forever(this,
         function()
@@ -2447,7 +2461,7 @@ var LiveListViewMixin =
         if (offset < limit)
         {
           self._appendModels(node, offset, limit);
-          self.action("liveList.scroll.insertBelow", { count: limit - offset });
+          self.action("scroll-insert-below", { count: limit - offset });
         }
       }
       else if (container.scrollTop === 0)
@@ -2494,6 +2508,7 @@ var StackedViewSetMixin =
       if (!cmodel)
       {
         to.insertAt(idx++, model);
+        state[id] = { first: model, idx: 0 };
       }
       else if (model !== cmodel)
       {
@@ -2517,14 +2532,17 @@ var StackedViewSetMixin =
             var cidx = to.indexOf(cmodel);
             to.remove(cmodel);
             to.insertAt(cidx, model);
+
             delete cmodel.has_children;
             delete cmodel.children;
-            delete this._stacks[id];
+
+            model.has_children = true;
+            model.children = children;
+
+            cs.idx = 0;
+            model = cmodel;
           }
-          else
-          {
-            children.insertAt(cs.idx++, model);
-          }
+          children.insertAt(cs.idx++, model);
         }
       }
     }, this);
@@ -2738,7 +2756,7 @@ var RootView = exports.RootView = Class(View,
         try
         {
           Log.info("Event", evt.type);
-          if (RootView._onEvent("data-action-" + evt.type, evt))
+          if (RootView._onEvent(evt))
           {
             evt.stopPropagation && evt.stopPropagation();
             return false;
@@ -2959,8 +2977,9 @@ var RootView = exports.RootView = Class(View,
     return null;
   },
 
-  _onEvent: function(name, evt)
+  _onEvent: function(evt)
   {
+    var name = "data-action-" + evt.type;
     var ids = RenderQ.ids;
     var action = null;
     var stop = 0;
@@ -3015,6 +3034,9 @@ var RootView = exports.RootView = Class(View,
         }
       }
     }
+
+    Log.action(evt.type, action, evt);
+
     return dispatched > 0;
   },
 

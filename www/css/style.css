@@ -631,14 +631,94 @@ body
 }
 .readability .footer
 {
-  display: none;
   text-align: center;
-  font-size: 12px;
-  padding-top: 20px;
+  height: 14px;
+  margin: 20px auto 0 auto;
+  background-image: url("../img/pages.png");
 }
-.pages1-1, .pages2-2, .pages3-3, .pages4-4, .pages5-5
+.pages0
 {
-  display: block !important;
+  width: 0;
+}
+.pages1
+{
+  width: 14px;
+}
+.pages2
+{
+  width: 28px;
+}
+.pages3
+{
+  width: 42px;
+}
+.pages4
+{
+  width: 56px;
+}
+.pages5
+{
+  width: 70px;
+}
+.pages6
+{
+  width: 84px;
+}
+.pages7
+{
+  width: 98px;
+}
+.pages8
+{
+  width: 112px;
+}
+.pages9
+{
+  width: 126px;
+}
+.pages10
+{
+  width: 140px;
+}
+.pagenr0
+{
+  background-position: -126px 0;
+}
+.pagenr1
+{
+  background-position: -112px 0;
+}
+.pagenr2
+{
+  background-position: -98px 0;
+}
+.pagenr3
+{
+  background-position: -84px 0;
+}
+.pagenr4
+{
+  background-position: -70px 0;
+}
+.pagenr5
+{
+  background-position: -56px 0;
+}
+.pagenr6
+{
+  background-position: -42px 0;
+}
+.pagenr7
+{
+  background-position: -28px 0;
+}
+.pagenr8
+{
+  background-position: -14px 0;
+}
+.pagenr9
+{
+  background-position: 0 0;
 }
 .readability .text p
 {
