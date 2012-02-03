@@ -5,9 +5,28 @@ if (KEYS.ga)
   _gaq.push(['_setAccount', KEYS.ga]);
   _gaq.push(['_trackPageview']);
 
-  Log.on("metric", function(name, info)
+  Log.on("metric", function(evt, info)
   {
     _gaq.push(['_trackEvent', info.category, info.action, info.description, info.value]);
+  });
+
+  Log.on("action", function(evt, info)
+  {
+    if (info.event && info.event.view && info.event.view.$name === "tweets")
+    {
+      switch (info.type)
+      {
+        case "scroll-to-top":
+          Log.metric("nav", "list:scrollToTop");
+          break;
+        case "scroll-insert-above":
+          Log.metric("nav", "list:insertAtTop");
+          break;
+        case "scroll-insert-below":
+          Log.metric("nav", "list:scrollDown");
+          break;
+      }
+    }
   });
 
   (function(){var g=void 0,h=!0,i=null,j=!1,aa=encodeURIComponent,ba=Infinity,ca=setTimeout,da=decodeURIComponent,k=Math;function ea(a,b){return a.onload=b}function fa(a,b){return a.name=b}
