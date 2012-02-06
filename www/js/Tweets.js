@@ -5,7 +5,6 @@ var FilteredTweetsModel = Model.create(
   name: Model.Property,
   canEdit: Model.Property,
   canRemove: Model.Property,
-  type: Model.Property,
   tweets: Model.Property,
   unread: Model.Property,
   velocity: Model.Property,
@@ -28,25 +27,18 @@ var FilteredTweetsModel = Model.create(
 
   restore: function(isNew)
   {
-    var self = this;
-    return Co.Routine(self,
+    return Co.Routine(this,
       function()
       {
-        return isNew || self._restore();
+        return isNew || this._restore();
       },
       function()
       {
-        self.on("update", function()
+        this.on("update", function()
         {
-          self._updateUnread();
-          self._save();
-        });
-        self.tweets().on("insert remove truncate", function()
-        {
-          self._updateUnread();
-          self._save();
-        });
-        self._updateUnread();
+          this._save();
+        }, this);
+        this._updateUnread();
         return true;
       }
     );
@@ -64,11 +56,13 @@ var FilteredTweetsModel = Model.create(
       }
     });
     this.tweets().prepend(ntweets);
+    this._save();
   },
 
   removeTweets: function(tweets)
   {
     this.tweets().remove(tweets);
+    this._save();
   },
 
   addIncludeTag: function(tag)
@@ -115,6 +109,11 @@ var FilteredTweetsModel = Model.create(
     }
   },
 
+  isSearch: function()
+  {
+    return this.title().slice(-1) === "?";
+  },
+
   _tagIndex: function(list, tag)
   {
     for (var i = list.length - 1; i >= 0; i--)
@@ -138,10 +137,10 @@ var FilteredTweetsModel = Model.create(
     }
     else
     {
-      tag = { title: tag.title, type: tag.type, key: tag.key }; // Copy tag
+      var key = tag.type + ":" + tag.key;
       return function(tweet)
       {
-        return tweet.hasTag(tag);
+        return tweet.hasTagKey(key);
       };
     }
   },
@@ -220,6 +219,7 @@ var FilteredTweetsModel = Model.create(
 
   _save: function()
   {
+    this._updateUnread();
     this._store.setAll(
     {
       includeTags: this._includeTags,
@@ -228,7 +228,6 @@ var FilteredTweetsModel = Model.create(
       {
         return tweet.id_str;
       }),
-      type: this.type(),
       lastRead: this.lastRead(),
       viz: this.viz()
     });
@@ -242,7 +241,6 @@ var FilteredTweetsModel = Model.create(
         return this._store.getAll(
         {
           tweets: [],
-          type: this.type() || "tweets",
           lastRead: null,
           viz: this.viz() || "list",
           includeTags: [],
@@ -252,7 +250,6 @@ var FilteredTweetsModel = Model.create(
       function(keys)
       {
         keys = keys();
-        this.type(keys.type);
         this.viz(keys.viz);
         keys.includeTags.forEach(function(t)
         {
@@ -274,7 +271,7 @@ var FilteredTweetsModel = Model.create(
         }, this);
         this.addTweets(tweets);
         this.lastRead(keys.lastRead);
-        this.recalcVelocity(this._tweetLists._getVelocity(this.type()));
+        this.recalcVelocity(this._tweetLists._getVelocity());
         return true;
       }
     );

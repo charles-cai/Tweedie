@@ -9,9 +9,15 @@ var TweetLists = Class(
     var fav = new FilteredTweetsModel({ account: account, title: "Favorites", canEdit: true, canRemoved: false, type: "favs", uuid: "00000000-0000-0000-0000-000000000003" });
     var dms = new FilteredTweetsModel({ account: account, title: "Messages", canEdit: true, canRemoved: false, type: "dms", uuid: "00000000-0000-0000-0000-000000000004" });
     var mentions = new FilteredTweetsModel({ account: account, title: "Mentions", canEdit: true, canRemoved: false, type: "tweets", uuid: "00000000-0000-0000-0000-000000000005" });
-    photos.addIncludeTag({ title: "Photo", type: "photo", key: "photo" });
-    photos.addIncludeTag({ title: "Video", type: "video", key: "video" });
-    mentions.addIncludeTag({ title: "Mention", type: "mention", key: "mention" });
+
+    main.addIncludeTag(Tweet.TweetTag);
+    main.addIncludeTag(Tweet.RetweetTag);
+    main.addExcludeTag(Tweet.FavoriteTag);
+    photos.addIncludeTag(Tweet.PhotoTag);
+    photos.addIncludeTag(Tweet.VideoTag);
+    fav.addIncludeTag(Tweet.FavoriteTag);
+    dms.addIncludeTag(Tweet.DMTag);
+    mentions.addIncludeTag(Tweet.MentionTag);
 
     this._account = account;
     this.screenname = account.userInfo ? "@" + account.userInfo.screen_name : "@...";
@@ -33,14 +39,17 @@ var TweetLists = Class(
     {
       tweets: new IndexedModelSet({ key: "id", limit: 1000 }),
       favs: new IndexedModelSet({ key: "id", limit: 1000 }),
-      dms: new IndexedModelSet({ key: "id", limit: 1000 })
+      dms: new IndexedModelSet({ key: "id", limit: 1000 }),
     };
   },
 
-  createList: function(name, type)
+  createList: function(name)
   {
-    var list = new FilteredTweetsModel({ account: this._account, title: name, uuid: xo.Uuid.create(), canEdit: true, canRemove: true, type: type });
-    this._refilter(list, null);
+    var list = new FilteredTweetsModel({ account: this._account, title: name, uuid: xo.Uuid.create(), canEdit: true, canRemove: true });
+    if (!list.isSearch())
+    {
+      this._refilter(list);
+    }
     var last = list.tweets().models[0];
     list.lastRead(last && last.id());
     this.lists.append(list);
@@ -95,7 +104,6 @@ var TweetLists = Class(
   addExcludeTag: function(list, tag)
   {
     list.addExcludeTag(tag)
-    //this._refilter(list);
   },
 
   removeIncludeTag: function(list, tag)
@@ -128,13 +136,19 @@ var TweetLists = Class(
 
   _refilter: function(list)
   {
+    Log.time("_refilter");
     var listtweets = list.tweets();
     listtweets.removeAll();
-    var tweets = this._types[list.type()];
-    tweets && tweets.forEach(function(tweet)
+    if (!list.isSearch())
     {
-      listtweets.append(tweet);
-    });
+      var tweets = [];
+      for (var type in this._types)
+      {
+        tweets = tweets.concat(this._types[type].models);
+      }
+      listtweets.append(tweets);
+    }
+    Log.timeEnd("_refilter");
   },
 
   addTweets: function(type, tweets, prepend)
@@ -151,7 +165,7 @@ var TweetLists = Class(
           var tweet = this.getTweet(twt.id_str);
           if (!tweet)
           {
-            tweet = new TweetModel(twt, this);
+            tweet = new Tweet(twt, this);
             if (tweet.is_retweet())
             {
               urls = urls.concat(tweet.retweet().urls());
@@ -240,35 +254,50 @@ var TweetLists = Class(
       {
         if (include.length)
         {
-          var o = this._getVelocity(type);
-          this.lists.forEach(function(list)
+          var o = this._getVelocity();
+          if (type === "searches")
           {
-            if (type === list.type())
+            this.lists.forEach(function(list)
             {
-              list.addTweets(include);
-              list.recalcVelocity(o);
-            }
-            else if (type === "un" + list.type())
+              if (list.isSearch())
+              {
+                list.addTweets(include);
+                list.recalcVelocity(o);
+              }
+            });
+          }
+          else if (type.slice(0, 2) !== "un")
+          {
+            this.lists.forEach(function(list)
             {
-              list.removeTweets(include);
-              list.recalcVelocity(o);
-            }
-          });
+              if (!list.isSearch())
+              {
+                list.addTweets(include);
+                list.recalcVelocity(o);
+              }
+            });
+          }
+          else
+          {
+            this.lists.forEach(function(list)
+            {
+              if (!list.isSearch())
+              {
+                list.removeTweets(include);
+                list.recalcVelocity(o);
+              }
+            });
+          }
         }
         return all.length;
       }
     )
   },
   
-  _getVelocity: function(type)
+  _getVelocity: function()
   {
-    var ttype = this._types[type];
-    if (!ttype && type.slice(0, 2) === "un")
-    {
-      ttype = this._types[type.slice(2)];
-    }
     return {
-      maxLength: ttype ? ttype.models.length : 0
+      maxLength: 1000
     }
   },
 
@@ -332,7 +361,7 @@ var TweetLists = Class(
         {
           all[type].forEach(function(tweet)
           {
-            this._types[type].append(this.getTweet("id", tweet.id_str) || new TweetModel(tweet, this));
+            this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this));
           }, this);
         }
 

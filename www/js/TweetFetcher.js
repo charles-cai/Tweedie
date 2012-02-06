@@ -78,7 +78,7 @@ var TweetFetcher = xo.Class(Events,
         return Co.Loop(this, 4,
           function(page)
           {
-            return Ajax.create(
+            return this._ajaxWithRetry(
             {
               method: "GET",
               url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + page()),
@@ -197,6 +197,36 @@ var TweetFetcher = xo.Class(Events,
       }
     );
     return loop;
+  },
+  
+  _ajaxWithRetry: function(config)
+  {
+    var retry = 1;
+    return Co.Forever(this,
+      function()
+      {
+        return Ajax.create(config);
+      },
+      function(r)
+      {
+        try
+        {
+          return Co.Break(r());
+        }
+        catch (e)
+        {
+          if (retry > 4)
+          {
+            throw e;
+          }
+          else
+          {
+            Co.Sleep(retry);
+            retry <<= 1;
+          }
+        }
+      }
+    );
   },
   
   _runUserStreamer: function()
@@ -399,7 +429,7 @@ var TweetFetcher = xo.Class(Events,
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
       proxy: networkProxy,
-      data: "status=" + escape(tweet.text()) + "&in_reply_to_status_id=" + m.replyId()
+      data: "status=" + escape(m.text()) + "&in_reply_to_status_id=" + m.replyId()
     });
   },
 

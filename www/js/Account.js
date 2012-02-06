@@ -97,7 +97,7 @@ var Account = Class(Events,
   favorite: function(tweet)
   {
     this.tweetLists.addTweets("favs", [ tweet.serialize() ]);
-    return this._fetcher.unfavorite(tweet.id());
+    return this._fetcher.favorite(tweet.id());
   },
 
   unfavorite: function(tweet)

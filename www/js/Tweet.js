@@ -1,19 +1,14 @@
-var TweetModel = Model.create(
+var Tweet = Model.create(
 {
   text: Model.Property,
-  favorited: Model.Property,
   created_at: Model.Property,
 
   constructor: function(__super, values, tweetLists)
   {
     this._tweetLists = tweetLists;
     __super(values);
-  },
-
-  emit: function(__super, evt)
-  {
-    this._tags = null;
-    __super(evt);
+    this._buildTags();
+    this._buildImageUrl();
   },
 
   entifiedText: function()
@@ -190,17 +185,39 @@ var TweetModel = Model.create(
   
   profile_image_url: function()
   {
-    if (this._values.user)
+    if (!this._profile_image_url)
     {
-      return this._values.user.profile_image_url;
+      if (this._values.user)
+      {
+        this._profile_image_url = this._values.user.profile_image_url;
+      }
+      else if (this._values.sender)
+      {
+        this._profile_image_url = this._values.sender.profile_image_url;
+      }
+      else
+      {
+        this._profile_image_url = this._values.profile_image_url;
+      }
     }
-    else if (this._values.sender)
+    return this._profile_image_url;
+  },
+  
+  _buildImageUrl: function()
+  {
+    if (this.isDM())
     {
-      return this._values.sender.profile_image_url;
-    }
-    else
-    {
-      return this._values.profile_image_url;
+      Co.Routine(this,
+        function()
+        {
+          return Composite.mergeIcons(this._values.recipient.profile_image_url, this._values.sender.profile_image_url, 48, 32, 5);
+        },
+        function(url)
+        {
+          this._profile_image_url = url();
+          this.emit("update");
+        }
+      );
     }
   },
   
@@ -365,138 +382,158 @@ var TweetModel = Model.create(
     return !!this._values.recipient;
   },
 
-  hasTag: function(tag)
+  hasTagKey: function(key)
   {
-    var type = tag.type;
-    var key = tag.key;
+    return this._tagsHash[key] || false;
+  },
 
-    var tags = this.tags();
-    for (var i = tags.length - 1; i >= 0; i--)
+  favorited: function(nv)
+  {
+    if (this.is_retweet())
     {
-      var t = tags[i];
-      if (t.type === type && t.key === key)
-      {
-        return true;
-      }
+      return this.favorited.apply(this.retweet(), arguments);
     }
-    return false;
+    else if (arguments.length)
+    {
+      var ov = Model.updateProperty(this, "favorited", nv);
+      if (ov !== nv)
+      {
+        this._buildTags();
+      }
+      return ov;
+    }
+    else
+    {
+      return Model.updateProperty(this, "favorited");
+    }
   },
 
   tags: function()
   {
-    if (!this._tags)
+    return this._tags;
+  },
+
+  _buildTags: function()
+  {
+    var used = {};
+    var tags = [];
+    if (this.favorited())
     {
-      var used = {};
-      var tags = [];
-      if (this.favorited())
+      used[Tweet.FavoriteTag.type + ":" + Tweet.FavoriteTag.key] = true;
+      tags.push(Tweet.FavoriteTag);
+    }
+    if (this.is_retweet())
+    {
+      var retweet = this.retweet();
+      retweet._buildTags();
+      tags = tags.concat(retweet._tags);
+      for (var key in retweet._tagsHash)
       {
-        tags.push({ title: "Favorite", type: "fav", key: "favorite" });
+        used[key] = retweet._tagsHash[key];
       }
-      if (this.is_retweet())
+      var name = "@" + this.screen_name();
+      var key = name.toLocaleLowerCase();
+      if (!used["screenname:" + key])
       {
-        tags = this.retweet().tags();
-        var name = "@" + this.screen_name();
-        var i;
-        for (i = tags.length - 1; i >= 0; i--)
+        tags.unshift({ title: name, type: "screenname", key: key });
+        used["screenname:" + key] = true;
+      }
+      delete used[Tweet.TweetTag.type + ":" + Tweet.TweetTag.key];
+      used[Tweet.RetweetTag.type + ":" + Tweet.RetweetTag.key] = true;
+      tags[tags.length - 1] = Tweet.RetweetTag;
+    }
+    else
+    {
+      var name = "@" + this.screen_name();
+      var key = name.toLocaleLowerCase();
+      used["screenname:" + key] = true;
+      tags.push({ title: name, type: "screenname", key: key });
+
+      if (this._values.recipient)
+      {
+        var name = "@" + this._values.recipient.screen_name;
+        var key = name.toLocaleLowerCase();
+        used["screenname:" + key] = true;
+        tags.push({ title: name, type: "screenname", key: key });
+      }
+
+      var entities = this._values.entities;
+      if (entities)
+      {
+        entities.user_mentions && entities.user_mentions.forEach(function(mention)
         {
-          if (tags[i].title === name)
+          var name = "@" + mention.screen_name;
+          var key = name.toLocaleLowerCase();
+          if (!used[key])
           {
-            break;
+            used["screenname:" + key] = true;
+            tags.push({ title: name, type: "screenname", key: key });
+            if (key === this._tweetLists.screenname && !used.mention)
+            {
+              used[Tweet.MentionTag.type + ":" + Tweet.MentionTag.key] = true;
+              tags.push(Tweet.MentionTag);
+            }
           }
-        }
-        if (i == -1)
+        }, this);
+        entities.hashtags && entities.hashtags.forEach(function(hashtag)
         {
-          tags.unshift({ title: name, type: "screenname", key: name.toLocaleLowerCase() });
-        }
-        if (tags[tags.length - 1].type !== "retweet")
+          var key = "#" + hashtag.text.toLocaleLowerCase();
+          if (!used["hashtag:" + key])
+          {
+            used["hashtag:" + key] = true;
+            tags.push({ title: "#" + hashtag.text, type: "hashtag", key: key });
+          }
+        });
+        entities.urls && entities.urls.forEach(function(url)
         {
-          tags.push({ title: "Retweet", type: "retweet", key: "retweet" });
-        }
+          url = url.resolved_url || url.expanded_url;
+          if (url)
+          {
+            var hostname = new Url(url).hostname;
+            if (!used["hostname:" + hostname])
+            {
+              used["hostname:" + hostname] = true;
+              tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
+            }
+          }
+        });
+        entities.media && entities.media.forEach(function(media)
+        {
+          var url = media.resolved_url || media.expanded_url;
+          if (url)
+          {
+            if (media.type === "photo" && !used[Tweet.PhotoTag.type + ":" + Tweet.PhotoTag.key])
+            {
+              used[Tweet.PhotoTag.type + ":" + Tweet.PhotoTag.key] = true;
+              tags.push(Tweet.PhotoTag);
+            }
+            else if (media.type === "video" && !used[Tweet.VideoTag.type + ":" + Tweet.Video.key])
+            {
+              used[Tweet.VideoTag.type + ":" + Tweet.Video.key] = true;
+              tags.push(Tweet.VideoTag);
+            }
+            var hostname = new Url(url).hostname;
+            if (!used["hostname:" + hostname])
+            {
+              used["hostname:" + hostname] = true;
+              tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
+            }
+          }
+        });
+      }
+      if (this._values.recipient)
+      {
+        used[Tweet.DMTag.type + ":" + Tweet.DMTag.key] = true;
+        tags.push(Tweet.DMTag);
       }
       else
       {
-        var name = "@" + this.screen_name();
-        var key = name.toLocaleLowerCase();
-        used[key] = true;
-        tags.push({ title: name, type: "screenname", key: key });
-
-        if (this._values.recipient)
-        {
-          var name = "@" + this._values.recipient.screen_name;
-          var key = name.toLocaleLowerCase();
-          used[key] = true;
-          tags.push({ title: name, type: "screenname", key: key });
-          tags.push({ title: "DM", type: "dm", key: "dm" });
-        }
-
-        var entities = this._values.entities;
-        if (entities)
-        {
-          entities.user_mentions && entities.user_mentions.forEach(function(mention)
-          {
-            var name = "@" + mention.screen_name;
-            var key = name.toLocaleLowerCase();
-            if (!used[key])
-            {
-              used[key] = true;
-              tags.push({ title: name, type: "screenname", key: key });
-              if (key === this._tweetLists.screenname && !used.mention)
-              {
-                used.mention = true;
-                tags.push({ title: "Mention", type: "mention", key: "mention"});
-              }
-            }
-          }, this);
-          entities.hashtags && entities.hashtags.forEach(function(hashtag)
-          {
-            var key = "#" + hashtag.text.toLocaleLowerCase();
-            if (!used[key])
-            {
-              used[key] = true;
-              tags.push({ title: "#" + hashtag.text, type: "hashtag", key: key });
-            }
-          });
-          entities.urls && entities.urls.forEach(function(url)
-          {
-            url = url.resolved_url || url.expanded_url;
-            if (url)
-            {
-              var hostname = new Url(url).hostname;
-              if (!used[hostname])
-              {
-                used[hostname] = true;
-                tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
-              }
-            }
-          });
-          entities.media && entities.media.forEach(function(media)
-          {
-            var url = media.resolved_url || media.expanded_url;
-            if (url)
-            {
-              if (media.type === "photo" && !used.isPhoto)
-              {
-                used.isPhoto = true;
-                tags.push({ title: "Photo", type: "photo", key: "photo" });
-              }
-              else if (media.type === "video" && !used.isVideo)
-              {
-                used.isVideo = true;
-                tags.push({ title: "Video", type: "video", key: "video" });
-              }
-              var hostname = new Url(url).hostname;
-              if (!used[hostname])
-              {
-                used[hostname] = true;
-                tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
-              }
-            }
-          });
-        }
+        used[Tweet.TweetTag.type + ":" + Tweet.TweetTag.key] = true;
+        tags.push(Tweet.TweetTag);
       }
-      this._tags = tags;
     }
-    return this._tags;
+    this._tags = tags;
+    this._tagsHash = used;
   },
 
   is_retweet: function()
@@ -509,7 +546,7 @@ var TweetModel = Model.create(
     if (this._retweet === undefined)
     {
       var rt = this._values.retweeted_status;
-      this._retweet = rt ? new TweetModel(rt, this._tweetLists) : false;
+      this._retweet = rt ? new Tweet(rt, this._tweetLists) : false;
     }
     return this._retweet;
   },
@@ -521,4 +558,13 @@ var TweetModel = Model.create(
     var pathname = fullname.slice(0, 15);
     return url.hostname + pathname + (fullname === pathname ? "" : "...");
   }
+}).statics(
+{
+  TweetTag: { title: "Tweet", type: "tweet", key: "tweet" },
+  RetweetTag: { title: "Retweet", type: "retweet", key: "retweet" },
+  MentionTag: { title: "Mention", type: "mention", key: "mention"},
+  DMTag: { title: "DM", type: "dm", key: "dm" },
+  FavoriteTag: { title: "Favorite", type: "fav", key: "favorite" },
+  PhotoTag: { title: "Photo", type: "photo", key: "photo" },
+  VideoTag: { title: "Video", type: "video", key: "video" }
 });
