@@ -1155,6 +1155,18 @@ var Model = exports.Model = Class(Events,
     };
   },
 
+  updateProperty: function(obj, propname, value)
+  {
+    var ov = obj._values[propname];
+    if (arguments.length === 3 && value !== ov)
+    {
+      obj._values[propname] = value;
+      obj.emit("update." + propname);
+      obj.emit("update");
+    }
+    return ov;
+  },
+
   isInstanceOf: function(m)
   {
     for (; m; m = m.__proto__)
@@ -2287,11 +2299,21 @@ var LiveListViewMixin =
 
   $removeHandler: function(__super, evt, args)
   {
-    if (args.index !== undefined && args.index < this._liveList._count)
+    if (args.index !== undefined)
     {
-      this._liveList._count -= Math.min(args.count, this._liveList._count);
+      if (args.index < this._liveList._count)
+      {
+        var diff = Math.min(args.count, this._liveList._count - args.index);
+        this._liveList._count -= diff;
+        args.count -= diff;
+      }
+      args.index -= this._liveList._count;
+      __super(evt, args);
     }
-    __super(evt, args);
+    else
+    {
+      __super(evt, args);
+    }
   },
 
   html: function()
@@ -2531,13 +2553,15 @@ var StackedViewSetMixin =
           {
             var cidx = to.indexOf(cmodel);
             to.remove(cmodel);
-            to.insertAt(cidx, model);
+            to.insertAt(cidx++, model);
 
             delete cmodel.has_children;
             delete cmodel.children;
+            cmodel.emit("update");
 
             model.has_children = true;
             model.children = children;
+            model.emit("update");
 
             cs.idx = 0;
             model = cmodel;
@@ -3511,6 +3535,7 @@ var ModalView = exports.ModalView = Class(RootView,
 
   close: function()
   {
+    this.action("close");
     this.destructor();
   }
 });

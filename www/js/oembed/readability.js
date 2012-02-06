@@ -7,24 +7,28 @@ var ReadabilityModel = Model.create(
 var Readability =
 {
   _stage: document.createElement("div"),
+  _pending: null,
 
   read: function(model, url)
   {
     return Co.Routine(this,
       function()
       {
-        return Ajax.create(
+        this.close();
+        this._pending =
         {
           method: "POST",
           url: "http://www.readability.com/articles/queue",
           data: "url=" + url,
           proxy: readabilityProxy
-        });
+        };
+        return Ajax.create(this._pending);
       },
       function(r)
       {
         try
         {
+          this._pending = null;
           var stage = this._stage;
           stage.innerHTML = r().text();
           model.delayUpdate(function()
@@ -45,5 +49,14 @@ var Readability =
         return true;
       }
     );
+  },
+
+  close: function()
+  {
+    if (this._pending)
+    {
+      this._pending.abort();
+      this._pending = null;
+    }
   }
 };

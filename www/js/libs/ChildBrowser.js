@@ -76,11 +76,15 @@ ChildBrowser.prototype.jsExec = function(jsString)
 // it will be returned, and also available globally from window.plugins.childBrowser
 ChildBrowser.install = function()
 {
-  if(!window.plugins) {
+  if (!window.plugins)
+  {
     window.plugins = {};
   }
 
-  window.plugins.childBrowser = new ChildBrowser();
+  if (!window.plugins.childBrowser)
+  {
+    window.plugins.childBrowser = new ChildBrowser();
+  }
   return window.plugins.childBrowser;
 };
 

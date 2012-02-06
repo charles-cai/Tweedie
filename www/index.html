@@ -27,8 +27,10 @@
     <script src="js/TweetLists.js"></script>
     <script src="js/TweetFetcher.js"></script>
     <script src="js/Account.js"></script>
-    <script src="js/oembed/Embedly.js"></script>
+    <script src="js/oembed/TwitterUrlExpander.js"></script>
     <script src="js/oembed/readability.js"></script>
+    <script src="js/Composite.js"></script>
+    <script src="js/TweetBox.js"></script>
     <script src="js/app.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
@@ -66,27 +68,6 @@
                   {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}
                   {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}
                 </div>
-              </div>
-              <div class="source">Source: 
-                {{^editMode}}
-                  {{#current_list}}
-                    <span class="tag">{{type}}</span>
-                  {{/current_list}}
-                {{/editMode}}
-                {{#editMode}}
-                  {{#current_list View}}
-                    {{:istweets}}return this.$model.type() === 'tweets' ? 'selected' : ''{{/isfavs}}
-                    {{:isfavs}}return this.$model.type() === 'favs' ? 'selected' : ''{{/isfavs}}
-                    {{:issearches}}return this.$model.type() === 'searches' ? 'selected' : ''{{/isfavs}}
-                    {{:isdms}}return this.$model.type() === 'dms' ? 'selected' : ''{{/isdms}}
-                    <select data-action-change="ChangeTweetSource">
-                      <option value="tweets" {{istweets}}>tweets</option>
-                      <option value="favs" {{isfavs}}>favs</options>
-                      <option value="searches" {{issearches}}>searches</option>
-                      <option value="dms" {{isdms}}>dms</option>
-                    </select>
-                  {{/current_list}}
-                {{/editMode}}
               </div>
               <div class="viz">Visual: 
                 {{^editMode}}
@@ -212,16 +193,17 @@
       </div>
     </div>
     <div id="readability" class="template">
-      <div class="dialog readability{{#show}} show{{/show}}" data-action-click="ReadClose">
-        <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward">
+      <div class="dialog readability{{#show}} show{{/show}}">
+        <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close">
           {{#title}}
             <div class="title">{{{title}}}</div>
-            <div style="{{translate}}" class="text">{{{text}}}</div>
-            <div class="footer pages{{pages}} pagenr{{pagenr}}"></div>
           {{/title}}
           {{^title}}
-            Loading ...
+            <div class="title">Loading ...</div>
           {{/title}}
+          <div style="{{translate}}" class="text">{{{text}}}</div>
+          <div class="footer pages{{pages}} pagenr{{pagenr}}"></div>
+          <div class="web button" data-action-click="OpenWeb">Web</div>
         </div>
       </div>
     </div>
@@ -258,7 +240,7 @@
               <div class="button" data-action-click="CancelButton">Cancel</div>
               {{#isTweet}}<div class="button primary" data-action-click="TweetButton">Tweet</div>{{/isTweet}}
               {{#isRetweet}}<div class="button primary" data-action-click="RetweetButton">Retweet</div>{{/isRetweet}}
-              {{#isReply}}<div class="button primary" data-action-click="RetweetButton">Reply</div>{{/isReply}}
+              {{#isReply}}<div class="button primary" data-action-click="ReplyButton">Reply</div>{{/isReply}}
               {{#isDM}}<div class="button primary" data-action-click="DMButton">Send</div>{{/isDM}}
             </div>
           </div>

@@ -4,40 +4,9 @@ var storageRoot = Environment.isTouch() ? "http://" + host + ":8081" : location.
 var networkProxy = Environment.isTouch() ? null : "http://" + host + ":8081/api/twitter/";
 var streamProxy = Environment.isTouch() ? null : "http://" + host + ":8081/userstream/twitter/";
 var readabilityProxy = Environment.isTouch() ? null : "http://" + host + ":8081/readability/";
+var imageProxy = Environment.isTouch() ? null : "http://" + host + ":8081/image/";
 
 var partials;
-
-var NewTweetModel = Model.create(
-{
-  _split: /(https?:\/\/\S*)/, // Need a better pattern
-
-  text: Model.Property,
-  replyId: Model.Property,
-  screen_name: Model.Property,
-  count: function()
-  {
-    var count = 140;
-    this.text().split(this._split).forEach(function(txt, idx)
-    {
-      if (idx % 2 === 1)
-      {
-        if (txt.slice(0, 5) === "https")
-        {
-          count -= Math.min(txt.length, 21);
-        }
-        else
-        {
-          count -= Math.min(txt.length, 20);
-        }
-      }
-      else
-      {
-        count -= txt.length;
-      }
-    });
-    return count;
-  }
-});
 
 var editView = null;
 
@@ -99,30 +68,27 @@ function main()
       onSelectList: function(m, v)
       {
         selectList(m, v);
-        switch (m.type())
+        if (m.isSearch())
         {
-          case "searches":
-            var query = "";
-            m.includeTags().forEach(function(tag)
+          var query = "";
+          m.includeTags().forEach(function(tag)
+          {
+            switch (tag.tag.type)
             {
-              switch (tag.tag.type)
-              {
-                case "screenname":
-                case "hashtag":
-                case "hostname":
-                case "search":
-                  query += tag.tag.key + " ";
-                  break;
-                default:
-                  break;
-              }
-            });
-            if (query)
-            {
-              account.search(query.slice(0, -1));
+              case "screenname":
+              case "hashtag":
+              case "hostname":
+              case "search":
+                query += tag.tag.key + " ";
+                break;
+              default:
+                break;
             }
-          default:
-            break;
+          });
+          if (query)
+          {
+            account.search(query.slice(0, -1));
+          }
         }
       },
       onDropToList: function(m, v)
@@ -132,7 +98,11 @@ function main()
       onDropToNewList: function(m, v)
       {
         var listName = v.dropped().title;
-        var list = account.tweetLists.createList(listName, listName[0] === "#" ? "searches" : "tweets");
+        if (listName[0] === "#")
+        {
+          listName += "?";
+        }
+        var list = account.tweetLists.createList(listName);
         if (list)
         {
           account.tweetLists.addIncludeTag(list, v.dropped());
@@ -245,7 +215,11 @@ function main()
       onUrl: function(m, v, e)
       {
         Log.metric("details", "url");
-        var readModel = new ReadabilityModel();
+        var url = e.target.dataset.href;
+        var readModel = new ReadabilityModel(
+        {
+          text: ""
+        });
         var pagenr = 0;
         var maxpagenr = 0;
         var mv = new ModalView(
@@ -275,6 +249,7 @@ function main()
                 function()
                 {
                   mv.pagenr(pagenr);
+                  Log.metric("details", "url:page:forward", pagenr);
                 }
               );
             },
@@ -291,8 +266,24 @@ function main()
                 function()
                 {
                   mv.pagenr(pagenr);
+                  Log.metric("details", "url:page:backward", pagenr);
                 }
               );
+            },
+            onOpenWeb: function()
+            {
+              var browser = ChildBrowser.install();
+              browser.onClose = function()
+              {
+                Readability.close();
+                mv.close();
+              };
+              browser.showWebPage(url);
+              Log.metric("details", "url:inBrowser");
+            },
+            onClose: function()
+            {
+              Readability.close();
             }
           }
         });
@@ -303,7 +294,7 @@ function main()
         Co.Routine(this,
           function()
           {
-            return Readability.read(readModel, e.target.dataset.href);
+            return Readability.read(readModel, url);
           },
           function()
           {
@@ -313,8 +304,17 @@ function main()
           {
             var r = document.querySelector("#readability-scroller .text");
             var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-            maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-            mv.pages(Math.min(10, maxpagenr));
+            var images = r.querySelectorAll("img");
+            function recalc()
+            {
+              maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+              mv.pages(Math.min(10, maxpagenr));
+            }
+            for (var i = 0; i < images.length; i++)
+            {
+              images[i].onload = recalc;
+            }
+            recalc();
             mv.pagenr(0);
           }
         );
@@ -357,11 +357,13 @@ function main()
         {
           if (m.favorited())
           {
-            account.unfavorite(m);
+            m.favorited(false);
+            account.unfavorite(m.is_retweet() ? m.retweet() : m);
           }
           else
           {
-            account.favorite(m);
+            m.favorited(true);
+            account.favorite(m.is_retweet() ? m.retweet() : m);
           }
         }
       },
@@ -404,75 +406,7 @@ function main()
 
 function openTweetDialog(account, type, tweet)
 {
-  if (tweet && tweet.is_retweet())
-  {
-    tweet = tweet.retweet();
-  }
-  var text = type === "reply" ? "@" + tweet.screen_name() : type === "retweet" ? tweet.text() : "";
-  var send = new NewTweetModel(
-  {
-    text: text,
-    replyId: tweet && tweet.id(),
-    screen_name: tweet && tweet.screen_name()
-  });
-  new ModalView(
-  {
-    node: document.getElementById("root-dialog"),
-    template: partials.tweet_dialog,
-    partials: partials,
-    model: send,
-    clickToClose: false,
-    properties:
-    {
-      isEdit: type !== "retweet",
-      isReply: type === "reply",
-      isRetweet: type === "retweet",
-      isTweet: type === "tweet",
-      isDM: type === "dm"
-    },
-    controller:
-    {
-      onEdit: function(m, v)
-      {
-        v.update(
-        {
-          isRetweet: false,
-          isTweet: true,
-          isEdit: true,
-          isDM: false
-        });
-        m.text('"@' + (tweet.is_retweet() ? tweet.retweet().screen_name() : tweet.screen_name()) + ': ' + m.text() + '"');
-      },
-      onTweetButton: function(m, v)
-      {
-        Log.metric("tweet", type === "retweet" ? "comment" : type);
-        account.tweet(m);
-        v.close();
-      },
-      onRetweetButton: function(m, v)
-      {
-        Log.metric("tweet", "retweet");
-        account.retweet(tweet.id());
-        v.close();
-      },
-      onReplyButton: function(m, v)
-      {
-        Log.metric("tweet", "reply");
-        account.reply(m);
-        v.close();
-      },
-      onDMButton: function(m, v)
-      {
-        Log.metric("tweet", "dm");
-        account.dm(m);
-        v.close();
-      },
-      onCancelButton: function(m, v)
-      {
-        v.close();
-      }
-    }
-  });
+  new TweetBox().open(account, type, tweet);
 }
 
 function findTemplates()
