@@ -6,10 +6,9 @@ body
   width: 768px;
   height: 1000px;
   font-family: "Helvetica Neue", "Helvetica";
-  background-color: #ddd;
+  background-color: rgb(146,228,232);
   overflow: hidden;
   z-index: 1;
-  background-image: url("../img/bg.gif");
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
 }
@@ -257,6 +256,7 @@ body
 }
 .tweet
 {
+  position: relative;
   font-size: 15px;
   padding: 10px;
   clear: both;
@@ -320,7 +320,7 @@ body
 }
 .tweet .tags
 {
-  padding: 4px 0px 0px 56px;
+  padding: 4px 130px 0px 56px;
 }
 .tags > .view, .list-tags > .view
 {
@@ -386,13 +386,11 @@ body
   float: right;
   cursor: pointer;
 }
-.tweet .menu-anchor
-{
-  float: right;
-}
 .tweet .actions
 {
-  float: right;
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
 }
 .tweet .actions .child-count
 {
@@ -408,32 +406,39 @@ body
 .tweet .actions .action-box
 {
   display: inline-block;
-  height: 16px;
-  width: 32px;
+  height: 20px;
+  margin-left: 20px;
 }
 .tweet .actions .action
 {
   display: inline-block;
-  height: 16px;
-  width: 16px;
-  background: url("../img/everything-spritev2.png") no-repeat left top;
-  margin-left: 8px;
+  height: 20px;
+  background: url("../img/tweet-icons.png") no-repeat left top;
+  opacity: 0.2;
+}
+.tweet .actions .action:active
+{
+  opacity: 1;
 }
 .tweet .actions .action.reply
 {
-  background-position: 0px 0px;
+  width: 20px;
+  background-position: -71px 0;
 }
 .tweet .actions .action.retweet
 {
-  background-position: -80px 0px;
+  width: 28px;
+  background-position: -43px 0;
 }
 .tweet .actions .action.favorite
 {
-  background-position: -32px 0px;
+  width: 21px;
+  background-position: -21px 0;
 }
 .tweet .actions .action.favorite.active
 {
-  background-position: -64px 0px;
+  width: 21px;
+  background-position: 0 0;
 }
 .nested-tweets
 {
@@ -598,15 +603,15 @@ body
 .readability
 {
 }
-.readability .inner
+.readability > .inner
 {
   overflow: hidden;
 }
-.readability .inner img
+.readability > .inner img
 {
   max-width: 100%;
 }
-.readability .title
+.readability > .inner > .title
 {
   height: 27px;
   overflow: hidden;
@@ -615,7 +620,7 @@ body
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.readability .text
+.readability > .inner > .text
 {
   font-size: 14px;
   -webkit-column-count: 2;
@@ -624,25 +629,27 @@ body
   -webkit-transform: translate3d(0,0,0);
   -webkit-transition: -webkit-transform 0.2s ease;
 }
-.readability .text a
+.readability > .inner > .text a
 {
   color: inherit;
   text-decoration: inherit;
 }
-.readability .footer
+.readability > .inner > .footer
 {
   text-align: center;
   height: 14px;
   margin: 20px auto 0 auto;
   background-image: url("../img/pages.png");
 }
-.pages0
+.readability > .inner > .web
+{
+  position: relative;
+  bottom: 16px;
+  right: -570px;
+}
+.pages0, .pages1
 {
   width: 0;
-}
-.pages1
-{
-  width: 14px;
 }
 .pages2
 {
@@ -727,13 +734,6 @@ body
 .readability .hidden, .readability #rdb-article-marketing, .readability .text hr
 {
   display: none;
-}
-.readability #main-content-picture, .readability .body-narrow-width
-{
-  float: right;
-  width: 50%;
-  padding: 20px;
-  font-size: 12px;
 }
 .readability #main-content-picture img, .readability .body-narrow-width img
 {
