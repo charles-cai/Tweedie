@@ -43,7 +43,7 @@ var TweetBox = Class(
     {
       text: text,
       replyId: tweet && tweet.id(),
-      screen_name: tweet && tweet.screen_name()
+      screen_name: tweet && tweet.conversation()
     });
     var mv = new ModalView(
     {
