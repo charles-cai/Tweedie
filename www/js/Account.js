@@ -4,6 +4,7 @@ var Account = Class(Events,
 
   constructor: function(userInfo)
   {
+    this.profiles = new ProfileManager(this);
     this.tweetLists = new TweetLists(this);
   },
 
@@ -105,10 +106,25 @@ var Account = Class(Events,
     this.tweetLists.addTweets("unfavs", [ tweet.serialize() ]);
     return this._fetcher.unfavorite(tweet.id());
   },
+  
+  follow: function(user)
+  {
+    return this._fetcher.follow(user.id());
+  },
+
+  unfollow: function(user)
+  {
+    return this._fetcher.unfollow(user.id());
+  },
 
   search: function(query)
   {
     return this._fetcher.fetchSearch(query);
+  },
+
+  profileById: function(id)
+  {
+    return this.profiles.profileById(id);
   },
 
   serialize: function()

@@ -374,6 +374,43 @@ function main()
       onSendReply: function(tweet)
       {
         openTweetDialog(account, tweet.isDM() ? "dm" : "reply", tweet);
+      },
+      onProfilePic: function(tweet)
+      {
+        Co.Routine(this,
+          function()
+          {
+            if (tweet.is_retweet())
+            {
+              tweet = tweet.retweet();
+            }
+            return account.profileById(tweet.user().id);
+          },
+          function(p)
+          {
+            p = p();
+            new ModalView(
+            {
+              node: document.getElementById("root-dialog"),
+              template: partials.tweet_profile,
+              partials: partials,
+              model: p,
+              controller:
+              {
+                onFollow: function()
+                {
+                  p.followed_by(true);
+                  account.follow(p);
+                },
+                onUnfollow: function()
+                {
+                  p.followed_by(false);
+                  account.unfollow(p);
+                }
+              }
+            });
+          }
+        );
       }
     }
   });

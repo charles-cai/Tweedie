@@ -465,5 +465,67 @@ var TweetFetcher = xo.Class(Events,
       auth: this._auth,
       proxy: networkProxy
     });
+  },
+
+  follow: function(id)
+  {
+    return Ajax.create(
+    {
+      method: "POST",
+      url: "https://api.twitter.com/1/friendships/create.json?user_id=" + id,
+      auth: this._auth,
+      proxy: networkProxy
+    });
+  },
+
+  unfollow: function(id)
+  {
+    return Ajax.create(
+    {
+      method: "POST",
+      url: "https://api.twitter.com/1/friendships/destroy.json?user_id=" + id,
+      auth: this._auth,
+      proxy: networkProxy
+    });
+  },
+
+  profileById: function(id)
+  {
+    return Co.Routine(this,
+      function()
+      {
+        return Ajax.create(
+        {
+          method: "GET",
+          url: "http://api.twitter.com/1/users/show.json?include_entities=true&user_id=" + id,
+          auth: this._auth,
+          proxy: networkProxy
+        });
+      },
+      function(r)
+      {
+        return r().json();
+      }
+    );
+  },
+
+  relationshipBy: function(id)
+  {
+    return Co.Routine(this,
+      function()
+      {
+        return Ajax.create(
+        {
+          method: "GET",
+          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._userInfo.user_id + "&target_id=" + id,
+          auth: this._auth,
+          proxy: networkProxy
+        });
+      },
+      function(r)
+      {
+        return r().json();
+      }
+    );
   }
 });

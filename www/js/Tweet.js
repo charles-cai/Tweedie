@@ -1,5 +1,6 @@
 var Tweet = Model.create(
 {
+  id: Model.ReadOnlyProperty("id_str"),
   text: Model.Property,
   created_at: Model.Property,
 
@@ -123,11 +124,6 @@ var Tweet = Model.create(
     return this._text;
   },
 
-  id: function()
-  {
-    return this._values.id_str;
-  },
-
   name: function()
   {
     if (this._values.user)
@@ -202,7 +198,12 @@ var Tweet = Model.create(
     }
     return this._profile_image_url;
   },
-  
+
+  user: function()
+  {
+    return this._values.user;
+  },
+
   _buildImageUrl: function()
   {
     if (this.isDM())
@@ -351,6 +352,7 @@ var Tweet = Model.create(
           media.resolved_display_url = this.make_display_url(o.url);
         }
       }, this);
+      this._buildTags();
     }
   },
 

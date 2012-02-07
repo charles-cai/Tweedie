@@ -31,6 +31,7 @@
     <script src="js/oembed/readability.js"></script>
     <script src="js/Composite.js"></script>
     <script src="js/TweetBox.js"></script>
+    <script src="js/Profile.js"></script>
     <script src="js/app.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
@@ -173,7 +174,7 @@
       {{/_ View}}
     </div>
     <div id="inner_tweet" class="template">
-      <img class="icon" src={{profile_image_url}}>
+      <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">
       <div class="body">
         <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp">{{created_since}}</span>
         <div class="text">{{{entifiedText}}}</div>
@@ -243,6 +244,31 @@
               {{#isReply}}<div class="button primary" data-action-click="ReplyButton">Reply</div>{{/isReply}}
               {{#isDM}}<div class="button primary" data-action-click="DMButton">Send</div>{{/isDM}}
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="tweet_profile" class="template">
+      <div class="dialog tweet-profile">
+        <div class="inner">
+          <div class="left">
+            <img class="icon" src="{{profile_image_url}}">
+            <div class="body">
+              <span class="fullname">{{name}}</span>
+              <span class="screenname">@{{screen_name}}</span>
+              <div class="description">{{description}}</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="tweet-nr">Tweets: {{tweet_count}}</div>
+            <div class="following-nr">Following: {{friends_count}}</div>
+            <div class="followers-nr">Followers: {{followers_count}}</div>
+            {{#followed_by}}
+              <div class="button unfollow" data-action-click="Unfollow">Unfollow</div>
+            {{/followed_by}}
+            {{^followed_by}}
+              <div class="button follow" data-action-click="Follow">Follow</div>
+            {{/followed_by}}
           </div>
         </div>
       </div>

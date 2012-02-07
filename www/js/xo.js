@@ -1036,7 +1036,14 @@ var Co = exports.Co =
     );
   }
 };
-function _ModelProperty(){}
+function _ModelProperty(prop)
+{
+  return Model.makeProperty(prop);
+}
+function _ModelROProperty(prop)
+{
+  return Model.makeReadOnlyProperty(prop);
+}
 var Model = exports.Model = Class(Events,
 {
   classConstructor: function()
@@ -1044,9 +1051,14 @@ var Model = exports.Model = Class(Events,
     var prototype = this.prototype;
     for (var prop in prototype)
     {
-      if (prototype[prop] === _ModelProperty)
+      var p = prototype[prop];
+      if (p === _ModelProperty)
       {
         prototype[prop] = Model.makeProperty(prop);
+      }
+      else if (p === _ModelROProperty)
+      {
+        prototype[prop] = Model.makeReadOnlyProperty(prop);
       }
     }
   },
@@ -1125,6 +1137,7 @@ var Model = exports.Model = Class(Events,
   _nextSeq: 1,
 
   Property: _ModelProperty,
+  ReadOnlyProperty: _ModelROProperty,
 
   create: function(methods)
   {
@@ -1152,6 +1165,18 @@ var Model = exports.Model = Class(Events,
         this.emit("update");
       }
       return ov;
+    };
+  },
+
+  makeReadOnlyProperty: function(prop)
+  {
+    return function()
+    {
+      if (arguments.length)
+      {
+        throw new Error("Read-only property: " + prop);
+      }
+      return this._values[prop];
     };
   },
 

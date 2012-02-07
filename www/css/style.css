@@ -264,7 +264,7 @@ body
   border-bottom: 1px solid #ddd;
   background-color: #fefbf3;
 }
-.tweet .icon
+.icon
 {
   margin-top: 2px;
   width: 48px;
@@ -272,15 +272,15 @@ body
   float: left;
   -webkit-border-radius: 5px;
 }
-.tweet .body
+.body
 {
   padding-left: 56px;
 }
-.tweet .fullname
+.fullname
 {
   font-weight: bold;
 }
-.tweet .screenname
+.screenname
 {
   color: #808080;
   font-size: 12px;
@@ -746,5 +746,32 @@ body
 .readability .story-date
 {
   font-size: 10px;
+}
+.tweet-profile
+{
+}
+.tweet-profile .inner
+{
+  height: auto;
+}
+.tweet-profile .left
+{
+  display: inline-block;
+  width: 70%;
+  vertical-align: top;
+}
+.tweet-profile .right
+{
+  display: inline-block;
+  padding-top: 29px;
+  vertial-align: top;
+}
+.tweet-profile .description
+{
+  padding-top: 10px;
+}
+.tweet-profile .button.follow, .tweet-profile .button.unfollow
+{
+  margin-top: 10px;
 }
 
