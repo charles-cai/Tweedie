@@ -489,15 +489,16 @@ var TweetFetcher = xo.Class(Events,
     });
   },
 
-  profileById: function(id)
+  profile: function(name, id)
   {
+    var key = name ? "screen_name=" + name : "user_id=" + id;
     return Co.Routine(this,
       function()
       {
         return Ajax.create(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/users/show.json?include_entities=true&user_id=" + id,
+          url: "http://api.twitter.com/1/users/show.json?include_entities=true&" + key,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -509,15 +510,16 @@ var TweetFetcher = xo.Class(Events,
     );
   },
 
-  relationshipBy: function(id)
+  relationship: function(name, id)
   {
+    var key = name ? "target_screen_name=" + name : "target_id=" + id;
     return Co.Routine(this,
       function()
       {
         return Ajax.create(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._userInfo.user_id + "&target_id=" + id,
+          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._userInfo.user_id + "&" + key,
           auth: this._auth,
           proxy: networkProxy
         });

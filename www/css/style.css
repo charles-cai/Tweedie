@@ -272,6 +272,10 @@ body
   float: left;
   -webkit-border-radius: 5px;
 }
+.icon:active
+{
+  opacity: 0.5;
+}
 .body
 {
   padding-left: 56px;
@@ -643,9 +647,9 @@ body
 }
 .readability > .inner > .web
 {
-  position: relative;
-  bottom: 16px;
-  right: -570px;
+  position: absolute;
+  bottom: 50px;
+  right: 70px;
 }
 .pages0, .pages1
 {
@@ -749,29 +753,82 @@ body
 }
 .tweet-profile
 {
+  padding-top: 200px;
+}
+.tweet-profile .border
+{
+  padding: 10px;
+  background-color: white;
+  -webkit-border-radius: 5px;
+  -webkit-box-shadow: 0 0 10px #444;
+}
+.tweet-profile .background
+{
+  padding: 50px 0 0 75px;
+  -webkit-border-radius: 5px;
 }
 .tweet-profile .inner
 {
-  height: auto;
+  min-height: 165px;
+  background-color: rgba(255,255,255,0.9);
+  -webkit-box-shadow: none;
+  -webkit-border-radius: 0;
+  border-top-left-radius: 5px;
 }
 .tweet-profile .left
 {
   display: inline-block;
-  width: 70%;
+  width: 65%;
   vertical-align: top;
+}
+.tweet-profile .location
+{
+  padding: 4px 0 0 56px;
+  font-size: 12px;
+}
+.tweet-profile .url
+{
+  padding-left: 56px;
+  font-size: 10px;
 }
 .tweet-profile .right
 {
   display: inline-block;
-  padding-top: 29px;
-  vertial-align: top;
+  width: 34%;
+  vertical-align: top;
+}
+.tweet-profile .stats
+{
+  width: 100%;
+  border: solid 1px #ddd;
+  -webkit-border-radius: 4px;
+  background-color: #f4f4f4;
+  margin-top: 2px;
+}
+.tweet-profile .stats > div
+{
+  padding: 5px;
+}
+.tweet-profile .stats .label
+{
+  display: inline-block;
+  width: 50%;
+  font-variant: small-caps;
+}
+.tweet-profile .stats > div:nth-child(even)
+{
+  background-color: white;
 }
 .tweet-profile .description
 {
+  width: 95%;
+  font: 15px;
   padding-top: 10px;
+  clear: both;
 }
 .tweet-profile .button.follow, .tweet-profile .button.unfollow
 {
-  margin-top: 10px;
+  margin-top: 40px;
+  float: right;
 }
 

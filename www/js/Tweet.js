@@ -104,7 +104,7 @@ var Tweet = Model.create(
               text += '<span class="url" data-action-click="Url" data-href="' + t.entity.url + '" title="' + (t.entity.resolved_url || t.entity.url) +'">' + durl(t) + '</span>';
               break;
             case "user_mentions":
-              text += '<span class="user_mention" data-action-click="Mention">' + t.value + '</span>';
+              text += '<span class="user_mention" data-action-click="Mention" data-name="' + t.value + '">' + t.value + '</span>';
               break;
             case "hashtags":
               text += '<span class="hashtag" data-action-click="Hashtag">' + t.value + '</span>';
@@ -201,7 +201,25 @@ var Tweet = Model.create(
 
   user: function()
   {
-    return this._values.user;
+    if (this._values.user)
+    {
+      return this._values.user;
+    }
+    else if (this._values.sender)
+    {
+      if ("@" + this._values.sender.screen_name.toLocaleLowerCase() === this._tweetLists.screenname)
+      {
+        return this._values.recipient;
+      }
+      else
+      {
+        return this._values.sender;
+      }
+    }
+    else
+    {
+      return this._values;
+    }
   },
 
   _buildImageUrl: function()

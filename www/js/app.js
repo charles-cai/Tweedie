@@ -1,10 +1,9 @@
 
-var host = "havelock.local.";
-var storageRoot = Environment.isTouch() ? "http://" + host + ":8081" : location.origin;
-var networkProxy = Environment.isTouch() ? null : "http://" + host + ":8081/api/twitter/";
-var streamProxy = Environment.isTouch() ? null : "http://" + host + ":8081/userstream/twitter/";
-var readabilityProxy = Environment.isTouch() ? null : "http://" + host + ":8081/readability/";
-var imageProxy = Environment.isTouch() ? null : "http://" + host + ":8081/image/";
+var storageRoot = location.origin;
+var networkProxy = Environment.isTouch() ? null : location.origin + "/api/twitter/";
+var streamProxy = Environment.isTouch() ? null : location.origin + "/userstream/twitter/";
+var readabilityProxy = Environment.isTouch() ? null : location.origin + "/readability/";
+var imageProxy = Environment.isTouch() ? null : location.origin + "/image/";
 
 var partials;
 
@@ -375,6 +374,20 @@ function main()
       {
         openTweetDialog(account, tweet.isDM() ? "dm" : "reply", tweet);
       },
+      onMention: function(m, v, e)
+      {
+        var screenName = e.target.dataset.name.slice(1);
+        Co.Routine(this,
+          function()
+          {
+            return account.profileByName(screenName);
+          },
+          function(p)
+          {
+            openProfileDialog(account, p());
+          }
+        );
+      },
       onProfilePic: function(tweet)
       {
         Co.Routine(this,
@@ -384,31 +397,11 @@ function main()
             {
               tweet = tweet.retweet();
             }
-            return account.profileById(tweet.user().id);
+            return account.profileByUser(tweet.user());
           },
           function(p)
           {
-            p = p();
-            new ModalView(
-            {
-              node: document.getElementById("root-dialog"),
-              template: partials.tweet_profile,
-              partials: partials,
-              model: p,
-              controller:
-              {
-                onFollow: function()
-                {
-                  p.followed_by(true);
-                  account.follow(p);
-                },
-                onUnfollow: function()
-                {
-                  p.followed_by(false);
-                  account.unfollow(p);
-                }
-              }
-            });
+            openProfileDialog(account, p());
           }
         );
       }
@@ -444,6 +437,30 @@ function main()
 function openTweetDialog(account, type, tweet)
 {
   new TweetBox().open(account, type, tweet);
+}
+
+function openProfileDialog(account, profile)
+{
+  new ModalView(
+  {
+    node: document.getElementById("root-dialog"),
+    template: partials.tweet_profile,
+    partials: partials,
+    model: profile,
+    controller:
+    {
+      onFollow: function()
+      {
+        profile.followed_by(true);
+        account.follow(profile);
+      },
+      onUnfollow: function()
+      {
+        profile.followed_by(false);
+        account.unfollow(profile);
+      }
+    }
+  });
 }
 
 function findTemplates()

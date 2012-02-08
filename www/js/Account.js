@@ -122,9 +122,14 @@ var Account = Class(Events,
     return this._fetcher.fetchSearch(query);
   },
 
-  profileById: function(id)
+  profileByUser: function(user)
   {
-    return this.profiles.profileById(id);
+    return this.profiles.profileByUser(user);
+  },
+
+  profileByName: function(name)
+  {
+    return this.profiles.profileByName(name);
   },
 
   serialize: function()

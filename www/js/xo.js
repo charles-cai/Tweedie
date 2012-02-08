@@ -1155,7 +1155,7 @@ var Model = exports.Model = Class(Events,
 
   makeProperty: function(prop)
   {
-    return function(v)
+    /*return function(v)
     {
       var ov = this._values[prop];
       if (arguments.length && v !== ov)
@@ -1165,19 +1165,25 @@ var Model = exports.Model = Class(Events,
         this.emit("update");
       }
       return ov;
-    };
+    };*/
+    return new Function("v",
+      "var ov = this._values." + prop + ";if (arguments.length && v !== ov) { this._values." + prop + " = v; this.emit('update." + prop + "'); this.emit('update'); } return ov;"
+    );
   },
 
   makeReadOnlyProperty: function(prop)
   {
-    return function()
+    /*return function()
     {
       if (arguments.length)
       {
         throw new Error("Read-only property: " + prop);
       }
       return this._values[prop];
-    };
+    };*/
+    return new Function(
+      "if (arguments.length) { throw new Error('Read-only property: " + prop + "'); } return this._values." + prop + ";"
+    );
   },
 
   updateProperty: function(obj, propname, value)
