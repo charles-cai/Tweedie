@@ -38,6 +38,7 @@ var TweetLists = Class(
     this._types =
     {
       tweets: new IndexedModelSet({ key: "id", limit: 1000 }),
+      mentions: new IndexedModelSet({ key: "id", limit: 100 }),
       favs: new IndexedModelSet({ key: "id", limit: 1000 }),
       dms: new IndexedModelSet({ key: "id", limit: 1000 }),
     };
@@ -151,10 +152,11 @@ var TweetLists = Class(
     Log.timeEnd("_refilter");
   },
 
-  addTweets: function(type, tweets, prepend)
+  addTweets: function(type, tweets)
   {
     var include = [];
     var all = [];
+    var mentions = [];
     return Co.Lock(this,
       function()
       {
@@ -174,7 +176,11 @@ var TweetLists = Class(
             {
               urls = urls.concat(tweet.urls());
             }
-            all.push(tweet)
+            all.push(tweet);
+            if (tweet.isMention())
+            {
+              mentions.push(tweet);
+            }
           }
           else if (!target || !target.findByProperty("id", tweet.id()))
           {
@@ -225,6 +231,7 @@ var TweetLists = Class(
                   if (target)
                   {
                     target.prepend(all);
+                    this._types.mentions.prepend(mentions);
                     this._save();
                   }
                   return true;
