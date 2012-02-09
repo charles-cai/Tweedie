@@ -1,5 +1,4 @@
 
-var storageRoot = location.origin;
 var networkProxy = Environment.isTouch() ? null : location.origin + "/api/twitter/";
 var streamProxy = Environment.isTouch() ? null : location.origin + "/userstream/twitter/";
 var readabilityProxy = Environment.isTouch() ? null : location.origin + "/readability/";
@@ -350,29 +349,34 @@ function main()
       {
         openTweetDialog(account, "tweet");
       },
+      onComposeDM: function()
+      {
+        openTweetDialog(account, "dm");
+      },
       onToggleFavorite: function(m)
       {
-        if (!m.isDM())
+        if (m.favorited())
         {
-          if (m.favorited())
-          {
-            m.favorited(false);
-            account.unfavorite(m.is_retweet() ? m.retweet() : m);
-          }
-          else
-          {
-            m.favorited(true);
-            account.favorite(m.is_retweet() ? m.retweet() : m);
-          }
+          m.favorited(false);
+          account.unfavorite(m.is_retweet() ? m.retweet() : m);
+        }
+        else
+        {
+          m.favorited(true);
+          account.favorite(m.is_retweet() ? m.retweet() : m);
         }
       },
       onSendRetweet: function(tweet)
       {
-        openTweetDialog(account, tweet.isDM() ? "dm" : "retweet", tweet);
+        openTweetDialog(account, "retweet", tweet);
       },
       onSendReply: function(tweet)
       {
-        openTweetDialog(account, tweet.isDM() ? "dm" : "reply", tweet);
+        openTweetDialog(account, "reply", tweet);
+      },
+      onSendDM: function(tweet)
+      {
+        openTweetDialog(account, "dm", tweet);
       },
       onMention: function(m, v, e)
       {

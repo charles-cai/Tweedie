@@ -399,7 +399,12 @@ var Tweet = Model.create(
 
   isDM: function()
   {
-    return !!this._values.recipient;
+    return this.hasTagKey(Tweet.DMTag.type + ":" + Tweet.DMTag.key);
+  },
+
+  isMention: function()
+  {
+    return this.hasTagKey(Tweet.MentionTag.type + ":" + Tweet.MentionTag.key);
   },
 
   hasTagKey: function(key)

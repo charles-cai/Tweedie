@@ -441,7 +441,7 @@ var TweetFetcher = xo.Class(Events,
       url: "https://api.twitter.com/1/direct_messages/new.json",
       auth: this._auth,
       proxy: networkProxy,
-      data: "text=" + escape(m.text()) + "&screen_name=" + escape(m.screen_name())
+      data: "text=" + escape(m.text()) + "&screen_name=" + escape(m.target())
     });
   },
 

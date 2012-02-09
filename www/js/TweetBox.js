@@ -5,6 +5,7 @@ var NewTweetModel = Model.create(
   text: Model.Property,
   replyId: Model.Property,
   screen_name: Model.Property,
+  target: Model.Property,
   count: function()
   {
     var count = 140;
@@ -43,7 +44,8 @@ var TweetBox = Class(
     {
       text: text,
       replyId: tweet && tweet.id(),
-      screen_name: tweet && tweet.conversation()
+      screen_name: tweet && tweet.conversation(),
+      target: tweet && tweet.conversation()
     });
     var mv = new ModalView(
     {

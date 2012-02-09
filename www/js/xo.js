@@ -1937,7 +1937,7 @@ var ViewSet = exports.ViewSet = Class(View,
 });
 var Template = exports.Template = Class(
 {
-  _pattern: /({{#|{{\^|{{\/|{{{|{{!|{{=|{{>|{{:|{{|}}}|}})/,
+  _pattern: /({{#|{{\^|{{\/|{{\\|{{{|{{!|{{=|{{>|{{:|{{|}}}|}})/,
 
   constructor: function(str, partials, p)
   {
@@ -1973,6 +1973,7 @@ var Template = exports.Template = Class(
           
         // End of optional include
         case '{{/':
+        case '{{\\':
           if (!fnstack.length)
           {
             throw new Error("Mismatched {{/" + key);

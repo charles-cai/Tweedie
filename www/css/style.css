@@ -151,12 +151,20 @@ body
   margin: 10px 4px 0px 0px;
   -webkit-border-radius: 3px;
 }
-.create-list input, .list-header .title input
+.create-list input, .list-header .title input, .tweet-dialog-header input
 {
   font: inherit;
   width: 100%;
   border: solid 1px #c0c0c0;
   box-sizing: border-box;
+}
+.tweet-dialog-header input
+{
+  height: 25px;
+  line-height: 100%;
+  width: 400px;
+  margin-left: 5px;
+  font-size: 18px;
 }
 .current-lists
 {

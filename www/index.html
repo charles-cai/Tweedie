@@ -41,9 +41,17 @@
     <div id="main" class="template">
       <div class="main">
         <div class="col right">
-          <div class="pane compose" data-action-click="ComposeTweet">
-            Compose...
-          </div>
+          {{:is_dm_list}}return this.$model.current_list() === this.$model.lists().models[3];{{/is_dm_list}}
+          {{^is_dm_list}}
+            <div class="pane compose" data-action-click="ComposeTweet">
+              Tweet...
+            </div>
+          {{/is_dm_list}}
+          {{#is_dm_list}}
+            <div class="pane compose" data-action-click="ComposeDM">
+              Message...
+            </div>
+          {{/is_dm_list}}
           <div class="pane lists">
             <div class="lists-title">{{name}}</div>
             {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
@@ -150,9 +158,14 @@
           {{/is_retweet}}
           <div class="actions">
             {{#has_children}}{{:child_count}}return this.$model.children.length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
-            <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
-            <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
-            <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>
+            {{^isDM}}
+              <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
+              <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
+              <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>
+            {{/isDM}}
+            {{#isDM}}
+              <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>
+            {{/isDM}}
           </div>
           <div class="tags">
             {{#tags}}
@@ -229,10 +242,13 @@
             {{#isTweet}}Tweet{{/isTweet}}
             {{#isRetweet}}Retweet{{/isRetweet}}
             {{#isReply}}Reply{{/isReply}}
-            {{#isDM}}Private message to @{{screen_name}}{{/isDM}}
+            {{#isDM}}
+              {{#screen_name}}Private message to @{{screen_name}}{{/screen_name}}
+              {{^screen_name}}{{#_ View.Input}}Private message to @<input autofocus type="to" class="tweet-dm-to" name="target" {{{input_attributes}}}>{{/_}}{{/screen_name}}
+            {{/isDM}}
           </div>
           <div class="tweet-dialog-body">
-            {{#isEdit}}{{#_ View.Input}}<textarea type="url" class="tweet-text-edit" autofocus="autofocus" name="text" {{{input_attributes}}}>{{text}}</textarea>{{/_}}{{/isEdit}}
+            {{#isEdit}}{{#_ View.Input}}<textarea type="url" class="tweet-text-edit" {{#screen_name}}autofocus{{\screen_name}} name="text" {{{input_attributes}}}>{{text}}</textarea>{{/_}}{{/isEdit}}
             {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}
           </div>
           <div class="tweet-dialog-footer">
