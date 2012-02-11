@@ -1,21 +1,22 @@
 var Profile = Model.create(
 {
-  id: Model.ReadOnlyProperty("id_str"),
-  screen_name: Model.ReadOnlyProperty,
-  name: Model.ReadOnlyProperty,
-  description: Model.ReadOnlyProperty,
-  location: Model.ReadOnlyProperty,
-  url: Model.ReadOnlyProperty,
-  verified: Model.ReadOnlyProperty,
+  id: Model.ROProperty("id_str"),
+  screen_name: Model.ROProperty,
+  name: Model.ROProperty,
+  description: Model.ROProperty,
+  location: Model.ROProperty,
+  url: Model.ROProperty,
+  verified: Model.ROProperty,
 
-  profile_background_tile: Model.ReadOnlyProperty,
-  profile_image_url: Model.ReadOnlyProperty,
-  profile_background_image_url: Model.ReadOnlyProperty,
-  profile_background_color: Model.ReadOnlyProperty,
+  profile_background_tile: Model.ROProperty,
+  profile_image_url: Model.ROProperty,
+  profile_background_image_url: Model.ROProperty,
+  profile_background_color: Model.ROProperty,
+  profile_banner_url: Model.ROProperty,
 
-  followers_count: Model.ReadOnlyProperty,
-  friends_count: Model.ReadOnlyProperty,
-  tweet_count: Model.ReadOnlyProperty("statuses_count"),
+  followers_count: Model.ROProperty,
+  friends_count: Model.ROProperty,
+  tweet_count: Model.ROProperty("statuses_count"),
   followed_by: Model.Property("relationship.target.followed_by")
 });
 
@@ -24,17 +25,17 @@ var ProfileManager = Class(
   constructor: function(account)
   {
     this._account = account;
-    this._profiles = {};
+    this._profiles = new xo.LRU(10);
   },
 
   profileByUser: function(user)
   {
-    return this._profiles[user.id_str] || this._getProfile(null, user.id_str);
+    return this._profiles.get(user.id_str) || this._getProfile(null, user.id_str);
   },
 
   profileByName: function(name)
   {
-    return this._profiles[name] || this._getProfile(name, null);
+    return this._profiles.get(name) || this._getProfile(name, null);
   },
 
   _getProfile: function(name, id)
@@ -58,8 +59,8 @@ var ProfileManager = Class(
         p = p();
         p[0].relationship = p[1].relationship;
         p = new Profile(p[0]);
-        this._profiles[p.id()] = p;
-        this._profiles[p.screen_name()] = p;
+        this._profiles.add(p.id(), p);
+        this._profiles.add(p.screen_name(), p);
         return p;
       }
     );
