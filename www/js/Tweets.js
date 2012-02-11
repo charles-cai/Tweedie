@@ -114,6 +114,12 @@ var FilteredTweetsModel = Model.create(
     return this.title().slice(-1) === "?";
   },
 
+  isDM: function()
+  {
+    var tags = this.includeTags();
+    return tags.length === 1 && tags[0].tag.type === Tweet.DMTag.type;
+  },
+
   _tagIndex: function(list, tag)
   {
     for (var i = list.length - 1; i >= 0; i--)
@@ -145,8 +151,8 @@ var FilteredTweetsModel = Model.create(
     }
   },
 
-  _defaultAll: [{ tag: { title: "All", type: "default", key: "all" } }],
-  _defaultNone: [{ tag: { title: "None", type: "default", key: "none" } }],
+  _defaultAll: [{ tag: { title: "All", type: "default", key: "all", hashkey: "default:all" } }],
+  _defaultNone: [{ tag: { title: "None", type: "default", key: "none", hashkey: "default:none" } }],
 
   includeTags: function()
   {
