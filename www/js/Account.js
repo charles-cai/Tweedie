@@ -6,6 +6,7 @@ var Account = Class(Events,
   {
     this.profiles = new ProfileManager(this);
     this.tweetLists = new TweetLists(this);
+    this.errors = new Error(this);
   },
 
   open: function()
@@ -77,44 +78,179 @@ var Account = Class(Events,
 
   tweet: function(tweet)
   {
-    return this._fetcher.tweet(tweet);
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.tweet(tweet);
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("tweet", tweet);
+        }
+      }
+    );
   },
 
-  retweet: function(id)
+  retweet: function(tweet)
   {
-    return this._fetcher.retweet(id);
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.retweet(tweet.id());
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("retweet", tweet);
+          return null;
+        }
+      }
+    );
   },
 
   reply: function(tweet)
   {
-    return this._fetcher.reply(tweet);
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.reply(tweet);
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("reply", tweet);
+          return null;
+        }
+      }
+    );
   },
 
   dm: function(tweet)
   {
-    return this._fetcher.dm(tweet);
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.dm(tweet);
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("dm", tweet);
+          return null;
+        }
+      }
+    );
   },
 
   favorite: function(tweet)
   {
     this.tweetLists.addTweets("favs", [ tweet.serialize() ]);
-    return this._fetcher.favorite(tweet.id());
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.favorite(tweet.id());
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("favorite", tweet);
+          return null;
+        }
+      }
+    );
   },
 
   unfavorite: function(tweet)
   {
     this.tweetLists.addTweets("unfavs", [ tweet.serialize() ]);
-    return this._fetcher.unfavorite(tweet.id());
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.unfavorite(tweet.id());
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("unfavorite", tweet);
+          return null;
+        }
+      }
+    );
   },
   
   follow: function(user)
   {
-    return this._fetcher.follow(user.id());
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.follow(user.id());
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("follow", user);
+          return null;
+        }
+      }
+    );
   },
 
   unfollow: function(user)
   {
-    return this._fetcher.unfollow(user.id());
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.unfollow(user.id());
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("unfollow", user);
+          return null;
+        }
+      }
+    );
   },
 
   search: function(query)

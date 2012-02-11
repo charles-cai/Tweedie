@@ -27,8 +27,9 @@
     <script src="js/TweetLists.js"></script>
     <script src="js/TweetFetcher.js"></script>
     <script src="js/Account.js"></script>
-    <script src="js/oembed/TwitterUrlExpander.js"></script>
-    <script src="js/oembed/readability.js"></script>
+    <script src="js/Error.js"></script>
+    <script src="js/oembed/UrlExpander.js"></script>
+    <script src="js/readability.js"></script>
     <script src="js/Composite.js"></script>
     <script src="js/TweetBox.js"></script>
     <script src="js/Profile.js"></script>
@@ -41,7 +42,7 @@
     <div id="main" class="template">
       <div class="main">
         <div class="col right">
-          {{:is_dm_list}}return this.$model.current_list() === this.$model.lists().models[3];{{/is_dm_list}}
+          {{:is_dm_list}}return this.$model.current_list().isDM();{{/is_dm_list}}
           {{^is_dm_list}}
             <div class="pane compose" data-action-click="ComposeTweet">
               Tweet...
@@ -53,8 +54,10 @@
             </div>
           {{/is_dm_list}}
           <div class="pane lists">
+            <div class="lists-gear" data-action-click="OpenPreferences"></div>
             <div class="lists-title">{{name}}</div>
             {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
+            {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}
             <div class="current-lists">
               {{#lists ViewSet}}
                 {{#_ View.Drop name:m.name()}}

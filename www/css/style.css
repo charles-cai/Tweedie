@@ -103,9 +103,10 @@ body
 {
   background-color: #ECF4F9;
 }
-.compose
+.col.right .pane.compose
 {
   padding: 4px;
+  background-color: white;
 }
 .col.right .pane.compose:active
 {
@@ -132,18 +133,39 @@ body
 {
   display: inline-block;
 }
-.lists-activity
+.lists-activity, .lists-error
+{
+  display: inline-block;
+  float: right;
+  margin: 4px 3px 0 0;
+}
+.lists-gear
 {
   display: inline-block;
   height: 16px;
   width: 16px;
-  float: right;
-  padding-right: 5px;
+  background-image: url("../img/gear.png");
+  vertical-align: text-top;
+}
+.lists-gear:active
+{
+  opacity: 0.5;
 }
 .lists-activity .show
 {
-  height: 100%;
+  width: 16px;
+  height: 16px;
   background-image: url("../img/spinner.gif");
+}
+.lists-error .show
+{
+  width: 16px;
+  height: 16px;
+  background-image: url("../img/warning-icon.png");
+}
+.lists-error .show:active
+{
+  opacity: 0.5;
 }
 .create-list
 {
