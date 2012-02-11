@@ -16,14 +16,16 @@ function main()
 
   models = new (Model.create(
   {
+    account: Model.Property,
     current_list: Model.Property,
     lists: Model.Property,
     name: function()
     {
-      return account.tweetLists.screenname;
+      return account.tweetLists.screenname.slice(1);
     }
   }))(
   {
+    account: account,
     current_list: account.tweetLists.lists.models[0],
     lists: account.tweetLists.lists
   });
@@ -214,10 +216,7 @@ function main()
       {
         Log.metric("details", "url");
         var url = e.target.dataset.href;
-        var readModel = new ReadabilityModel(
-        {
-          text: ""
-        });
+        var readModel = Readability.open(url);
         var pagenr = 0;
         var maxpagenr = 0;
         var mv = new ModalView(
@@ -289,33 +288,32 @@ function main()
         {
           e.preventDefault();
         });
-        Co.Routine(this,
-          function()
-          {
-            return Readability.read(readModel, url);
-          },
-          function()
-          {
-            Co.Yield();
-          },
-          function()
-          {
-            var r = document.querySelector("#readability-scroller .text");
-            var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-            var images = r.querySelectorAll("img");
-            function recalc()
+        readModel.on("update", function()
+        {
+          Co.Routine(this,
+            function()
             {
-              maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-              mv.pages(Math.min(10, maxpagenr));
-            }
-            for (var i = 0; i < images.length; i++)
+              Co.Yield();
+            },
+            function()
             {
-              images[i].onload = recalc;
+              var r = document.querySelector("#readability-scroller .text");
+              var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+              var images = r.querySelectorAll("img");
+              function recalc()
+              {
+                maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+                mv.pages(Math.min(10, maxpagenr));
+              }
+              for (var i = 0; i < images.length; i++)
+              {
+                images[i].onload = recalc;
+              }
+              recalc();
+              mv.pagenr(0);
             }
-            recalc();
-            mv.pagenr(0);
-          }
-        );
+          );
+        }, this);
       },
       onMedia: function(m, v, e)
       {
@@ -408,6 +406,12 @@ function main()
             openProfileDialog(account, p());
           }
         );
+      },
+      onOpenError: function()
+      {
+      },
+      onOpenPreferences: function()
+      {
       }
     }
   });

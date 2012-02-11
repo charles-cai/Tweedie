@@ -83,7 +83,7 @@ var TweetBox = Class(
         onRetweetButton: function(m, v)
         {
           Log.metric("tweet", "retweet");
-          account.retweet(tweet.id());
+          account.retweet(tweet);
           v.close();
         },
         onReplyButton: function(m, v)

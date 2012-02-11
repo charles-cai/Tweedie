@@ -1,8 +1,8 @@
 var Tweet = Model.create(
 {
-  id: Model.ReadOnlyProperty("id_str"),
-  text: Model.Property,
-  created_at: Model.Property,
+  id: Model.ROProperty("id_str"),
+  text: Model.ROProperty,
+  created_at: Model.ROProperty,
 
   constructor: function(__super, values, tweetLists)
   {
@@ -399,12 +399,12 @@ var Tweet = Model.create(
 
   isDM: function()
   {
-    return this.hasTagKey(Tweet.DMTag.type + ":" + Tweet.DMTag.key);
+    return this.hasTagKey(Tweet.DMTag.hashkey);
   },
 
   isMention: function()
   {
-    return this.hasTagKey(Tweet.MentionTag.type + ":" + Tweet.MentionTag.key);
+    return this.hasTagKey(Tweet.MentionTag.hashkey);
   },
 
   hasTagKey: function(key)
@@ -444,7 +444,7 @@ var Tweet = Model.create(
     var tags = [];
     if (this.favorited())
     {
-      used[Tweet.FavoriteTag.type + ":" + Tweet.FavoriteTag.key] = true;
+      used[Tweet.FavoriteTag.hashkey] = true;
       tags.push(Tweet.FavoriteTag);
     }
     if (this.is_retweet())
@@ -463,8 +463,8 @@ var Tweet = Model.create(
         tags.unshift({ title: name, type: "screenname", key: key });
         used["screenname:" + key] = true;
       }
-      delete used[Tweet.TweetTag.type + ":" + Tweet.TweetTag.key];
-      used[Tweet.RetweetTag.type + ":" + Tweet.RetweetTag.key] = true;
+      delete used[Tweet.TweetTag.hashkey];
+      used[Tweet.RetweetTag.hashkey] = true;
       tags[tags.length - 1] = Tweet.RetweetTag;
     }
     else
@@ -489,13 +489,13 @@ var Tweet = Model.create(
         {
           var name = "@" + mention.screen_name;
           var key = name.toLocaleLowerCase();
-          if (!used[key])
+          if (!used["screenname:" + key])
           {
             used["screenname:" + key] = true;
             tags.push({ title: name, type: "screenname", key: key });
-            if (key === this._tweetLists.screenname && !used.mention)
+            if (key === this._tweetLists.screenname && !used[Tweet.MentionTag.hashkey])
             {
-              used[Tweet.MentionTag.type + ":" + Tweet.MentionTag.key] = true;
+              used[Tweet.MentionTag.hashkey] = true;
               tags.push(Tweet.MentionTag);
             }
           }
@@ -527,14 +527,14 @@ var Tweet = Model.create(
           var url = media.resolved_url || media.expanded_url;
           if (url)
           {
-            if (media.type === "photo" && !used[Tweet.PhotoTag.type + ":" + Tweet.PhotoTag.key])
+            if (media.type === "photo" && !used[Tweet.PhotoTag.hashkey])
             {
-              used[Tweet.PhotoTag.type + ":" + Tweet.PhotoTag.key] = true;
+              used[Tweet.PhotoTag.hashkey] = true;
               tags.push(Tweet.PhotoTag);
             }
-            else if (media.type === "video" && !used[Tweet.VideoTag.type + ":" + Tweet.Video.key])
+            else if (media.type === "video" && !used[Tweet.VideoTag.hashkey])
             {
-              used[Tweet.VideoTag.type + ":" + Tweet.Video.key] = true;
+              used[Tweet.VideoTag.hashkey] = true;
               tags.push(Tweet.VideoTag);
             }
             var hostname = new Url(url).hostname;
@@ -548,12 +548,12 @@ var Tweet = Model.create(
       }
       if (this._values.recipient)
       {
-        used[Tweet.DMTag.type + ":" + Tweet.DMTag.key] = true;
+        used[Tweet.DMTag.hashkey] = true;
         tags.push(Tweet.DMTag);
       }
       else
       {
-        used[Tweet.TweetTag.type + ":" + Tweet.TweetTag.key] = true;
+        used[Tweet.TweetTag.hashkey] = true;
         tags.push(Tweet.TweetTag);
       }
     }
@@ -585,11 +585,11 @@ var Tweet = Model.create(
   }
 }).statics(
 {
-  TweetTag: { title: "Tweet", type: "tweet", key: "tweet" },
-  RetweetTag: { title: "Retweet", type: "retweet", key: "retweet" },
-  MentionTag: { title: "Mention", type: "mention", key: "mention"},
-  DMTag: { title: "DM", type: "dm", key: "dm" },
-  FavoriteTag: { title: "Favorite", type: "fav", key: "favorite" },
-  PhotoTag: { title: "Photo", type: "photo", key: "photo" },
-  VideoTag: { title: "Video", type: "video", key: "video" }
+  TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
+  RetweetTag: { title: "Retweet", type: "retweet", key: "retweet", hashkey: "retweet:retweet" },
+  MentionTag: { title: "Mention", type: "mention", key: "mention", hashkey: "mention:mention" },
+  DMTag: { title: "DM", type: "dm", key: "dm", hashkey: "dm:dm" },
+  FavoriteTag: { title: "Favorite", type: "fav", key: "favorite", hashkey: "fav:favorite" },
+  PhotoTag: { title: "Photo", type: "photo", key: "photo", hashkey: "photo:photo" },
+  VideoTag: { title: "Video", type: "video", key: "video", hashkey: "video:video" }
 });

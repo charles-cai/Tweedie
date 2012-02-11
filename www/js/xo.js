@@ -1042,7 +1042,7 @@ function _ModelProperty(prop)
 }
 function _ModelROProperty(prop)
 {
-  return Model.makeReadOnlyProperty(prop);
+  return Model.makeROProperty(prop);
 }
 var Model = exports.Model = Class(Events,
 {
@@ -1058,7 +1058,7 @@ var Model = exports.Model = Class(Events,
       }
       else if (p === _ModelROProperty)
       {
-        prototype[prop] = Model.makeReadOnlyProperty(prop);
+        prototype[prop] = Model.makeROProperty(prop);
       }
     }
   },
@@ -1137,7 +1137,7 @@ var Model = exports.Model = Class(Events,
   _nextSeq: 1,
 
   Property: _ModelProperty,
-  ReadOnlyProperty: _ModelROProperty,
+  ROProperty: _ModelROProperty,
 
   create: function(methods)
   {
@@ -1155,32 +1155,13 @@ var Model = exports.Model = Class(Events,
 
   makeProperty: function(prop)
   {
-    /*return function(v)
-    {
-      var ov = this._values[prop];
-      if (arguments.length && v !== ov)
-      {
-        this._values[prop] = v;
-        this.emit("update." + prop);
-        this.emit("update");
-      }
-      return ov;
-    };*/
     return new Function("v",
       "var ov = this._values." + prop + ";if (arguments.length && v !== ov) { this._values." + prop + " = v; this.emit('update." + prop + "'); this.emit('update'); } return ov;"
     );
   },
 
-  makeReadOnlyProperty: function(prop)
+  makeROProperty: function(prop)
   {
-    /*return function()
-    {
-      if (arguments.length)
-      {
-        throw new Error("Read-only property: " + prop);
-      }
-      return this._values[prop];
-    };*/
     return new Function(
       "if (arguments.length) { throw new Error('Read-only property: " + prop + "'); } return this._values." + prop + ";"
     );
@@ -4427,6 +4408,78 @@ var LocalStorage = exports.LocalStorage = Class(
   {
     var value = this._root[this._name + ":" + key];
     return value ? JSON.parse(value) : def;
+  }
+});
+var LRU = exports.LRU = Class(Events,
+{
+  constructor: function(size)
+  {
+    this._size = size;
+    this._hash = {};
+    this._queue = [];
+  },
+
+  get: function(key, fn, ctx)
+  {
+    var item = this._hash[key];
+    if (!item)
+    {
+      if (fn)
+      {
+        item = fn.call(ctx, key);
+        this._hash[key] = item;
+        this._queue.unshift(key);
+        if (this._queue.length > this._size)
+        {
+          this.emit("evict", this._queue.slice(-1));
+          this._queue.length = this._size;
+        }
+      }
+    }
+    else
+    {
+      var idx = this._queue.indexOf(key);
+      if (idx !== 0)
+      {
+        this._queue.splice(idx, 1);
+        this._queue.unshift(key);
+      }
+    }
+    return item;
+  },
+
+  add: function(key, item)
+  {
+    this._hash[key] = item;
+    var idx = this._queue.indexOf(key);
+    if (idx !== -1)
+    {
+      this._queue.splice(idx, 1);
+      this._queue.unshift(key);
+    }
+    else if (idx !== 0)
+    {
+      this._queue.unshift(key);
+      if (this._queue.length > this._size)
+      {
+        this.emit("evict", this._queue.slice(-1));
+        this._queue.length = this._size;
+      }
+    }
+  },
+
+  remove: function(key)
+  {
+    if (this._hash[key])
+    {
+      delete this._hash[key];
+      this._queue.splice(this._queue.indexOf(key));
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 });
 })();
