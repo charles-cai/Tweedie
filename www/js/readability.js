@@ -8,8 +8,9 @@ var Readability =
 {
   _stage: document.createElement("div"),
   _pending: null,
+  _cache: new xo.LRU(5),
 
-  read: function(model, url)
+  _read: function(model, url)
   {
     return Co.Routine(this,
       function()
@@ -45,10 +46,24 @@ var Readability =
             this.title("Failed");
             this.text(url);
           });
+          this._cache.remove(url);
         }
         return true;
       }
     );
+  },
+
+  open: function(url)
+  {
+    return this._cache.get(url, function()
+    {
+      var model = new ReadabilityModel(
+      {
+        text: ""
+      });
+      this._read(model, url);
+      return model;
+    }, this);
   },
 
   close: function()
@@ -57,6 +72,7 @@ var Readability =
     {
       this._pending.abort();
       this._pending = null;
+      this._last.url = null;
     }
   }
 };
