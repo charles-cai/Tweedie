@@ -70,7 +70,6 @@ var TweetFetcher = xo.Class(Events,
         {
           return Co.Break();
         }
-        this.emit("networkActivity", true);
 
         var lists = this._account.tweetLists;
 
@@ -192,41 +191,10 @@ var TweetFetcher = xo.Class(Events,
           loop.run();
         }
 
-        this.emit("networkActivity", false);
         return Co.Sleep(120);
       }
     );
     return loop;
-  },
-  
-  _ajaxWithRetry: function(config)
-  {
-    var retry = 1;
-    return Co.Forever(this,
-      function()
-      {
-        return Ajax.create(config);
-      },
-      function(r)
-      {
-        try
-        {
-          return Co.Break(r());
-        }
-        catch (e)
-        {
-          if (retry > 4)
-          {
-            throw e;
-          }
-          else
-          {
-            Co.Sleep(retry);
-            retry <<= 1;
-          }
-        }
-      }
-    );
   },
   
   _runUserStreamer: function()
@@ -380,7 +348,7 @@ var TweetFetcher = xo.Class(Events,
     return Co.Routine(this,
       function()
       {
-        return Ajax.create(config);
+        return this._ajaxWithRetry(config);
       },
       function(r)
       {
@@ -400,7 +368,7 @@ var TweetFetcher = xo.Class(Events,
 
   tweet: function(tweet)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
@@ -412,7 +380,7 @@ var TweetFetcher = xo.Class(Events,
 
   retweet: function(id)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/statuses/retweet/" + id + ".json",
@@ -423,7 +391,7 @@ var TweetFetcher = xo.Class(Events,
 
   reply: function(m)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
@@ -435,7 +403,7 @@ var TweetFetcher = xo.Class(Events,
 
   dm: function(m)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/direct_messages/new.json",
@@ -447,7 +415,7 @@ var TweetFetcher = xo.Class(Events,
 
   favorite: function(id)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/create/" + id + ".json",
@@ -458,7 +426,7 @@ var TweetFetcher = xo.Class(Events,
 
   unfavorite: function(id)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/destroy/" + id + ".json",
@@ -469,7 +437,7 @@ var TweetFetcher = xo.Class(Events,
 
   follow: function(id)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/create.json?user_id=" + id,
@@ -480,7 +448,7 @@ var TweetFetcher = xo.Class(Events,
 
   unfollow: function(id)
   {
-    return Ajax.create(
+    return this._ajaxWithRetry(
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/destroy.json?user_id=" + id,
@@ -495,7 +463,7 @@ var TweetFetcher = xo.Class(Events,
     return Co.Routine(this,
       function()
       {
-        return Ajax.create(
+        return this._ajaxWithRetry(
         {
           method: "GET",
           url: "http://api.twitter.com/1/users/show.json?include_entities=true&" + key,
@@ -527,6 +495,39 @@ var TweetFetcher = xo.Class(Events,
       function(r)
       {
         return r().json();
+      }
+    );
+  },
+
+  _ajaxWithRetry: function(config)
+  {
+    this.emit("networkActivity", true);
+    var retry = 1;
+    return Co.Forever(this,
+      function()
+      {
+        return Ajax.create(config);
+      },
+      function(r)
+      {
+        try
+        {
+          this.emit("networkActivity", false);
+          return Co.Break(r());
+        }
+        catch (e)
+        {
+          if (retry > 4)
+          {
+            this.emit("networkActivity", false);
+            throw e;
+          }
+          else
+          {
+            Co.Sleep(retry);
+            retry <<= 1;
+          }
+        }
       }
     );
   }
