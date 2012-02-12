@@ -279,9 +279,10 @@ var Tweet = Model.create(
     if (this._embed_video_html === undefined)
     {
       var media = this._getFirstMediaType("video");
-      if (media && media.html && /^<iframe.*<\/iframe>$/.test(media.html))
+      var html = media ? media.html_large || media.html : null;
+      if (html && /^<iframe.*<\/iframe>$/.test(html))
       {
-        this._embed_video_html = media.html;
+        this._embed_video_html = html;
       }
       else
       {
@@ -345,11 +346,12 @@ var Tweet = Model.create(
               media.push(
               {
                 type: o.type,
-                media_url: o.url,
+                media_url: o.medial_url || o.url,
                 display_url: o.url,
                 resolved_url: o.url,
                 resolved_display_url: o.url && this.make_display_url(o.url),
                 html: o.html,
+                htmlLarge: o.html,
                 indices: url.indices
               });
               break;

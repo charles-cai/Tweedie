@@ -208,6 +208,7 @@ var TweetLists = Class(
           {
             case "tweets":
             case "favs":
+            case "searches":
               return Co.Routine(this,
                 function()
                 {
@@ -238,7 +239,6 @@ var TweetLists = Class(
                 }
               );
               break;
-            case "searches":
             case "dms":
               if (target)
               {

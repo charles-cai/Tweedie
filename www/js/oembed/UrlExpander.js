@@ -48,11 +48,41 @@ var UrlExpander = Class(Events,
 
   _expanders: function(url)
   {
-    // Instagram embeding - they made it trivial
+    // Instagram
     if (url.indexOf("http://instagr.am/p/") === 0)
     {
       return {
         url: url + "/media?size=m",
+        medial_url: url + "/media?size=l",
+        type: "photo"
+      };
+    }
+    // YouTube
+    else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
+    {
+      var v = new xo.Url(url).getParameter("v");
+      return {
+        url: url,
+        type: "video",
+        html: '<iframe width="350" height="262" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>',
+        html_large: '<iframe width="640" height="360" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>'
+      }
+    }
+    // Twitpic (thumbs)
+    else if (url.indexOf("http://twitpic.com/") === 0)
+    {
+      return {
+        url: url,
+        medial_url: "http://twitpic.com/show/thumb/" + new xo.Url(url).pathname,
+        type: "photo"
+      };
+    }
+    // YFrog
+    else if (url.indexOf("http://yfrog.com/") === 0)
+    {
+      return {
+        url: url + ":iphone",
+        medial_url: url + ":medium",
         type: "photo"
       };
     }
