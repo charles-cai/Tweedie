@@ -41,7 +41,10 @@ function main()
     {
       Log.metric("nav", "list:select");
     }
-    RootView.getViewByName("tweets").scrollToTop(models.current_list() !== m);
+    else
+    {
+      RootView.getViewByName("tweets").scrollToTop();
+    }
     models.current_list(m);
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());
@@ -57,14 +60,22 @@ function main()
   }
 
   partials = findTemplates();
-  new RootView(
+  var root = new RootView(
   {
     node: document.getElementById("root"),
     template: partials.main,
     partials: partials,
     model: models,
+    properties:
+    {
+      open: true
+    },
     controller:
     {
+      onToggleShow: function()
+      {
+        root.open(!root.open());
+      },
       onSelectList: function(m, v)
       {
         selectList(m, v);
@@ -407,8 +418,26 @@ function main()
           }
         );
       },
-      onOpenError: function()
+      onOpenErrors: function()
       {
+        Log.metric("details", "image");
+        new ModalView(
+        {
+          node: document.getElementById("root-dialog"),
+          template: partials.error_dialog,
+          partials: partials,
+          model: models.account().errors,
+          controller:
+          {
+            onRemoveError: function(m, v, e)
+            {
+              if (m.op !== "fetch")
+              {
+                account.errors.remove(m);
+              }
+            }
+          }
+        });
       },
       onOpenPreferences: function()
       {

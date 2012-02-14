@@ -27,7 +27,7 @@
     <script src="js/TweetLists.js"></script>
     <script src="js/TweetFetcher.js"></script>
     <script src="js/Account.js"></script>
-    <script src="js/Error.js"></script>
+    <script src="js/Errors.js"></script>
     <script src="js/oembed/UrlExpander.js"></script>
     <script src="js/readability.js"></script>
     <script src="js/Composite.js"></script>
@@ -42,7 +42,7 @@
     <div id="main" class="template">
       <div class="main">
         <div class="col right">
-          {{:is_dm_list}}return this.$model.current_list().isDM();{{/is_dm_list}}
+          {{:is_dm_list}}return this.v('$model').current_list().isDM();{{/is_dm_list}}
           {{^is_dm_list}}
             <div class="pane compose" data-action-click="ComposeTweet">
               Tweet...
@@ -54,11 +54,13 @@
             </div>
           {{/is_dm_list}}
           <div class="pane lists">
-            <div class="lists-gear" data-action-click="OpenPreferences"></div>
-            <div class="lists-title">{{name}}</div>
-            {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
-            {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}
-            <div class="current-lists">
+            <div class="lists-header">
+              <div class="lists-gear" data-action-click="OpenPreferences"></div>
+              <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>
+              {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
+              {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}
+            </div>
+            <div class="current-lists {{#open}}open{{/open}}">
               {{#lists ViewSet}}
                 {{#_ View.Drop name:m.name()}}
                   <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>
@@ -130,8 +132,8 @@
         <div class="col middle2">
           <div class="pane tweets">
             {{#current_list View updateOn:"viz"}}
-              {{:viz_list}}return this.$model.viz() === 'list' ? 'selected' : ''{{/viz_list}}
-              {{:viz_stack}}return this.$model.viz() === 'stack' ? 'selected' : ''{{/viz_stack}}
+              {{:viz_list}}return this.v('$model').viz() === 'list' ? 'selected' : ''{{/viz_list}}
+              {{:viz_stack}}return this.v('$model').viz() === 'stack' ? 'selected' : ''{{/viz_stack}}
               {{#viz_list}}
                 {{#tweets ViewSet.LiveList name:"tweets"}}
                   {{>tweet}}
@@ -160,7 +162,7 @@
             <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
           {{/is_retweet}}
           <div class="actions">
-            {{#has_children}}{{:child_count}}return this.$model.children.length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
+            {{#has_children}}{{:child_count}}return this.v('$model').children.length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
             {{^isDM}}
               <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
               <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
@@ -219,6 +221,7 @@
             <div class="title">Loading ...</div>
           {{/title}}
           <div style="{{translate}}" class="text">{{{text}}}</div>
+          <div class="readability-logo"></div>
           <div class="footer pages{{pages}} pagenr{{pagenr}}"></div>
           <div class="web button" data-action-click="OpenWeb">Web</div>
         </div>
@@ -264,6 +267,32 @@
               {{#isDM}}<div class="button primary" data-action-click="DMButton">Send</div>{{/isDM}}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div id="error_dialog" class="template">
+      <div class="dialog error-view">
+        <div class="inner">
+          {{:has_errors}}return this.v('$model').errors().length{{/has_errors}}
+          {{#has_errors}}
+            <div class="summary">Twitter is unavailable.  Retrying these every 60 seconds.</div>
+            <div class="errors">
+              {{#errors}}
+                {{#_ View}}
+                  <div class="error error-{{op}}">
+                    {{#details}}
+                      <div class="error-title"></div>
+                      <div class="error-close" data-action-click="RemoveError">x</div>
+                      {{#text}}<div class="error-text">{{text}}</div>{{/text}}
+                    {{/details}}
+                  </div>
+                {{/_}}
+              {{/errors}}
+            </div>
+          {{/has_errors}}
+          {{^has_errors}}
+            No problems.
+          {{/has_errors}}
         </div>
       </div>
     </div>

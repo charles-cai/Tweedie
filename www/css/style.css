@@ -127,11 +127,15 @@ body
 }
 .lists
 {
-  padding: 5px;
+  padding: 5px 5px 0 5px;
 }
 .lists-title
 {
   display: inline-block;
+}
+.lists-title:active
+{
+  opacity: 0.5;
 }
 .lists-activity, .lists-error
 {
@@ -170,7 +174,7 @@ body
 .create-list
 {
   border: 1px solid transparent;
-  margin: 10px 4px 0px 0px;
+  margin: 10px 4px 5px 0px;
   -webkit-border-radius: 3px;
 }
 .create-list input, .list-header .title input, .tweet-dialog-header input
@@ -190,7 +194,13 @@ body
 }
 .current-lists
 {
+  height: 0;
   padding-top: 5px;
+  overflow: hidden;
+}
+.current-lists.open
+{
+  height: auto;
 }
 .list
 {
@@ -508,10 +518,11 @@ body
   background-color: rgba(0, 0, 0, 0.5);
   padding: 60px;
   top: 0px;
-  height: 884px;
+  height: 1004px;
   left: 0px;
   right: 0px;
   z-index: 10;
+  box-sizing: border-box;
 }
 .dialog .inner
 {
@@ -634,9 +645,6 @@ body
   padding-right: 20px;
 }
 
-.readability
-{
-}
 .readability > .inner
 {
   overflow: hidden;
@@ -667,6 +675,15 @@ body
 {
   color: inherit;
   text-decoration: inherit;
+}
+.readability > .inner > .readability-logo
+{
+  position: absolute;
+  height: 14px;
+  width: 90px;
+  bottom: 50px;
+  left: 70px;
+  background-image: url("../img/readability.png");
 }
 .readability > .inner > .footer
 {
@@ -861,4 +878,90 @@ body
   margin-top: 40px;
   float: right;
 }
-
+.error-view
+{
+  padding: 300px 100px;
+}
+.error-view .inner
+{
+  background-color: #f2dede;
+  border-color: #eed3d7;
+  color: #b94a48;
+}
+.error-view .summary
+{
+  padding: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  font-variant: small-caps;
+}
+.error-view .errors
+{
+  border: solid 1px #ddd;
+  -webkit-border-radius: 4px;
+  background-color: #f4f4f4;
+  margin-top: 2px;
+}
+.error-view .errors .error .error-close
+{
+  display: inline-block;
+  float: right;
+  margin: -4px 5px 0 0;
+  color: black;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 1px 0 white;
+  opacity: 0.2;
+}
+.error-view .errors .error .error-close:active
+{
+  opacity: 1;
+}
+.error-view .errors > .view:nth-child(even)
+{
+  background-color: white;
+}
+.error-view .errors .error .error-title
+{
+  margin: 4px;
+  display: inline-block;
+  padding: 1px 3px 2px 3px;
+  text-transform: uppercase;
+  font-weight: bold;
+  background-color: #b94a48;
+  color: white;
+  -webkit-border-radius: 3px;
+  font-size: 10px;
+}
+.error-view .errors .error .error-text
+{
+  padding: 0px 6px 6px 12px;
+}
+.error-view .errors .error-fetch .error-title::after
+{
+  content: "Fetch new tweets";
+}
+.error-view .errors .error-tweet .error-title::after
+{
+  content: "Tweet";
+}
+.error-view .errors .error-retweet .error-title::after
+{
+  content: "Retweet";
+}
+.error-view .errors .error-favorite .error-title::after
+{
+  content: "Favorite";
+}
+.error-view .errors .error-unfavorite .error-title::after
+{
+  content: "Unfavorite";
+}
+.error-view .errors .error-reply .error-title::after
+{
+  content: "Reply";
+}
+.error-view .errors .error-dm .error-title::after
+{
+  content: "Direct Message";
+}
