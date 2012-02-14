@@ -6,6 +6,7 @@ var UrlExpander = Class(Events,
 
   expand: function(urls)
   {
+    this.emit("networkActivity", true);
     var results = {};
     var u;
     return Co.Forever(this,
@@ -13,6 +14,7 @@ var UrlExpander = Class(Events,
       {
         if (!urls.length)
         {
+          this.emit("networkActivity", false);
           return Co.Break(results);
         }
         u = urls.splice(0, this._batchSize);
