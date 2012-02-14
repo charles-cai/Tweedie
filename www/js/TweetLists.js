@@ -201,7 +201,7 @@ var TweetLists = Class(
               break;
           }
           include.push(tweet);
-        },this);
+        }, this);
         if (all.length)
         {
           switch (type)

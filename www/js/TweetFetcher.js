@@ -22,15 +22,12 @@ var TweetFetcher = xo.Class(Events,
     });
     this._account = account;
     this._userInfo = config.userInfo;
+    this._loop = null;
   },
 
   fetchTweets: function()
   {
     Co.Routine(this,
-      function()
-      {
-        Co.Sleep(1);
-      },
       function()
       {
         return this._userInfo || this._auth.login();
@@ -40,33 +37,25 @@ var TweetFetcher = xo.Class(Events,
         r = r();
         this.emit("login", { screen_name: r.screen_name, user_id: r.user_id });
 
-        var self = this;
-        var loop = self._startFetchLoop();
-        document.addEventListener("online", function()
+        if (this._loop)
         {
-          loop = self._startFetchLoop(loop);
-        });
-        document.addEventListener("resume", function()
-        {
-          loop = self._startFetchLoop(loop);
-        });
+          this._loop.terminate = true;
+          this._loop.abort && this._loop.abort("terminate");
+          this._loop = null;
+        }
+        this._startFetchLoop();
       }
     );
   },
 
-  _startFetchLoop: function(oldLoop)
+  _startFetchLoop: function()
   {
-    if (oldLoop)
-    {
-      oldLoop.terminated = true;
-      oldLoop.abort && oldLoop.abort("terminate");
-    }
-    var loop = this._runUserStreamer();
+    this._loop = this._runUserStreamer();
     var running = false;
     Co.Forever(this,
       function()
       {
-        if (loop.terminated)
+        if (this._loop.terminated)
         {
           return Co.Break();
         }
@@ -87,23 +76,14 @@ var TweetFetcher = xo.Class(Events,
           },
           function(r)
           {
-            try
+            var tweets = r().json();
+            alltweets = alltweets.concat(tweets);
+            for (var i = tweets.length - 1; i >= 0; i--)
             {
-              var tweets = r().json();
-              alltweets = alltweets.concat(tweets);
-              for (var i = tweets.length - 1; i >= 0; i--)
+              if (lists.getTweet(tweets[i].id_str))
               {
-                if (lists.getTweet(tweets[i].id_str))
-                {
-                  return Co.Break(alltweets);
-                }
+                return Co.Break(alltweets);
               }
-            }
-            catch (e)
-            {
-              Log.exception("Tweet fetch failed", e);
-              // Stop as soon as we fail to avoid getting pages out-of-order
-              return Co.Break(alltweets);
             }
             return alltweets;
           }
@@ -113,13 +93,18 @@ var TweetFetcher = xo.Class(Events,
       {
         try
         {
+          tweets = tweets();
           Log.time("TweetLoad");
-          this.emit("tweets", tweets());
+          this.emit("tweets", tweets);
           Log.timeEnd("TweetLoad");
         }
         catch (e)
         {
           Log.exception("Tweet add failed", e);
+          // If the tweet fetch fails, we log an error to retry it later.
+          this._account.errors.add("fetch");
+          // And then terminate fetching immediately
+          return Co.Break(false);
         }
 
         return Ajax.create(
@@ -188,15 +173,14 @@ var TweetFetcher = xo.Class(Events,
         if (!running)
         {
           running = true;
-          loop.run();
+          this._loop.run();
         }
 
         return Co.Sleep(120);
       }
     );
-    return loop;
   },
-  
+
   _runUserStreamer: function()
   {
     var self = this;
@@ -341,7 +325,7 @@ var TweetFetcher = xo.Class(Events,
     var config =
     {
       method: "GET",
-      url: "http://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + escape(query),
+      url: "http://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
       auth: this._auth,
       proxy: networkProxy
     };
@@ -366,7 +350,7 @@ var TweetFetcher = xo.Class(Events,
     );
   },
 
-  tweet: function(tweet)
+  tweet: function(m)
   {
     return this._ajaxWithRetry(
     {
@@ -374,7 +358,7 @@ var TweetFetcher = xo.Class(Events,
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
       proxy: networkProxy,
-      data: "status=" + escape(tweet.text())
+      data: "status=" + encodeURIComponent(m.text())
     });
   },
 
@@ -397,7 +381,7 @@ var TweetFetcher = xo.Class(Events,
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
       proxy: networkProxy,
-      data: "status=" + escape(m.text()) + "&in_reply_to_status_id=" + m.replyId()
+      data: "status=" + encodeURIComponent(m.text()) + "&in_reply_to_status_id=" + m.replyId()
     });
   },
 
@@ -409,7 +393,7 @@ var TweetFetcher = xo.Class(Events,
       url: "https://api.twitter.com/1/direct_messages/new.json",
       auth: this._auth,
       proxy: networkProxy,
-      data: "text=" + escape(m.text()) + "&screen_name=" + escape(m.target())
+      data: "text=" + encodeURIComponent(m.text()) + "&screen_name=" + encodeURIComponent(m.target())
     });
   },
 

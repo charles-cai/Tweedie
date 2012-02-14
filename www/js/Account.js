@@ -6,7 +6,7 @@ var Account = Class(Events,
   {
     this.profiles = new ProfileManager(this);
     this.tweetLists = new TweetLists(this);
-    this.errors = new Error(this);
+    this.errors = new Errors(this);
   },
 
   open: function()
@@ -60,7 +60,21 @@ var Account = Class(Events,
           var v = RootView.getViewByName("activity");
           v.property("activity", Math.max(0, (v.property("activity") || 0) + (activity ? 1 : -1)));
         }, this);
-        this._fetcher.fetchTweets();
+
+        var self = this;
+        function retry()
+        {
+          var fetch = self.errors.find("fetch");
+          if (fetch.length)
+          {
+            self.errors.remove(fetch[0]);
+          }
+          self.fetch();
+        }
+        document.addEventListener("online", retry);
+        document.addEventListener("resume", retry);
+        this.fetch();
+
         return true;
       }
     );
@@ -70,10 +84,31 @@ var Account = Class(Events,
   {
     return this._store.getSubStorage(name);
   },
-  
+
   expandUrls: function(urls)
   {
     return this._expander.expand(urls);
+  },
+
+  fetch: function()
+  {
+    return Co.Routine(this,
+      function()
+      {
+        return this._fetcher.fetchTweets();
+      },
+      function(r)
+      {
+        try
+        {
+          return r();
+        }
+        catch (e)
+        {
+          this.errors.add("fetch");
+        }
+      }
+    );
   },
 
   tweet: function(tweet)
