@@ -656,13 +656,20 @@ var Co = exports.Co =
    */
   Loop: function(context, count, fns___)
   {
-    var i = 0;
-    var fns = Array.prototype.slice.call(arguments, 2).concat(function(r)
+    if (count === 0)
     {
-      r = r();
-      return ++i < count ? Co.Continue(i) : Co.Break(r);
-    });
-    return Co._run(new Co._co(context, 0, fns, i));
+      return null;
+    }
+    else
+    {
+      var i = 0;
+      var fns = Array.prototype.slice.call(arguments, 2).concat(function(r)
+      {
+        r = r();
+        return ++i < count ? Co.Continue(i) : Co.Break(r);
+      });
+      return Co._run(new Co._co(context, 0, fns, i));
+    }
   },
   
   /**
@@ -1634,6 +1641,7 @@ var View = exports.View = Class(Model,
     self.$className = args.className || "view";
     self.$model = args.model;
     self.$renderer = args.renderer;
+    self.$cursor = new Template.Cursor([ self, self.$model ]);
     self.$updateHandler = function(evt)
     {
       RenderQ.add(self);
@@ -1680,7 +1688,7 @@ var View = exports.View = Class(Model,
 
   innerHtml: function()
   {
-    return this.$renderer(this);
+    return this.$renderer(this.$cursor);
   },
 
   node: function(check)
@@ -1753,38 +1761,6 @@ var View = exports.View = Class(Model,
       unhandle();
     });
     delete this._unhandlers;
-  },
-
-  /**
-   * Failed to find a property when rendering the view/model.  Since the property
-   * isn't in the view, we look for it in the associated model.  If we find it there
-   * we add a view property to point to the model property (so avoid this process in the future).
-   */
-  __missing: function(name)
-  {
-    var model = this.$model;
-    if (name in model)
-    {
-      if (typeof model[name] === "function")
-      {
-        this[name] = function()
-        {
-          return model[name]();
-        }
-      }
-      else
-      {
-        this[name] = function()
-        {
-          return model[name];
-        }
-      }
-      return this[name]();
-    }
-    else
-    {
-      return undefined;
-    }
   }
 }).statics(
 {
@@ -1905,7 +1881,7 @@ var ViewSet = exports.ViewSet = Class(View,
     var fn = this.$renderer;
     for (var i = 0; i < len; i++)
     {
-      s += fn(models[i], i);
+      s += this.$cursor.using(models[i], fn, i);
     }
     return s;
   }
@@ -1923,7 +1899,7 @@ var Template = exports.Template = Class(
   constructor: function(str, partials, p)
   {
     var parts = str.split(this._pattern);
-    var fn = 'return"' + this._esc(parts[0]);
+    var fn = 'o=o.__proto__===Template.Cursor.prototype?o:new Template.Cursor([o]);return"' + this._esc(parts[0]);
     var instr = 1;
     var fnnr = 1;
     var fnstack = [];
@@ -2038,34 +2014,19 @@ var Template = exports.Template = Class(
    */
   v: function(o, k)
   {
-    var v;
     if (k in this)
     {
-      v = this[k].call(o);
+      return this[k].call(o);
     }
     else
     {
-      v = o[k];
-      if (typeof v === "function")
-      {
-        v = v.call(o);
-      }
-      else if (!(k in o))
-      {
-        v = this.missing(o, k);
-      }
+      return o.v(k);
     }
-    return v;
   },
   
   _esc: function(s)
   {
     return s.replace(/"/g, '\\"');
-  },
-
-  missing: function(o, k)
-  {
-    return o.__missing && o.__missing(k);
   },
 
   /**
@@ -2079,12 +2040,12 @@ var Template = exports.Template = Class(
       switch(Object.prototype.toString.call(v))
       {
         case "[object Object]":
-          return fn(v);
+          return o.using(v, fn);
         case "[object Array]":
           var s = "";
           v.forEach(function(e, i)
           {
-            s += fn(e, i);
+            s += o.using(e, fn, i);
           });
           return s;
         default:
@@ -2142,6 +2103,47 @@ var Template = exports.Template = Class(
         }
     }
   }
+}).statics(
+{
+  Cursor: Class(
+  {
+    constructor: function(o)
+    {
+      this.o = o;
+    },
+
+    v: function(key)
+    {
+      for (var i = 0, len = this.o.length; i < len; i++)
+      {
+        var o = this.o[i];
+        if (key in o)
+        {
+          var v = o[key];
+          if (typeof v === "function")
+          {
+            v = v.call(o);
+          }
+          return v;
+        }
+      }
+      var top = this.o[0];
+      return top.__missing && top.__missing(key);
+    },
+
+    using: function(no, fn, extra)
+    {
+      this.o.unshift(no);
+      try
+      {
+        return fn.call(null, this, extra);
+      }
+      finally
+      {
+        this.o.shift();
+      }
+    }
+  })
 });
 var InputViewMixin =
 {
@@ -2348,7 +2350,7 @@ var LiveListViewMixin =
     var fn = this.$renderer;
     for (var i = 0; i < len; i++)
     {
-      s += fn(models[i], i);
+      s += this.$cursor.using(models[i], fn, i); // fn(models[i], i);
     }
     this._liveList._count = 0;
     return s;
@@ -2650,13 +2652,13 @@ var RootView = exports.RootView = Class(View,
                 var s = "";
                 m.forEach(function(e, i)
                 {
-                  s += fn(e, i);
+                  s += o.using(e, fn, i);
                 }, this);
                 return s;
               }
               else
               {
-                return fn(m);
+                return o.using(m, fn);
               }
             default:
               return fn(o);
@@ -2673,7 +2675,7 @@ var RootView = exports.RootView = Class(View,
         var m;
         if (k[0] === "_")
         {
-          m = o.$model || o;
+          m = o.o[0].$model || o.o[0];
         }
         else
         {
@@ -2711,18 +2713,42 @@ var RootView = exports.RootView = Class(View,
             return new aView(args);
           });
           RenderQ.remove(v);
+          // We attempt to optimize rendering by not re-rendering (and then merging) content
+          // we know we already have.  This can be quite tricky since a view can move around
+          // on the screen, or a model can be referenced by a different modelset, and so even if
+          // they themselves haven't changed, we still may need to re-render the content so we
+          // can insert it into the new DOM tree.  To do this correctly, we track the chain of
+          // views and models to this point (inside the template cursor) and compare them when
+          // optimizing.  Only if these are identical, the model hasn't been changed, and we
+          // are doing a merge operation, can we optimize the paint. Otherwise, we do a full render.
+          var parents = o.o.concat(o._parents || []);
           var mseq = m.sequence;
-          /*if (v.vsequence === mseq && mseq !== undefined)
+          if (RenderQ._inMerge && v.vsequence === mseq && mseq !== undefined)
           {
-            // The model hasn't changed since the view rendered it, so we don't render
-            // it again but use a NOCHANGE node to alert the merger
-            return "<!--NOCHANGE-->";
+            var len = parents.length;
+            var vparents = v.$cursor._parents;
+            if (len === vparents.length)
+            {
+              var i;
+              for (i = 0; i < len; i++)
+              {
+                if (parents[i] !== vparents[i])
+                {
+                  break;
+                }
+              }
+              if (i === len)
+              {
+                // The model hasn't changed since the view rendered it, so we don't render
+                // it again but use a NOCHANGE node to alert the merger
+                //console.log("***NO CHANGE ***");
+                return "<!--NOCHANGE-->";
+              }
+            }
           }
-          else*/
-          {
-            v.vsequence = mseq;
-            return v.html();
-          }
+          v.$cursor._parents = parents;
+          v.vsequence = mseq;
+          return v.html();
         }
         else
         {
@@ -3274,9 +3300,11 @@ var RenderQ = exports.RenderQ =
         }
         else
         {
+          this._inMerge = true;
           var stage = view.stage();
           stage.innerHTML = view.innerHtml();
           this._mergeChildren(node, stage);
+          this._inMerge = false;
         }
       }
       else
