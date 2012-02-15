@@ -79,27 +79,10 @@ function main()
       onSelectList: function(m, v)
       {
         selectList(m, v);
-        if (m.isSearch())
+        var query = m.asSearch();
+        if (query)
         {
-          var query = "";
-          m.includeTags().forEach(function(tag)
-          {
-            switch (tag.tag.type)
-            {
-              case "screenname":
-              case "hashtag":
-              case "hostname":
-              case "search":
-                query += tag.tag.key + " ";
-                break;
-              default:
-                break;
-            }
-          });
-          if (query)
-          {
-            account.search(query.slice(0, -1));
-          }
+          account.search(query.slice(0, -1));
         }
       },
       onDropToList: function(m, v)
@@ -109,9 +92,14 @@ function main()
       onDropToNewList: function(m, v)
       {
         var listName = v.dropped().title;
-        if (listName[0] === "#")
+        switch (v.dropped().type)
         {
-          listName += "?";
+          case "hashtag":
+          case "somewhere":
+            listName += "?";
+            break;
+          default:
+            break;
         }
         var list = account.tweetLists.createList(listName);
         if (list)

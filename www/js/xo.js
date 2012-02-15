@@ -2723,7 +2723,8 @@ var RootView = exports.RootView = Class(View,
           // are doing a merge operation, can we optimize the paint. Otherwise, we do a full render.
           var parents = o.o.concat(o._parents || []);
           var mseq = m.sequence;
-          if (RenderQ._inMerge && v.vsequence === mseq && mseq !== undefined)
+          var vseq = v.sequence;
+          if (RenderQ._inMerge && v.msequence === mseq && v.vsequence === vseq && mseq !== undefined && vseq !== undefined)
           {
             var len = parents.length;
             var vparents = v.$cursor._parents;
@@ -2747,7 +2748,8 @@ var RootView = exports.RootView = Class(View,
             }
           }
           v.$cursor._parents = parents;
-          v.vsequence = mseq;
+          v.msequence = mseq;
+          v.vsequence = vseq;
           return v.html();
         }
         else

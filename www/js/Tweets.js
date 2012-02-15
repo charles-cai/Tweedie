@@ -114,6 +114,32 @@ var FilteredTweetsModel = Model.create(
     return this.title().slice(-1) === "?";
   },
 
+  asSearch: function()
+  {
+    if (!this.isSearch())
+    {
+      return null;
+    }
+
+    var query = "";
+    this.includeTags().forEach(function(tag)
+    {
+      switch (tag.tag.type)
+      {
+        case "screenname":
+        case "hashtag":
+        case "hostname":
+        case "search":
+        case "somewhere":
+          query += tag.tag.key + " ";
+          break;
+        default:
+          break;
+      }
+    });
+    return query.slice(0, -1);
+  },
+
   isDM: function()
   {
     var tags = this.includeTags();
@@ -134,20 +160,19 @@ var FilteredTweetsModel = Model.create(
 
   _makeRule: function(tag)
   {
-    if (tag.type === "search")
+    switch (tag.type)
     {
-      return function()
-      {
-        return true;
-      };
-    }
-    else
-    {
-      var key = tag.type + ":" + tag.key;
-      return function(tweet)
-      {
-        return tweet.hasTagKey(key);
-      };
+      case "search":
+        return function()
+        {
+          return true;
+        };
+      default:
+        var key = tag.type + ":" + tag.key;
+        return function(tweet)
+        {
+          return tweet.hasTagKey(key);
+        };
     }
   },
 

@@ -42,7 +42,7 @@
     <div id="main" class="template">
       <div class="main">
         <div class="col right">
-          {{:is_dm_list}}return this.v('$model').current_list().isDM();{{/is_dm_list}}
+          {{:is_dm_list}}return this.v('current_list').isDM();{{/is_dm_list}}
           {{^is_dm_list}}
             <div class="pane compose" data-action-click="ComposeTweet">
               Tweet...
@@ -132,8 +132,8 @@
         <div class="col middle2">
           <div class="pane tweets">
             {{#current_list View updateOn:"viz"}}
-              {{:viz_list}}return this.v('$model').viz() === 'list' ? 'selected' : ''{{/viz_list}}
-              {{:viz_stack}}return this.v('$model').viz() === 'stack' ? 'selected' : ''{{/viz_stack}}
+              {{:viz_list}}return this.v('viz') === 'list' ? 'selected' : ''{{/viz_list}}
+              {{:viz_stack}}return this.v('viz') === 'stack' ? 'selected' : ''{{/viz_stack}}
               {{#viz_list}}
                 {{#tweets ViewSet.LiveList name:"tweets"}}
                   {{>tweet}}
@@ -162,7 +162,7 @@
             <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
           {{/is_retweet}}
           <div class="actions">
-            {{#has_children}}{{:child_count}}return this.v('$model').children.length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
+            {{#has_children}}{{:child_count}}return this.v('children').length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
             {{^isDM}}
               <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
               <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
@@ -273,7 +273,7 @@
     <div id="error_dialog" class="template">
       <div class="dialog error-view">
         <div class="inner">
-          {{:has_errors}}return this.v('$model').errors().length{{/has_errors}}
+          {{:has_errors}}return this.v('errors').length{{/has_errors}}
           {{#has_errors}}
             <div class="summary">Twitter is unavailable.  Retrying these every 60 seconds.</div>
             <div class="errors">

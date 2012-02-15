@@ -516,11 +516,11 @@ var Tweet = Model.create(
           url = url.resolved_url || url.expanded_url;
           if (url)
           {
-            var hostname = new Url(url).hostname;
+            var hostname = new Url(url).hostname.toLocaleLowerCase();
             if (!used["hostname:" + hostname])
             {
               used["hostname:" + hostname] = true;
-              tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
+              tags.push({ title: hostname, type: "hostname", key: hostname });
             }
           }
         });
@@ -539,14 +539,30 @@ var Tweet = Model.create(
               used[Tweet.VideoTag.hashkey] = true;
               tags.push(Tweet.VideoTag);
             }
-            var hostname = new Url(url).hostname;
+            var hostname = new Url(url).hostname.toLocaleLowerCase();
             if (!used["hostname:" + hostname])
             {
               used["hostname:" + hostname] = true;
-              tags.push({ title: hostname, type: "hostname", key: hostname.toLocaleLowerCase() });
+              tags.push({ title: hostname, type: "hostname", key: hostname });
             }
           }
         });
+      }
+
+      if (this._values.place)
+      {
+        var name = this._values.place.full_name;
+        used[Tweet.PlaceTag.hashkey] = true;
+        tags.push({ title: name, type: "somewhere", key: "place:" + this._values.place.id });
+        tags.push(Tweet.PlaceTag);
+      }
+      else if (this._values.geo)
+      {
+        var co = this._values.geo.coordinates;
+        var name = co[0] + "," + co[1];
+        used[Tweet.GeoTag.hashkey] = true;
+        tags.push({ title: name, type: "somewhere", key: 'near:"' + name + '"' });
+        tags.push(Tweet.GeoTag);
       }
       if (this._values.recipient)
       {
@@ -593,5 +609,7 @@ var Tweet = Model.create(
   DMTag: { title: "DM", type: "dm", key: "dm", hashkey: "dm:dm" },
   FavoriteTag: { title: "Favorite", type: "fav", key: "favorite", hashkey: "fav:favorite" },
   PhotoTag: { title: "Photo", type: "photo", key: "photo", hashkey: "photo:photo" },
-  VideoTag: { title: "Video", type: "video", key: "video", hashkey: "video:video" }
+  VideoTag: { title: "Video", type: "video", key: "video", hashkey: "video:video" },
+  PlaceTag: { title: "Place", type: "place", key: "place", hashkey: "place:place" },
+  GeoTag: { title: "Geo", type: "geo", key: "geo", hashkey: "geo:geo" }
 });
