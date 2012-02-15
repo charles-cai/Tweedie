@@ -70,7 +70,7 @@ var UrlExpander = Class(Events,
         html_large: '<iframe width="640" height="360" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>'
       }
     }
-    // Twitpic (thumbs)
+    // Twitpic
     else if (url.indexOf("http://twitpic.com/") === 0)
     {
       return {
