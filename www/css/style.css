@@ -6,7 +6,8 @@ body
   width: 768px;
   height: 1000px;
   font-family: "Helvetica Neue", "Helvetica";
-  background-color: rgb(146,228,232);
+  xbackground-color: rgb(146,228,232);
+  background-color: hsl(183, 65%, 25%);
   overflow: hidden;
   z-index: 1;
   -webkit-font-smoothing: antialiased;
