@@ -3205,7 +3205,7 @@ var RenderQ = exports.RenderQ =
         },
         function()
         {
-          //Log.time("RenderQ.render");
+          Log.time("RenderQ.render");
           while (this._count != 0)
           {
             var qs = this._q;
@@ -3244,7 +3244,7 @@ var RenderQ = exports.RenderQ =
               }
             }
           }
-          //Log.timeEnd("RenderQ.render");
+          Log.timeEnd("RenderQ.render");
           this._runGc();
         }
       );
