@@ -8,7 +8,6 @@ var Tweet = Model.create(
   {
     this._tweetLists = tweetLists;
     __super(values);
-    this._buildTags();
     this._buildImageUrl();
   },
 
@@ -372,7 +371,8 @@ var Tweet = Model.create(
           media.resolved_display_url = this.make_display_url(o.url);
         }
       }, this);
-      this._buildTags();
+      this._tags = null;
+      this._tagsHash = null;
     }
   },
 
@@ -411,7 +411,7 @@ var Tweet = Model.create(
 
   hasTagKey: function(key)
   {
-    return this._tagsHash[key] || false;
+    return this.tagsHash()[key] || false;
   },
 
   favorited: function(nv)
@@ -425,7 +425,8 @@ var Tweet = Model.create(
       var ov = Model.updateProperty(this, "favorited", nv);
       if (ov !== nv)
       {
-        this._buildTags();
+        this._tags = null;
+        this._tagsHash = null;
       }
       return ov;
     }
@@ -437,27 +438,34 @@ var Tweet = Model.create(
 
   tags: function()
   {
+    if (!this._tags)
+    {
+      this._buildTags();
+    }
     return this._tags;
+  },
+
+  tagsHash: function()
+  {
+    if (!this._tagsHash)
+    {
+      this._buildTags();
+    }
+    return this._tagsHash;
   },
 
   _buildTags: function()
   {
     var used = {};
     var tags = [];
-    if (this.favorited())
-    {
-      used[Tweet.FavoriteTag.hashkey] = true;
-      tags.push(Tweet.FavoriteTag);
-    }
     if (this.is_retweet())
     {
       var retweet = this.retweet();
       retweet._buildTags();
-      tags = tags.concat(retweet._tags);
-      for (var key in retweet._tagsHash)
-      {
-        used[key] = retweet._tagsHash[key];
-      }
+      tags = retweet._tags;
+      used = retweet._tagsHash;
+      retweet._tags = null;
+      retweet._tagsHash = null;
       var name = "@" + this.screen_name();
       var key = name.toLocaleLowerCase();
       if (!used["screenname:" + key])
@@ -563,6 +571,11 @@ var Tweet = Model.create(
         used[Tweet.GeoTag.hashkey] = true;
         tags.push({ title: name, type: "somewhere", key: 'near:"' + name + '"' });
         tags.push(Tweet.GeoTag);
+      }
+      if (this.favorited())
+      {
+        used[Tweet.FavoriteTag.hashkey] = true;
+        tags.push(Tweet.FavoriteTag);
       }
       if (this._values.recipient)
       {
