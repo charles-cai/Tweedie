@@ -75,7 +75,7 @@ var UrlExpander = Class(Events,
     {
       return {
         url: url,
-        medial_url: "http://twitpic.com/show/thumb/" + new xo.Url(url).pathname,
+        medial_url: "http://twitpic.com/show/large/" + new xo.Url(url).pathname,
         type: "photo"
       };
     }
