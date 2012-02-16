@@ -65,46 +65,46 @@ var FilteredTweetsModel = Model.create(
     this._save();
   },
 
-  addIncludeTag: function(tag)
+  addIncludeTag: function(tag, refilter)
   {
     if (this._tagIndex(this._includeTags, tag) === -1)
     {
       var filter = this._makeRule(tag);
       this._includeTags.push({ tag: tag, filter: filter });
-      this.tweets().addIncludeFilter(filter);
+      this.tweets().addIncludeFilter(filter, refilter);
       this.emit("update");
     }
   },
 
-  addExcludeTag: function(tag)
+  addExcludeTag: function(tag, refilter)
   {
     if (this._tagIndex(this._excludeTags, tag) === -1)
     {
       var filter = this._makeRule(tag);
       this._excludeTags.push({ tag: tag, filter: filter });
-      this.tweets().addExcludeFilter(filter);
+      this.tweets().addExcludeFilter(filter, refilter);
       this.emit("update");
     }
   },
 
-  removeIncludeTag: function(tag)
+  removeIncludeTag: function(tag, refilter)
   {
     var idx = this._tagIndex(this._includeTags, tag);
     if (idx !== -1)
     {
       var e = this._includeTags.splice(idx, 1);
-      this.tweets().removeIncludeFilter(e[0].filter);
+      this.tweets().removeIncludeFilter(e[0].filter, refilter);
       this.emit("update");
     }
   },
 
-  removeExcludeTag: function(tag)
+  removeExcludeTag: function(tag, refilter)
   {
     var idx = this._tagIndex(this._excludeTags, tag);
     if (idx !== -1)
     {
       var e = this._excludeTags.splice(idx, 1);
-      this.tweets().removeExcludeFilter(e[0].filter);
+      this.tweets().removeExcludeFilter(e[0].filter, refilter);
       this.emit("update");
     }
   },
@@ -120,24 +120,10 @@ var FilteredTweetsModel = Model.create(
     {
       return null;
     }
-
-    var query = "";
-    this.includeTags().forEach(function(tag)
+    else
     {
-      switch (tag.tag.type)
-      {
-        case "screenname":
-        case "hashtag":
-        case "hostname":
-        case "search":
-        case "somewhere":
-          query += tag.tag.key + " ";
-          break;
-        default:
-          break;
-      }
-    });
-    return query.slice(0, -1);
+      return this.title().slice(0, -1);
+    }
   },
 
   isDM: function()
@@ -282,14 +268,6 @@ var FilteredTweetsModel = Model.create(
       {
         keys = keys();
         this.viz(keys.viz);
-        keys.includeTags.forEach(function(t)
-        {
-          this.addIncludeTag(t.tag);
-        }, this);
-        keys.excludeTags.forEach(function(t)
-        {
-          this.addExcludeTag(t.tag);
-        }, this);
         var tweets = [];
         var lists = this._tweetLists;
         keys.tweets.forEach(function(id)
@@ -303,6 +281,14 @@ var FilteredTweetsModel = Model.create(
         this.addTweets(tweets);
         this.lastRead(keys.lastRead);
         this.recalcVelocity(this._tweetLists._getVelocity());
+        keys.includeTags.forEach(function(t)
+        {
+          this.addIncludeTag(t.tag, false);
+        }, this);
+        keys.excludeTags.forEach(function(t)
+        {
+          this.addExcludeTag(t.tag, false);
+        }, this);
         return true;
       }
     );
