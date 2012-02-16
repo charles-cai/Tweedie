@@ -6,46 +6,54 @@ var UrlExpander = Class(Events,
 
   expand: function(urls)
   {
-    this.emit("networkActivity", true);
     var results = {};
-    var u;
-    return Co.Forever(this,
+    return Co.Routine(this,
       function()
       {
-        if (!urls.length)
+        this.emit("networkActivity", true);
+        var batches = [];
+        for (var i = 0, len = urls.length; i < len; i += this._batchSize)
         {
-          this.emit("networkActivity", false);
-          return Co.Break(results);
+          batches.push(urls.slice(i, i + this._batchSize));
         }
-        u = urls.splice(0, this._batchSize);
-        return Ajax.create(
-        {
-          method: "GET",
-          url: this._serviceUrl + u.map(function(url)
+        return Co.Foreach(this, batches,
+          function(batch)
           {
-            return "urls%5B%5D=" + escape(url)
-          }).join("&"),
-          headers: KEYS.twitterResolve,
-          proxy: networkProxy
-        });
-      },
-      function(r)
-      {
-        try
-        {
-          var json = r().json();
-          for (var url in json)
+            return Ajax.create(
+            {
+              method: "GET",
+              url: this._serviceUrl + batch().map(function(url)
+              {
+                return "urls%5B%5D=" + escape(url)
+              }).join("&"),
+              headers: KEYS.twitterResolve,
+              proxy: networkProxy
+            });
+          },
+          function(r)
           {
-            results[url] = this._expanders(json[url]);
+            try
+            {
+              var json = r().json();
+              for (var url in json)
+              {
+                results[url] = this._expanders(json[url]);
+              }
+            }
+            catch (e)
+            {
+              Log.exception("UrlExpander failed", e);
+            }
+            return true;
           }
-        }
-        catch (e)
-        {
-          Log.exception("UrlExpander failed", e);
-        }
-        return true;
+        );
+      },
+      function()
+      {
+        this.emit("networkActivity", false);
+        return results;
       }
-    )
+    );
   },
 
   _expanders: function(url)
