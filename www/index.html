@@ -33,6 +33,8 @@
     <script src="js/Composite.js"></script>
     <script src="js/TweetBox.js"></script>
     <script src="js/Profile.js"></script>
+    <script src="js/UsersAndTags.js"></script>
+    <script src="js/Topics.js"></script>
     <script src="js/app.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
@@ -254,10 +256,29 @@
             {{/isDM}}
           </div>
           <div class="tweet-dialog-body">
-            {{#isEdit}}{{#_ View.Input}}<textarea type="url" class="tweet-text-edit" {{#screen_name}}autofocus{{\screen_name}} name="text" {{{input_attributes}}}>{{text}}</textarea>{{/_}}{{/isEdit}}
+            {{#isEdit}}{{#_ View}}<textarea type="url" class="tweet-text-edit" {{^isDM}}autofocus{{\iDM}}{{#screen_name}}autofocus{{\screen_name}} name="text" data-action-input="Input">{{text}}</textarea>{{/_}}{{/isEdit}}
             {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}
           </div>
           <div class="tweet-dialog-footer">
+            <div class="suggestions">
+              <div class="inside">
+                {{#usuggestions}}
+                  {{#_ View className:'user-suggestion'}}
+                    <div data-action-click="Suggestion">
+                      <div class="name">{{name}}</div>
+                      <div class="screenname">@{{screenname}}</div>
+                    </div>
+                  {{/_}}
+                {{/usuggestions}}
+                {{#hsuggestions}}
+                  {{#_ View className:'hashtag-suggestion'}}
+                    <div data-action-click="Suggestion">
+                      {{name}}
+                    </div>
+                  {{/_}}
+                {{/hsuggestions}}
+              </div>
+            </div>
             <div class="controls">
               {{#isEdit}}<div class="tweet-count" >{{count}}</div>{{/isEdit}}
               <div class="button" data-action-click="CancelButton">Cancel</div>
@@ -275,7 +296,7 @@
         <div class="inner">
           {{:has_errors}}return this.v('errors').length{{/has_errors}}
           {{#has_errors}}
-            <div class="summary">Twitter is unavailable.  Retrying these every 60 seconds.</div>
+            <div class="summary">Twitter is unavailable.  Retrying every 60 seconds.</div>
             <div class="errors">
               {{#errors}}
                 {{#_ View}}
@@ -309,7 +330,7 @@
                 </div>
                 {{#location}}<div class="location">{{location}}</div>{{/location}}
                 {{#url}}<div class="url">{{url}}</span></div>{{/url}}
-                <div class="description">{{description}}</div>
+                {{#description}}<div class="description">{{description}}</div>{{/description}}
               </div>
               <div class="right">
                 <div class="stats">

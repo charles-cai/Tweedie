@@ -596,7 +596,35 @@ body
 {
   margin-bottom: 5px;
 }
-.tweet-dialog .controls
+.tweet-dialog-footer .suggestions
+{
+  display: inline-block;
+  width: 410px;
+  height: 32px;
+  overflow: hidden;
+}
+.tweet-dialog-footer .suggestions .inside
+{
+  width: 1024px;
+}
+.tweet-dialog-footer .suggestions .user-suggestion, .tweet-dialog-footer .suggestions .hashtag-suggestion
+{
+  display: inline-block;
+  background-color: white;
+  border: 1px solid rgba(0,0,0,0.5);
+  -webkit-border-radius: 3px;
+  font-size: 10px;
+  padding: 2px;
+}
+.tweet-dialog-footer .suggestions .user-suggestion:active, .tweet-dialog-footer .suggestions .hashtag-suggestion:active
+{
+  background-color: grey;
+}
+.tweet-dialog-footer .suggestions .user-suggestion .screenname
+{
+  font-size: 8px;
+}
+.tweet-dialog-footer .controls
 {
   float: right;
 }

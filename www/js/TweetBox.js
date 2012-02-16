@@ -47,6 +47,7 @@ var TweetBox = Class(
       screen_name: tweet && tweet.conversation(),
       target: tweet && tweet.conversation()
     });
+    var target = null;
     var mv = new ModalView(
     {
       node: document.getElementById("root-dialog"),
@@ -72,7 +73,7 @@ var TweetBox = Class(
             isTweet: true,
             isEdit: true
           });
-          m.text('"@' + (tweet.is_retweet() ? tweet.retweet().screen_name() : tweet.screen_name()) + ': ' + m.text() + '"');
+          m.text('RT @' + (tweet.is_retweet() ? tweet.retweet().screen_name() : tweet.screen_name()) + ': ' + m.text());
         },
         onTweetButton: function(m, v)
         {
@@ -101,6 +102,94 @@ var TweetBox = Class(
         onCancelButton: function(m, v)
         {
           v.close();
+        },
+        onInput: function(m, v, e)
+        {
+          var value = e.target.value;
+          var curpos = e.target.selectionStart;
+          var start;
+          wordStart: for (start = curpos - 1; start > 0; start--)
+          {
+            switch (value[start])
+            {
+              case " ":
+              case "\n":
+                start++;
+                break wordStart;
+              default:
+                break;
+            }
+          }
+          var len = value.length;
+          var end;
+          wordEnd: for (end = start; end < len; end++)
+          {
+            switch (value[end])
+            {
+              case " ":
+              case "\n":
+                break wordEnd;
+              default:
+                break;
+            }
+          }
+          if (end > start + 1)
+          {
+            var word = value.slice(start + 1, end).toLowerCase();
+            switch (value[start])
+            {
+              case "@":
+                mv.property("usuggestions", account.userAndTags.suggestUser(word).slice(0, 10));
+                target =
+                {
+                  textarea: e.target,
+                  start: start,
+                  end: end,
+                  type: "@"
+                };
+                break;
+              case "#":
+                mv.property("hsuggestions", account.userAndTags.suggestHashtag(word).slice(0, 10));
+                target =
+                {
+                  textarea: e.target,
+                  start: start,
+                  end: end,
+                  type: "#"
+                };
+                break;
+              default:
+                mv.property("usuggestions", null);
+                mv.property("hsuggestions", null);
+                target = null;
+                break;
+            }
+          }
+          else
+          {
+            mv.property("usuggestions", null);
+            mv.property("hsuggestions", null);
+            target = null;
+          }
+
+          m[e.target.name](e.target.value);
+        },
+        onSuggestion: function(m)
+        {
+          if (target)
+          {
+            var value = target.textarea.value;
+            var name = m.screenname || m.name;
+            value = value.slice(0, target.start) + target.type + name + (value.slice(target.end) || " ");
+            target.textarea.value = value;
+            send.text(value);
+            var cur = target.start + name.length + 2;
+            target.textarea.selectionStart = cur;
+            target.textarea.selectionEnd = cur;
+            mv.property("usuggestions", null);
+            mv.property("hsuggestions", null);
+            target = null;
+          }
         }
       }
     });
