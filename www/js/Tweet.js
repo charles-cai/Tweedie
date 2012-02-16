@@ -4,9 +4,9 @@ var Tweet = Model.create(
   text: Model.ROProperty,
   created_at: Model.ROProperty,
 
-  constructor: function(__super, values, tweetLists)
+  constructor: function(__super, values, account)
   {
-    this._tweetLists = tweetLists;
+    this._account = account
     __super(values);
     this._buildImageUrl();
   },
@@ -163,7 +163,7 @@ var Tweet = Model.create(
     }
     else if (this._values.sender)
     {
-      if ("@" + this._values.sender.screen_name.toLocaleLowerCase() === this._tweetLists.screenname)
+      if ("@" + this._values.sender.screen_name.toLowerCase() === this._account.tweetLists.screenname)
       {
         return this._values.recipient.screen_name;
       }
@@ -206,7 +206,7 @@ var Tweet = Model.create(
     }
     else if (this._values.sender)
     {
-      if ("@" + this._values.sender.screen_name.toLocaleLowerCase() === this._tweetLists.screenname)
+      if ("@" + this._values.sender.screen_name.toLowerCase() === this._account.tweetLists.screenname)
       {
         return this._values.recipient;
       }
@@ -467,11 +467,12 @@ var Tweet = Model.create(
       retweet._tags = null;
       retweet._tagsHash = null;
       var name = "@" + this.screen_name();
-      var key = name.toLocaleLowerCase();
+      var key = name.toLowerCase();
       if (!used["screenname:" + key])
       {
         tags.unshift({ title: name, type: "screenname", key: key });
         used["screenname:" + key] = true;
+        this._account.userAndTags.addUser(this.screen_name(), this.name());
       }
       delete used[Tweet.TweetTag.hashkey];
       used[Tweet.RetweetTag.hashkey] = true;
@@ -480,30 +481,42 @@ var Tweet = Model.create(
     else
     {
       var name = "@" + this.screen_name();
-      var key = name.toLocaleLowerCase();
+      var key = name.toLowerCase();
       used["screenname:" + key] = true;
       tags.push({ title: name, type: "screenname", key: key });
+      this._account.userAndTags.addUser(this.screen_name(), this.name());
 
-      if (this._values.recipient)
+      this._account.topics.lookupByScreenName(key).forEach(function(topic)
       {
-        var name = "@" + this._values.recipient.screen_name;
-        var key = name.toLocaleLowerCase();
+        var key = topic.title.toLowerCase();
+        used["topic:" + key] = true;
+        tags.push({ title: topic.title, type: "topic", key: key });
+      });
+
+      var recipient = this._values.recipient;
+      if (recipient)
+      {
+        var name = "@" + recipient.screen_name;
+        var key = name.toLowerCase();
         used["screenname:" + key] = true;
         tags.push({ title: name, type: "screenname", key: key });
+        this._account.userAndTags.addUser(recipient.screen_name, recipient.name);
       }
 
       var entities = this._values.entities;
       if (entities)
       {
+        var me = this._account.tweetLists.screenname;
         entities.user_mentions && entities.user_mentions.forEach(function(mention)
         {
           var name = "@" + mention.screen_name;
-          var key = name.toLocaleLowerCase();
+          var key = name.toLowerCase();
           if (!used["screenname:" + key])
           {
             used["screenname:" + key] = true;
             tags.push({ title: name, type: "screenname", key: key });
-            if (key === this._tweetLists.screenname && !used[Tweet.MentionTag.hashkey])
+            this._account.userAndTags.addUser(mention.screen_name, mention.name);
+            if (key === me && !used[Tweet.MentionTag.hashkey])
             {
               used[Tweet.MentionTag.hashkey] = true;
               tags.push(Tweet.MentionTag);
@@ -512,19 +525,20 @@ var Tweet = Model.create(
         }, this);
         entities.hashtags && entities.hashtags.forEach(function(hashtag)
         {
-          var key = "#" + hashtag.text.toLocaleLowerCase();
+          var key = "#" + hashtag.text.toLowerCase();
           if (!used["hashtag:" + key])
           {
             used["hashtag:" + key] = true;
             tags.push({ title: "#" + hashtag.text, type: "hashtag", key: key });
+            this._account.userAndTags.addHashtag(hashtag.text);
           }
-        });
+        }, this);
         entities.urls && entities.urls.forEach(function(url)
         {
           url = url.resolved_url || url.expanded_url;
           if (url)
           {
-            var hostname = new Url(url).hostname.toLocaleLowerCase();
+            var hostname = new Url(url).hostname.toLowerCase();
             if (!used["hostname:" + hostname])
             {
               used["hostname:" + hostname] = true;
@@ -547,7 +561,7 @@ var Tweet = Model.create(
               used[Tweet.VideoTag.hashkey] = true;
               tags.push(Tweet.VideoTag);
             }
-            var hostname = new Url(url).hostname.toLocaleLowerCase();
+            var hostname = new Url(url).hostname.toLowerCase();
             if (!used["hostname:" + hostname])
             {
               used["hostname:" + hostname] = true;
@@ -602,7 +616,7 @@ var Tweet = Model.create(
     if (this._retweet === undefined)
     {
       var rt = this._values.retweeted_status;
-      this._retweet = rt ? new Tweet(rt, this._tweetLists) : false;
+      this._retweet = rt ? new Tweet(rt, this._account) : false;
     }
     return this._retweet;
   },
@@ -621,8 +635,8 @@ var Tweet = Model.create(
   MentionTag: { title: "Mention", type: "mention", key: "mention", hashkey: "mention:mention" },
   DMTag: { title: "DM", type: "dm", key: "dm", hashkey: "dm:dm" },
   FavoriteTag: { title: "Favorite", type: "fav", key: "favorite", hashkey: "fav:favorite" },
-  PhotoTag: { title: "Photo", type: "photo", key: "photo", hashkey: "photo:photo" },
-  VideoTag: { title: "Video", type: "video", key: "video", hashkey: "video:video" },
-  PlaceTag: { title: "Place", type: "place", key: "place", hashkey: "place:place" },
-  GeoTag: { title: "Geo", type: "geo", key: "geo", hashkey: "geo:geo" }
+  PhotoTag: { title: "Photo", type: "topic", key: "photo", hashkey: "topic:photo" },
+  VideoTag: { title: "Video", type: "topic", key: "video", hashkey: "topic:video" },
+  PlaceTag: { title: "Place", type: "topic", key: "place", hashkey: "topic:place" },
+  GeoTag: { title: "Geo", type: "topic", key: "geo", hashkey: "topic:geo" }
 });
