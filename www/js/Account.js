@@ -7,6 +7,8 @@ var Account = Class(Events,
     this.profiles = new ProfileManager(this);
     this.tweetLists = new TweetLists(this);
     this.errors = new Errors(this);
+    this.topics = new Topics(this);
+    this.userAndTags = new UsersAndTags(this);
   },
 
   open: function()
@@ -291,6 +293,11 @@ var Account = Class(Events,
   search: function(query)
   {
     return this._fetcher.fetchSearch(query);
+  },
+
+  suggestions: function(slug)
+  {
+    return this._fetcher.suggestions(slug);
   },
 
   profileByUser: function(user)
