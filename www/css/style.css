@@ -601,11 +601,13 @@ body
   display: inline-block;
   width: 410px;
   height: 32px;
-  overflow: hidden;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .tweet-dialog-footer .suggestions .inside
 {
-  width: 1024px;
+  white-space: nowrap;
 }
 .tweet-dialog-footer .suggestions .user-suggestion, .tweet-dialog-footer .suggestions .hashtag-suggestion
 {
