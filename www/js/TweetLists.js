@@ -167,7 +167,7 @@ var TweetLists = Class(
           var tweet = this.getTweet(twt.id_str);
           if (!tweet)
           {
-            tweet = new Tweet(twt, this);
+            tweet = new Tweet(twt, this._account);
             if (tweet.is_retweet())
             {
               urls = urls.concat(tweet.retweet().urls());
@@ -368,7 +368,7 @@ var TweetLists = Class(
         {
           all[type].forEach(function(tweet)
           {
-            this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this));
+            this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this._account));
           }, this);
         }
 
