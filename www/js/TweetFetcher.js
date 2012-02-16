@@ -468,10 +468,30 @@ var TweetFetcher = xo.Class(Events,
     return Co.Routine(this,
       function()
       {
-        return Ajax.create(
+        return this._ajaxWithRetry(
         {
           method: "GET",
           url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._userInfo.user_id + "&" + key,
+          auth: this._auth,
+          proxy: networkProxy
+        });
+      },
+      function(r)
+      {
+        return r().json();
+      }
+    );
+  },
+
+  suggestions: function(slug)
+  {
+    return Co.Routine(this,
+      function()
+      {
+        return this._ajaxWithRetry(
+        {
+          method: "GET",
+          url: "http://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
           auth: this._auth,
           proxy: networkProxy
         });
