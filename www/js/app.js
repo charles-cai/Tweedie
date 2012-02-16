@@ -82,7 +82,7 @@ function main()
         var query = m.asSearch();
         if (query)
         {
-          account.search(query.slice(0, -1));
+          account.search(query);
         }
       },
       onDropToList: function(m, v)
@@ -102,7 +102,7 @@ function main()
             break;
         }
         var list = account.tweetLists.createList(listName);
-        if (list)
+        if (list && !list.isSearch())
         {
           account.tweetLists.addIncludeTag(list, v.dropped());
         }
@@ -115,7 +115,7 @@ function main()
           if (listName[listName.length - 1] === "?")
           {
             var list = account.tweetLists.createList(listName, "searches");
-            account.tweetLists.addIncludeTag(list, { type: "search", title: listName, key: listName.toLocaleLowerCase().slice(0, -1) });
+            account.tweetLists.addIncludeTag(list, { type: "search", title: listName, key: listName.slice(0, -1).toLowerCase() });
           }
           else
           {

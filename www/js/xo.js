@@ -1529,13 +1529,13 @@ var FilteredModelSet = exports.FilteredModelSet = Class(IndexedModelSet,
     }
   },
 
-  addIncludeFilter: function(fn)
+  addIncludeFilter: function(fn, refilter)
   {
     if (this._include.indexOf(fn) === -1)
     {
       this._include.push(fn);
       this.emit("filterChange");
-      if (this._include.length === 1)
+      if (this._include.length === 1 && refilter !== false)
       {
         return this._filterNow();
       }
@@ -1543,25 +1543,28 @@ var FilteredModelSet = exports.FilteredModelSet = Class(IndexedModelSet,
     return null;
   },
 
-  addExcludeFilter: function(fn)
+  addExcludeFilter: function(fn, refilter)
   {
     if (this._exclude.indexOf(fn) === -1)
     {
       this._exclude.push(fn);
       this.emit("filterChange");
-      return this._filterNow();
+      if (refilter !== false)
+      {
+        return this._filterNow();
+      }
     }
     return null;
   },
 
-  removeIncludeFilter: function(fn)
+  removeIncludeFilter: function(fn, refilter)
   {
     var idx = this._include.indexOf(fn);
     if (idx !== -1)
     {
       this._include.splice(idx, 1);
       this.emit("filterChange");
-      if (this._include.length)
+      if (this._include.length && refilter !== false)
       {
         return this._filterNow();
       }
@@ -4510,6 +4513,11 @@ var LRU = exports.LRU = Class(Events,
     {
       return false;
     }
+  },
+
+  keys: function()
+  {
+    return Object.keys(this._hash);
   }
 });
 })();
