@@ -1,3 +1,5 @@
+var PrimaryFetcher;
+
 var TweetFetcher = xo.Class(Events,
 {
   constructor: function(account, config)
@@ -5,6 +7,10 @@ var TweetFetcher = xo.Class(Events,
     if (!KEYS.twitter)
     {
       throw new Error("Missing twitter KEYS");
+    }
+    if (!PrimaryFetcher)
+    {
+      PrimaryFetcher = this;
     }
     this._auth = new xo.OAuthLogin(
     {
