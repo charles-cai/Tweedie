@@ -37,7 +37,7 @@
 		NSLog(@"TweedPad launchOptions = %@",url);
     }
   
-  [NSClassFromString(@"WebView") _enableRemoteInspector];
+  //[NSClassFromString(@"WebView") _enableRemoteInspector];
 		
 	return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
