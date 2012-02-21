@@ -1,10 +1,8 @@
 var Account = Class(Events,
 {
-  _store: new Storage("accounts"),
-
   constructor: function(userInfo)
   {
-    this.profiles = new ProfileManager(this);
+    this._lgrid = grid.get();
     this.tweetLists = new TweetLists(this);
     this.errors = new Errors(this);
     this.topics = new Topics(this);
@@ -16,13 +14,13 @@ var Account = Class(Events,
     return Co.Routine(this,
       function()
       {
-        return this._store.get("accountInfo", {});
+        return this._lgrid.read("/accounts");
       },
       function(info)
       {
         try
         {
-          info = info()
+          info = info() || {};
         }
         catch (e)
         {
@@ -46,7 +44,7 @@ var Account = Class(Events,
           this.userInfo = info;
           this.tweetLists.screenname = "@" + info.screen_name;
           this.emit("screenNameChange");
-          this._store.set("accountInfo", this.serialize());
+          this._lgrid.write("/accounts", this.serialize());
         }, this);
 
         return this.tweetLists.restore();
@@ -80,11 +78,6 @@ var Account = Class(Events,
         return true;
       }
     );
-  },
-
-  storage: function(name)
-  {
-    return this._store.getSubStorage(name);
   },
 
   expandUrls: function(urls)
@@ -298,16 +291,6 @@ var Account = Class(Events,
   suggestions: function(slug)
   {
     return this._fetcher.suggestions(slug);
-  },
-
-  profileByUser: function(user)
-  {
-    return this.profiles.profileByUser(user);
-  },
-
-  profileByName: function(name)
-  {
-    return this.profiles.profileByName(name);
   },
 
   serialize: function()

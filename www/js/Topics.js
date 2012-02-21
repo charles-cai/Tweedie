@@ -5,7 +5,7 @@ var Topics = Class(Events,
   constructor: function(account)
   {
     this._account = account;
-    this._store = account.storage("topics");
+    this._lgrid = grid.get();
     this._name2topic = {};
     this._lastupdate = 0;
     Co.Routine(this,
@@ -86,17 +86,16 @@ var Topics = Class(Events,
     return Co.Routine(this,
       function()
       {
-        return this._store.getAll(
-        {
-          name2topic: {},
-          lastupdate: 0
-        });
+        return this._lgrid.mread([
+          "/topics/name2topic",
+          "/topics/lastupdate"
+        ]);
       },
       function(r)
       {
         r = r();
-        this._name2topic = r.name2topic;
-        this._lastupdate = r.lastupdate;
+        this._name2topic = r[0] || {};
+        this._lastupdate = r[1] || 0;
         return true;
       }
     );
@@ -104,10 +103,9 @@ var Topics = Class(Events,
 
   _save: function()
   {
-    return this._store.setAll(
-    {
-      name2topic: this._name2topic,
-      lastupdate: this._lastupdate
-    });
+    return this._lgrid.mwrite([
+      [ "/topics/name2topic", this._name2topic ],
+      [ "/topics/lastupdate", this._lastupdate ]
+    ]);
   }
 });

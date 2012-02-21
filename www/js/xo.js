@@ -1848,6 +1848,10 @@ var ViewSet = exports.ViewSet = Class(View,
       {
         node.removeChild(children.item(index));
       }
+      if (args.count > 0)
+      {
+        this.$updateHandler();
+      }
     }
     else
     {
@@ -2273,51 +2277,62 @@ var LiveListViewMixin =
 
   $insertHandler: function(__super, evt, args)
   {
-    var node = this.node();
-    if (node)
+    if (RenderQ.onQ(this))
     {
-      if (args.count && args.index === 0)
+      // If on RenderQ already, no point (and possible wrong) doing anything here.
+    }
+    else
+    {
+      var node = this.node();
+      if (node)
       {
-        var container = this._scrollContainer();
+        if (args.count && args.index === 0)
+        {
+          var container = this._scrollContainer();
       
-        if (!node.firstChild)
-        {
-          var count = Math.min(this._liveList._count + args.count, this._liveList._page);
-          this._prependModels(node, count);
+          if (!node.firstChild)
+          {
+            var count = Math.min(this._liveList._count + args.count, this._liveList._page);
+            this._prependModels(node, count);
+          }
+          else if (container.scrollTop > 0)
+          {
+            // Inserting 'above the fold' where we can't see.  We will scroll these in when we get
+            // back to the top (if we do anything now the screen will flicker).
+            this._liveList._count += args.count
+          }
+          else if (this._liveList._count + args.count > this._liveList._scrollInLimit)
+          {
+            RenderQ.add(this);
+          }
+          else
+          {
+            this._scrollIn(args.count);
+          }
         }
-        else if (container.scrollTop > 0)
+        else if (args.index > node.childElementCount)
         {
-          // Inserting 'above the fold' where we can't see.  We will scroll these in when we get
-          // back to the top (if we do anything now the screen will flicker).
-          this._liveList._count += args.count
-        }
-        else if (this._liveList._count + args.count > this._liveList._scrollInLimit)
-        {
-          RenderQ.add(this);
+          // Inserting beyond what we can see - so nothing to do for the moment.
         }
         else
         {
-          this._scrollIn(args.count);
+          RenderQ.add(this);
         }
-      }
-      else if (args.index > node.childElementCount)
-      {
-        // Inserting beyond what we can see - so nothing to do for the moment.
       }
       else
       {
         RenderQ.add(this);
       }
     }
-    else
-    {
-      RenderQ.add(this);
-    }
   },
 
   $removeHandler: function(__super, evt, args)
   {
-    if (args.index !== undefined)
+   if (RenderQ.onQ(this))
+    {
+      // If on RenderQ already, no point (and possible wrong) doing anything here.
+    }
+    else if (args.index !== undefined)
     {
       if (args.index < this._liveList._count)
       {
@@ -3155,6 +3170,19 @@ var RenderQ = exports.RenderQ =
     }
   },
 
+  onQ: function(view)
+  {
+    var q = this._q[view.$depth];
+    if (q && view.identity() in q)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  },
+
   getView: function(renderer, model, viewFn)
   {
     var id = View.buildIdentity(renderer, model);
@@ -3804,10 +3832,62 @@ if (typeof XMLHttpRequest !== "undefined")
             config.onAbort && config.onAbort(abortReason);
           };
 
+          if (config.onLine)
+          {
+            this.config.onText = this._makeTextToLine();
+          }
+
           // Initiate the request, together with any data we want to send (for a POST or PUT)
           req.send(config.data);
         }
       );
+    },
+
+    _makeTextToLine: function()
+    {
+      var count = 0;
+      var pending = [];
+      var max = config.maxSize || 1024 * 1024;
+      return function(text)
+      {
+        var self = this;
+        count += chunk.length;
+        if (count > max)
+        {
+          return self.abort("toolong");
+        }
+        var offset = 0;
+        pending += chunk;
+        var lines = pending.split("\r");
+
+        for (var i = 0, len = lines.length - 1; i < len; i++)
+        {
+          var line = lines[i];
+          offset += line.length + 1; // length + \r
+          line = line.trim();
+          if (line)
+          {
+            try
+            {
+              self.onLine(line);
+            }
+            catch (e)
+            {
+              Log.exception("Bad stream data", e);
+            }
+          }
+        }
+
+        pending = pending.substr(offset);
+        if (timer)
+        {
+          clearTimeout(timer);
+        }
+        timer = setTimeout(function()
+        {
+          self.abort("timeout");
+        }, self.timeout || 120000)
+      }
     }
   };
 }
@@ -4154,184 +4234,572 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
     );
   }
 });
-var Storage = exports.Storage = Class(Events,
+var GridInstance = Class(
 {
-  constructor: function(name)
+  constructor: function(grid)
   {
-    this._name = name;
+    this._grid = grid;
   },
 
-  getSubStorage: function(name)
+  read: function(path)
   {
-    return new Storage(this._name + "__" + name);
+    return this._grid._read(this, path);
   },
 
-  set: function(key, value)
+  mread: function(paths)
   {
-    return Co.Routine(this,
-      function()
+    return Co.Foreach(this, paths,
+      function(path)
       {
-        return Storage._init();
-      },
-      function(r)
-      {
-        r();
-        if (!value)
-        {
-          this.emit("delete", key);
-          return Storage._doTransaction('DELETE FROM appstore WHERE id=?', [ this._name + "_" + key ]);
-        }
-        else
-        {
-          this.emit("set", key, value);
-          return Storage._doTransaction('INSERT OR REPLACE INTO appstore (id, data) VALUES (?,?)', [ this._name + "_" + key, JSON.stringify(value) ]);
-        }
-      }
-    )
-  },
-
-  setAll: function(keysValues)
-  {
-    return Co.Routine(this,
-      function()
-      {
-        return Storage._init();
-      },
-      function(r)
-      {
-        r();
-        return Co.Foreach(this, Object.keys(keysValues),
-          function(key)
-          {
-            key = key();
-            var value = keysValues[key];
-            if (!value)
-            {
-              this.emit("delete", key);
-              return Storage._doTransaction('DELETE FROM appstore WHERE id=?', [ this._name + "_" + key ]);
-            }
-            else
-            {
-              this.emit("set", key, value);
-              return Storage._doTransaction('INSERT OR REPLACE INTO appstore (id, data) VALUES (?,?)', [ this._name + "_" + key, JSON.stringify(value) ]);
-            }
-          }
-        );
+        return this.read(path());
       }
     );
   },
 
-  get: function(key, def)
+  write: function(path, data, touch)
   {
-    return Co.Routine(this,
-      function()
+    return this._grid._write(this, path, data, touch);
+  },
+
+  mwrite: function(pathsAndData, touch)
+  {
+    return Co.Foreach(this, pathsAndData,
+      function(pathAndData)
       {
-        return Storage._init();
-      },
-      function(r)
-      {
-        r();
-        return Storage._doTransaction('SELECT * FROM appstore WHERE id=?', [ this._name + "_" + key ]);
-      },
-      function(r)
-      {
-        r = r();
-        if (r.rows.length === 0)
-        {
-          def = def || null;
-          this.emit("get", key, def);
-          return def;
-        }
-        else
-        {
-          var value = JSON.parse(r.rows.item(0).data);
-          this.emit("get", key, value);
-          return value;
-        }
+        pathAndData = pathAndData();
+        return this.write(pathAndData[0], pathAndData[1], touch);
       }
     );
   },
 
-  getAll: function(keys)
+  update: function(path, data, touch)
   {
-    return Co.Routine(this,
-      function()
+    return this._grid._update(this, path, data, touch);
+  },
+
+  mupdate: function(pathsAndData, touch)
+  {
+    return Co.Foreach(this, pathsAndData,
+      function(pathAndData)
       {
-        return Storage._init(this._name);
-      },
-      function(r)
-      {
-        r();
-        return Co.Foreach(this, Object.keys(keys),
-          function(key)
-          {
-            key = key();
-            return Co.Routine(this,
-              function()
-              {
-                return Storage._doTransaction('SELECT * FROM appstore WHERE id=?', [ this._name + "_" + key ]);
-              },
-              function(r)
-              {
-                r = r();
-                if (r.rows.length === 0)
-                {
-                  if (keys[key] === undefined)
-                  {
-                    keys[key] = null;
-                  }
-                }
-                else
-                {
-                  keys[key] = JSON.parse(r.rows.item(0).data);
-                }
-                this.emit("get", key, keys[key]);
-                return true;
-              }
-            );
-          }
-        );
-      },
-      function(r)
-      {
-        r();
-        return keys;
+        pathAndData = pathAndData();
+        return this.update(pathAndData[0], pathAndData[1], touch);
       }
     );
+  },
+
+  remove: function(path)
+  {
+    return this._grid._remove(this, path);
+  },
+
+  mremove: function(paths)
+  {
+    return Co.Foreach(this, paths,
+      function(path)
+      {
+        return this.remove(path());
+      }
+    );
+  },
+
+  evict: function(path)
+  {
+    return this._grid._evict(this, path);
+  },
+
+  mevict: function(paths)
+  {
+    return Co.Foreach(this, paths,
+      function(path)
+      {
+        return this.evict(path());
+      }
+    );
+  },
+
+  exception: function(obj, exception)
+  {
+    return this._grid._exception(this, obj, exception);
+  },
+
+  watch: function(selector, ctx, callback)
+  {
+    if (arguments.length === 2)
+    {
+      callback = ctx;
+      ctx = null;
+    }
+    this._grid._watch(this, selector, ctx, callback);
   }
+});
 
+var Grid = exports.Grid = Class(
+{
+  constructor: function(config)
+  {
+    this._cache = new LRU(config.size);
+    this._watchers = [];
+  },
+
+  get: function()
+  {
+    return new GridInstance(this);
+  },
+
+  _read: function(instance, path)
+  {
+    var obj = this._findInCache(path);
+    if (obj.state === GridObject.PRESENT)
+    {
+      obj.touch && obj.touch(path);
+      return obj.data;
+    }
+    else
+    {
+      return Co.Forever(this,
+        function()
+        {
+          switch (obj.state)
+          {
+            case GridObject.EMPTY:
+              this._addQ(obj);
+              this._notify(instance, obj, Grid.READ);
+              break;
+
+            case GridObject.PRESENT:
+            case GridObject.REMOVED:
+              return Co.Break(obj.data);
+
+            case GridObject.EXCEPTION:
+              throw obj.exception;
+              break;
+
+            default:
+              throw new Error("Grid._read: Bad state: " + obj.state);
+          }
+        }
+      );
+    }
+  },
+
+  _write: function(instance, path, data, touch)
+  {
+    var obj = this._findInCache(path);
+    if (obj.data !== data || obj.state !== GridObject.PRESENT)
+    {
+      obj.data = data;
+      obj.touch = touch;
+      touch && touch(path);
+      this._state(obj, GridObject.PRESENT);
+      this._notify(instance, obj, Grid.WRITE);
+    }
+    return data;
+  },
+
+  _update: function(instance, path, data, touch)
+  {
+    var obj = this._findInCache(path, true);
+    if (!obj)
+    {
+      return null;
+    }
+    else if (obj.data !== data || obj.state !== GridObject.PRESENT)
+    {
+      obj.data = data;
+      obj.touch = touch;
+      touch && touch(path);
+      this._state(obj, GridObject.PRESENT);
+      this._notify(instance, obj, Grid.UPDATE);
+    }
+    return data;
+  },
+
+  _remove: function(instance, path)
+  {
+    var obj = this._removeFromCache(path);
+    if (obj)
+    {
+      obj.data = null;
+      this._state(obj, GridObject.REMOVED);
+      this._notify(instance, obj, Grid.REMOVE);
+    }
+    return null;
+  },
+
+  _evict: function(instance, path)
+  {
+    var obj = this._removeFromCache(path);
+    if (obj)
+    {
+      obj.data = null;
+      this._state(obj, GridObject.REMOVED);
+      this._notify(instance, obj, Grid.EVICT);
+    }
+    return null;
+  },
+
+  _exception: function(instance, path, exception)
+  {
+    var obj = this._findInCache(path, true);
+    if (obj)
+    {
+      obj.exception = exception;
+      this._state(obj, GridObject.EXCEPTION);
+    }
+    Log.exception("Grid.exception", exception);
+  },
+
+  _watch: function(instance, selector, ctx, callback)
+  {
+    this._watchers.push(
+    {
+      instance: instance,
+      selector: selector,
+      ctx: ctx,
+      callback: callback
+    });
+  },
+
+  _findInCache: function(path, nocreate)
+  {
+    return this._cache.get(path, nocreate ? null : function()
+    {
+      return new GridObject(path, null, GridObject.EMPTY);
+    }, this);
+  },
+
+  _removeFromCache: function(path)
+  {
+    return this._cache.remove(path);
+  },
+
+  _state: function(obj, newstate)
+  {
+    if (obj.state !== newstate)
+    {
+      obj.state = newstate;
+      this._wakeQ(obj);
+    }
+  },
+
+  _notify: function(instance, obj, operation)
+  {
+    var path = obj.path;
+    this._watchers.forEach(function(watch)
+    {
+      if (watch.instance !== instance && watch.selector.test(path))
+      {
+        try
+        {
+          watch.callback.call(watch.ctx, operation, path, obj.data);
+        }
+        catch (e)
+        {
+          this._exception(instance, path, e);
+        }
+      }
+    }, this);
+  },
+
+  _addQ: function(obj)
+  {
+    if (!obj._queue)
+    {
+      obj._queue = [];
+    }
+    obj._queue.push(Co.Callback(this, function()
+    {
+      return true;
+    }));
+  },
+
+  _wakeQ: function(obj)
+  {
+    var q = obj._queue;
+    if (q)
+    {
+      delete obj._queue;
+      q.forEach(function(fn)
+      {
+        fn();
+      });
+    }
+  }
 }).statics(
 {
-  _names: {},
-
-  _init: function()
+  READ: 1,
+  WRITE: 2,
+  UPDATE: 3,
+  REMOVE: 4,
+  EVICT: 5,
+});
+var GridObject = exports.GridObject = Class(
+{
+  constructor: function(path, data, state)
   {
-    return Co.Lock(this,
-      function()
+    this.path = path;
+    this.data = data;
+    this.state = state;
+    this.touch = null;
+    this.exception = null;
+  }
+}).statics(
+{
+  EMPTY: 1,
+  PRESENT: 2,
+  REMOVED: 3,
+  EXCEPTION: 4
+});
+var GridProvider = exports.GridProvider = Class(
+{
+  constructor: function(grid, selector, options)
+  {
+    this.grid = grid;
+    this.selector = selector;
+    if (options)
+    {
+      if (options.lruSize)
       {
-        if (!this._db)
+        this.lru = new LRU(options.lruSize);
+        this.lru.on("evict", function(path)
         {
-          this._db = openDatabase("storage", "1.0", "storage", 1024*1024);
-        }
-        if (!this._names[name])
+          grid.evict(path);
+        }, this);
+        var lru = this.lru;
+        this.touch = function(obj)
         {
-          this._names[name] = true;
-          return this._doTransaction('CREATE TABLE IF NOT EXISTS appstore (id unique, data)');
-        }
-        else
-        {
-          return true;
+          self.lru.get(obj.path);
         }
       }
-    );
+    }
   },
 
-  _doTransaction: function(cmd, args)
+  path: function(path)
+  {
+    return this.selector.exec(path)[1] || "";
+  },
+
+  addToLru: function(obj)
+  {
+    obj.touch = this.touch;
+    this.lru.add(obj.path, true);
+  }
+});
+var AjaxGridProvider = exports.AjaxGridProvider = Class(GridProvider,
+{
+  constructor: function(__super, grid, selector, url, auth)
+  {
+    __super(grid, selector);
+
+    grid.watch(selector, this, function(operation, obj)
+    {
+      var path = this.path(obj);
+      switch (operation)
+      {
+        case Grid.READ:
+          Co.Routine(this,
+            function()
+            {
+              return Ajax.create(
+              {
+                method: "GET",
+                auth: auth,
+                url: url + "?path=" + escape(path)
+              });
+            },
+            function(r)
+            {
+              try
+              {
+                grid.write(obj.path, r().json());
+              }
+              catch (e)
+              {
+                grid.exception(obj.path, e);
+              }
+            }
+          );
+
+        case Grid.WRITE:
+          Co.Routine(this,
+            function()
+            {
+              return Ajax.create(
+              {
+                method: "POST",
+                auth: auth,
+                url: url,
+                data: "path=" + escape(path) + "&data=" + escape(JSON.stringify(obj.data))
+              });
+            },
+            function(r)
+            {
+              try
+              {
+                r();
+              }
+              catch (e)
+              {
+                grid.exception(obj.path, e);
+              }
+            }
+          );
+
+        case Grid.REMOVE:
+          Co.Routine(this,
+            function()
+            {
+              return Ajax.create(
+              {
+                method: "DELETE",
+                auth: auth,
+                url: url + "?path=" + escape(path)
+              });
+            },
+            function(r)
+            {
+              try
+              {
+                r();
+              }
+              catch (e)
+              {
+                grid.exception(obj.path, e);
+              }
+            }
+          );
+
+        default:
+          break;
+      }
+    });
+  }
+});
+var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProvider,
+{
+  _dbs: {},
+
+  constructor: function(__super, grid, selector, transform, dbinfo)
+  {
+    __super(grid, selector);
+    this._dbinfo = dbinfo;
+
+    grid.watch(selector, this, function(operation, path, data)
+    {
+      var dpath = transform(selector, path);
+      switch (operation)
+      {
+        case Grid.READ:
+          Co.Routine(this,
+            function()
+            {
+              return this._openDB();
+            },
+            function(db)
+            {
+              return this._doTransaction(db(), 'SELECT * FROM ' + this._dbinfo.table + ' WHERE id=?', [ dpath ]);
+            },
+            function(r)
+            {
+              r = r();
+              if (r.rows.length > 0)
+              {
+                grid.write(path, JSON.parse(r.rows.item(0).data));
+              }
+              else
+              {
+                grid.write(path, null);
+              }
+            }
+          );
+          break;
+
+        case Grid.WRITE:
+          Co.Routine(this,
+            function()
+            {
+              return this._openDB();
+            },
+            function(db)
+            {
+              return this._doTransaction(db(), 'INSERT OR REPLACE INTO ' + this._dbinfo.table + ' (id, data) VALUES (?,?)', [ dpath, JSON.stringify(data) ]);
+            },
+            function(r)
+            {
+              try
+              {
+                r();
+              }
+              catch (e)
+              {
+                grid.exception(path, e);
+              }
+            }
+          );
+          break;
+
+        case Grid.REMOVE:
+          Co.Routine(this,
+            function()
+            {
+              return this._openDB();
+            },
+            function(db)
+            {
+              return this._doTransaction(db(), 'DELETE FROM ' + this._dbinfo.table + ' WHERE id=?', [ dpath ]);
+            },
+            function(r)
+            {
+              try
+              {
+                r();
+              }
+              catch (e)
+              {
+                grid.exception(path, e);
+              }
+            }
+          );
+          break;
+
+        default:
+          break;
+      }
+    });
+  },
+
+  _openDB: function()
+  {
+    var db = this._dbs[this._dbinfo.name];
+    if (!db)
+    {
+      return Co.Lock(this,
+        function()
+        {
+          db = this._dbs[this._dbinfo.name];
+          if (!db)
+          {
+            db = openDatabase(this._dbinfo.name, this._dbinfo.version || "1.0", this._dbinfo.description || this._dbinfo.name, this._dbinfo.size || 1024 * 1024);
+            this._doTransaction(db, 'CREATE TABLE IF NOT EXISTS ' + this._dbinfo.table + ' (id unique, data)');
+            this._dbs[this._dbinfo.name] = db;
+          }
+          return db;
+        }
+      );
+    }
+    else
+    {
+      return db;
+    }
+  },
+
+  _doTransaction: function(db, cmd, args)
   {
     return Co.Routine(this,
       function()
       {
-        this._db.transaction(Co.Callback(this, function(tx)
+        db.transaction(Co.Callback(this, function(tx)
         {
           tx.executeSql(cmd, args,
             Co.Callback(this, function success(tx, results) { return results || null; }),
@@ -4341,107 +4809,7 @@ var Storage = exports.Storage = Class(Events,
       }
     );
   }
-});
-var RemoteStorage = exports.RemoteStorage = Class(
-{
-  constructor: function(rootUrl, name)
-  {
-    this._root = rootUrl + "/" + name + "/";
-    this._cache = {};
-  },
 
-  set: function(key, value)
-  {
-    value = JSON.stringify(value);
-    if (this._cache[key] !== value)
-    {
-      this._cache[key] = value;
-      return Co.Routine(this,
-        function()
-        {
-          return Ajax.create(
-          {
-            method: value ? "POST" : "DELETE",
-            url: this._root + key,
-            data: value
-          });
-        }
-      )
-    }
-    else
-    {
-      return true;
-    }
-  },
-
-  get: function(key, def)
-  {
-    if (key in this._cache)
-    {
-      return JSON.parse(this._cache[key]);
-    }
-    else
-    {
-      return Co.Routine(this,
-        function()
-        {
-          return Ajax.create(
-          {
-            method: "GET",
-            url: this._root + key
-          });
-        },
-        function(r)
-        {
-          try
-          {
-            r = r();
-            this._cache[key] = r.text();
-            return r.json();
-          }
-          catch (e)
-          {
-            if (e.status() === 404)
-            {
-              this._cache[key] = JSON.stringify(def);
-              return def;
-            }
-            else
-            {
-              throw e;
-            }
-          }
-        }
-      );
-    }
-  }
-});
-var LocalStorage = exports.LocalStorage = Class(
-{
-  _root: typeof localStorage !== "undefined" ? localStorage : {},
-
-  constructor: function(name)
-  {
-    this._name = name;
-  },
-
-  set: function(key, value)
-  {
-    if (!value)
-    {
-      delete this._root[this._name + ":" + key];
-    }
-    else
-    {
-      this._root[this._name + ":" + key] = JSON.stringify(value);
-    }
-  },
-
-  get: function(key, def)
-  {
-    var value = this._root[this._name + ":" + key];
-    return value ? JSON.parse(value) : def;
-  }
 });
 var LRU = exports.LRU = Class(Events,
 {
@@ -4460,12 +4828,18 @@ var LRU = exports.LRU = Class(Events,
       if (fn)
       {
         item = fn.call(ctx, key);
-        this._hash[key] = item;
-        this._queue.unshift(key);
-        if (this._queue.length > this._size)
+        if (item !== undefined)
         {
-          this.emit("evict", this._queue.slice(-1));
-          this._queue.length = this._size;
+          this._hash[key] = item;
+          this._queue.unshift(key);
+          if (this._queue.length > this._size)
+          {
+            var ekey = this._queue.slice(-1);
+            var eobj = this._hash[ekey];
+            delete this._hash[ekey];
+            this.emit("evict", ekey, eobj);
+            this._queue.length = this._size;
+          }
         }
       }
     }
@@ -4495,7 +4869,10 @@ var LRU = exports.LRU = Class(Events,
       this._queue.unshift(key);
       if (this._queue.length > this._size)
       {
-        this.emit("evict", this._queue.slice(-1));
+        var ekey = this._queue.slice(-1);
+        var eobj = this._hash[ekey];
+        delete this._hash[ekey];
+        this.emit("evict", ekey, eobj);
         this._queue.length = this._size;
       }
     }
@@ -4503,15 +4880,16 @@ var LRU = exports.LRU = Class(Events,
 
   remove: function(key)
   {
-    if (this._hash[key])
+    var item = this._hash[key];
+    if (item)
     {
       delete this._hash[key];
       this._queue.splice(this._queue.indexOf(key));
-      return true;
+      return item;
     }
     else
     {
-      return false;
+      return null;
     }
   },
 

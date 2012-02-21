@@ -3,10 +3,10 @@ var Errors = Model.create(
   constructor: function(__super, account)
   {
     __super();
+    this._lgrid = grid.get();
     this._running = false;
     this._account = account;
     this._errors = [];
-    this._store = this._account.storage("errors");
     Co.Routine(this,
       function()
       {
@@ -143,13 +143,10 @@ var Errors = Model.create(
 
   _save: function()
   {
-    this._store.setAll(
+    this._lgrid.write("/errors", this._errors.map(function(error)
     {
-      errors: this._errors.map(function(error)
-      {
-        return { op: error.op, details: error.details ? error.details.serialize() : null };
-      })
-    });
+      return { op: error.op, details: error.details ? error.details.serialize() : null };
+    }));
   },
 
   _restore: function()
@@ -157,14 +154,11 @@ var Errors = Model.create(
     return Co.Routine(this,
       function()
       {
-        return this._store.getAll(
-        {
-          errors: []
-        });
+        return this._lgrid.read("/errors");
       },
       function(r)
       {
-        r().errors.forEach(function(error)
+        (r() || []).forEach(function(error)
         {
           switch (error.op)
           {

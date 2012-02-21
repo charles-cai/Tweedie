@@ -15,12 +15,12 @@ var FilteredTweetsModel = Model.create(
   {
     var self = this;
     __super(values);
+    self._lgrid = grid.get();
     self.tweets(new FilteredModelSet({ key: "id", limit: values.limit || 1000 }));
     self.unread(0);
     self.velocity(0);
     self._includeTags = [];
     self._excludeTags = [];
-    self._store = values.account.storage("tweets_" + self.uuid());
     self._tweetLists = values.account.tweetLists;
     self.viz("list");
   },
@@ -46,15 +46,23 @@ var FilteredTweetsModel = Model.create(
 
   addTweets: function(tweets)
   {
+    var ntweets;
     var otweets = this.tweets();
-    var ntweets = [];
-    tweets.forEach(function(twt)
+    if (otweets.length() === 0)
     {
-      if (!otweets.findByProperty("id", twt.id()))
+      ntweets = tweets;
+    }
+    else
+    {
+      ntweets = [];
+      tweets.forEach(function(twt)
       {
-        ntweets.push(twt);
-      }
-    });
+        if (!otweets.findByProperty("id", twt.id()))
+        {
+          ntweets.push(twt);
+        }
+      });
+    }
     this.tweets().prepend(ntweets);
     this._save();
   },
@@ -146,20 +154,11 @@ var FilteredTweetsModel = Model.create(
 
   _makeRule: function(tag)
   {
-    switch (tag.type)
+    var key = tag.type + ":" + tag.key;
+    return function(tweet)
     {
-      case "search":
-        return function()
-        {
-          return true;
-        };
-      default:
-        var key = tag.type + ":" + tag.key;
-        return function(tweet)
-        {
-          return tweet.hasTagKey(key);
-        };
-    }
+      return tweet.hasTagKey(key);
+    };
   },
 
   _defaultAll: [{ tag: { title: "All", type: "default", key: "all", hashkey: "default:all" } }],
@@ -210,7 +209,7 @@ var FilteredTweetsModel = Model.create(
 
   recalcVelocity: function(o)
   {
-    this.velocity(this.unread() ? this.tweets().models.length / o.maxLength : 0);
+    this.velocity(this.unread() ? this.tweets().length() / o.maxLength : 0);
   },
 
   _updateUnread: function()
@@ -223,31 +222,35 @@ var FilteredTweetsModel = Model.create(
 
   remove: function()
   {
-    this._store.setAll(
+    var prefix = "/tweetlist/" + this.uuid() + "/";
+    function p(_)
     {
-      includeTags: null,
-      excludeTags: null,
-      tweets: null,
-      type: null,
-      lastRead: null,
-      viz: null,
-    });
+      return prefix + _;
+    }
+    return this._lgrid.mremove([
+      p("tweets"),
+      p("lastRead"),
+      p("viz"),
+      p("includeTags"),
+      p("excludeTags"),
+    ]);
   },
 
   _save: function()
   {
-    this._updateUnread();
-    this._store.setAll(
+    var prefix = "/tweetlist/" + this.uuid() + "/";
+    function p(_)
     {
-      includeTags: this._includeTags,
-      excludeTags: this._excludeTags,
-      tweets: this.tweets().serialize().map(function(tweet)
-      {
-        return tweet.id_str;
-      }),
-      lastRead: this.lastRead(),
-      viz: this.viz()
-    });
+      return prefix + _;
+    }
+    this._updateUnread();
+    this._lgrid.mwrite([
+      [ p("includeTags"), this._includeTags ],
+      [ p("excludeTags"), this._excludeTags ],
+      [ p("tweets"), this.tweets().serialize().map(function(tweet) { return tweet.id_str; }) ],
+      [ p("lastRead"), this.lastRead() ],
+      [ p("vis"), this.viz() ]
+    ]);
   },
 
   _restore: function()
@@ -255,22 +258,27 @@ var FilteredTweetsModel = Model.create(
     return Co.Routine(this,
       function(r)
       {
-        return this._store.getAll(
+        var prefix = "/tweetlist/" + this.uuid() + "/";
+        function p(_)
         {
-          tweets: [],
-          lastRead: null,
-          viz: this.viz() || "list",
-          includeTags: [],
-          excludeTags: [],
-        });
+          return prefix + _;
+        }
+        return this._lgrid.mread([
+          p("tweets"),
+          p("lastRead"),
+          p("viz"),
+          p("includeTags"),
+          p("excludeTags"),
+        ]);
       },
-      function(keys)
+      function(vals)
       {
-        keys = keys();
-        this.viz(keys.viz);
+        vals = vals();
+
+        this.viz(vals[2] || this.viz());
         var tweets = [];
         var lists = this._tweetLists;
-        keys.tweets.forEach(function(id)
+        (vals[0] || []).forEach(function(id)
         {
           var tweet = lists.getTweet(id);
           if (tweet)
@@ -279,13 +287,13 @@ var FilteredTweetsModel = Model.create(
           }
         }, this);
         this.addTweets(tweets);
-        this.lastRead(keys.lastRead);
+        this.lastRead(vals[1]);
         this.recalcVelocity(this._tweetLists._getVelocity());
-        keys.includeTags.forEach(function(t)
+        (vals[3] || []).forEach(function(t)
         {
           this.addIncludeTag(t.tag, false);
         }, this);
-        keys.excludeTags.forEach(function(t)
+        (vals[4] || []).forEach(function(t)
         {
           this.addExcludeTag(t.tag, false);
         }, this);

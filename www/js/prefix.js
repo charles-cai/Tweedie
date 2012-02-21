@@ -20,3 +20,5 @@ var Environment = xo.Environment;
 var ModalView = xo.ModalView;
 
 var KEYS = KEYS || {};
+
+var grid = new xo.Grid(128);
