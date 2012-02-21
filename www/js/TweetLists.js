@@ -33,7 +33,7 @@ var TweetLists = Class(
       ]
     });
 
-    this.store = account.storage("alltweets");
+    this._lgrid = grid.get();
 
     this._types =
     {
@@ -332,14 +332,14 @@ var TweetLists = Class(
       }
     });
     var saves =
-    {
-      all: lists
-    };
+    [
+      "/tweets/all",  lists
+    ];
     for (var type in this._types)
     {
-      saves[type] = this._types[type].serialize();
+      saves.push([ "/tweets/" + type,  this._types[type].serialize() ]);
     }
-    this.store.setAll(saves);
+    this._lgrid.mwrite(saves);
   },
 
   restore: function()
@@ -347,26 +347,24 @@ var TweetLists = Class(
     return Co.Routine(this,
       function(r)
       {
-        var loads =
-        {
-          all: []
-        };
+        var loads = [ "/tweets/all" ];
         for (var type in this._types)
         {
-          loads[type] = [];
+          loads.push("/tweets/" + type);
         }
-        return this.store.getAll(loads);
+        return this._lgrid.mread(loads);
       },
       function(all)
       {
         all = all();
-        all.all.forEach(function(listinfo)
+        (all[0] || []).forEach(function(listinfo)
         {
           this.lists.append(new FilteredTweetsModel({ account: this._account, title: listinfo.title, uuid: listinfo.uuid, canRemove: true, canEdit: true }));
         }, this);
+        var idx = 1;
         for (var type in this._types)
         {
-          all[type].forEach(function(tweet)
+          (all[idx++] || []).forEach(function(tweet)
           {
             this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this._account));
           }, this);

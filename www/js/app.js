@@ -11,6 +11,7 @@ var editView = null;
 function main()
 {
   var selectedListView = null;
+  var lgrid = grid.get();
 
   var account = new Account();
 
@@ -112,15 +113,7 @@ function main()
         var listName = e.target.value;
         if (listName)
         {
-          if (listName[listName.length - 1] === "?")
-          {
-            var list = account.tweetLists.createList(listName, "searches");
-            account.tweetLists.addIncludeTag(list, { type: "search", title: listName, key: listName.slice(0, -1).toLowerCase() });
-          }
-          else
-          {
-            account.tweetLists.createList(listName, "tweets");
-          }
+          account.tweetLists.createList(listName);
         }
         e.target.value = "";
       },
@@ -215,104 +208,122 @@ function main()
       {
         Log.metric("details", "url");
         var url = e.target.dataset.href;
-        var readModel = Readability.open(url);
-        var pagenr = 0;
-        var maxpagenr = 0;
-        var mv = new ModalView(
-        {
-          node: document.getElementById("root-dialog"),
-          template: partials.readability,
-          partials: partials,
-          model: readModel,
-          properties:
+        //var readModel = Readability.open(url);
+        
+        Co.Routine(this,
+          function()
           {
-            pages: 0,
-            pagenr: 0,
-            translate: "",
+            return lgrid.read("/readable=" + url);
           },
-          controller:
+          function(readModel)
           {
-            onForward: function()
+            readModel = readModel();
+
+            var pagenr = 0;
+            var maxpagenr = 0;
+            var mv = new ModalView(
             {
-              Co.Routine(this,
-                function()
-                {
-                  var r = document.querySelector("#readability-scroller .text");
-                  pagenr = Math.min(maxpagenr - 1, pagenr + 1);
-                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
-                  Co.Sleep(0.2);
-                },
-                function()
-                {
-                  mv.pagenr(pagenr);
-                  Log.metric("details", "url:page:forward", pagenr);
-                }
-              );
-            },
-            onBackward: function()
-            {
-              Co.Routine(this,
-                function()
-                {
-                  var r = document.querySelector("#readability-scroller .text");
-                  pagenr = Math.max(0, pagenr - 1);
-                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
-                  Co.Sleep(0.2);
-                },
-                function()
-                {
-                  mv.pagenr(pagenr);
-                  Log.metric("details", "url:page:backward", pagenr);
-                }
-              );
-            },
-            onOpenWeb: function()
-            {
-              var browser = ChildBrowser.install();
-              browser.onClose = function()
+              node: document.getElementById("root-dialog"),
+              template: partials.readability,
+              partials: partials,
+              model: readModel,
+              properties:
               {
-                Readability.close();
-                mv.close();
-              };
-              browser.showWebPage(url);
-              Log.metric("details", "url:inBrowser");
-            },
-            onClose: function()
+                pages: 0,
+                pagenr: 0,
+                translate: "",
+              },
+              controller:
+              {
+                onForward: function()
+                {
+                  Co.Routine(this,
+                    function()
+                    {
+                      var r = document.querySelector("#readability-scroller .text");
+                      pagenr = Math.min(maxpagenr - 1, pagenr + 1);
+                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                      Co.Sleep(0.2);
+                    },
+                    function()
+                    {
+                      mv.pagenr(pagenr);
+                      Log.metric("details", "url:page:forward", pagenr);
+                    }
+                  );
+                },
+                onBackward: function()
+                {
+                  Co.Routine(this,
+                    function()
+                    {
+                      var r = document.querySelector("#readability-scroller .text");
+                      pagenr = Math.max(0, pagenr - 1);
+                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                      Co.Sleep(0.2);
+                    },
+                    function()
+                    {
+                      mv.pagenr(pagenr);
+                      Log.metric("details", "url:page:backward", pagenr);
+                    }
+                  );
+                },
+                onOpenWeb: function()
+                {
+                  var browser = ChildBrowser.install();
+                  browser.onClose = function()
+                  {
+                    Readability.close();
+                    mv.close();
+                  };
+                  browser.showWebPage(url);
+                  Log.metric("details", "url:inBrowser");
+                },
+                onClose: function()
+                {
+                  Readability.close();
+                }
+              }
+            });
+            mv.addListener(mv.node(), "click", function(e)
             {
-              Readability.close();
-            }
+              e.preventDefault();
+            });
+            readModel.on("update", function()
+            {
+              Co.Routine(this,
+                function()
+                {
+                  Co.Yield();
+                },
+                function()
+                {
+                  var r = document.querySelector("#readability-scroller .text");
+                  var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+                  var images = r.querySelectorAll("img");
+                  function recalc()
+                  {
+                    maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+                    mv.pages(Math.min(10, maxpagenr));
+                  }
+                  function hide()
+                  {
+                    this.style.display = "none";
+                    recalc();
+                  }
+                  for (var i = 0; i < images.length; i++)
+                  {
+                    images[i].onload = recalc;
+                    images[i].onerror = hide;
+                  }
+                  recalc();
+                  mv.pagenr(0);
+                }
+              );
+            }, this);
           }
-        });
-        mv.addListener(mv.node(), "click", function(e)
-        {
-          e.preventDefault();
-        });
-        readModel.on("update", function()
-        {
-          Co.Routine(this,
-            function()
-            {
-              Co.Yield();
-            },
-            function()
-            {
-              var r = document.querySelector("#readability-scroller .text");
-              var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-              var images = r.querySelectorAll("img");
-              function recalc()
-              {
-                maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-                mv.pages(Math.min(10, maxpagenr));
-              }
-              for (var i = 0; i < images.length; i++)
-              {
-                images[i].onload = recalc;
-              }
-              recalc();
-              mv.pagenr(0);
-            }
-          );
-        }, this);
+        );
       },
       onMedia: function(m, v, e)
       {
@@ -381,7 +392,7 @@ function main()
         Co.Routine(this,
           function()
           {
-            return account.profileByName(screenName);
+            return lgrid.read("/twitter/profile/screenName=" + screenName);
           },
           function(p)
           {
@@ -398,7 +409,7 @@ function main()
             {
               tweet = tweet.retweet();
             }
-            return account.profileByUser(tweet.user());
+            return lgrid.read("/twitter/profile/id=" + tweet.user().id_str);
           },
           function(p)
           {
