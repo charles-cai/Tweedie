@@ -92,6 +92,10 @@ body
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
+.col.middle2 .pane.tweets > .view > .collection-view::-webkit-scrollbar
+{
+  width: 0;
+}
 .pane
 {
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -604,6 +608,10 @@ body
   overflow-x: scroll;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+}
+.tweet-dialog-footer .suggestions::-webkit-scrollbar
+{
+  width: 0;
 }
 .tweet-dialog-footer .suggestions .inside
 {
