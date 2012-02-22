@@ -8,10 +8,6 @@ var TweetFetcher = xo.Class(Events,
     {
       throw new Error("Missing twitter KEYS");
     }
-    if (!PrimaryFetcher)
-    {
-      PrimaryFetcher = this;
-    }
     this._auth = new xo.OAuthLogin(
     {
       oauth_consumer_key: KEYS.twitter.oauth_consumer_key,
@@ -27,7 +23,6 @@ var TweetFetcher = xo.Class(Events,
       proxy: networkProxy
     });
     this._account = account;
-    this._userInfo = config.userInfo;
     this._loop = null;
   },
 
@@ -36,11 +31,15 @@ var TweetFetcher = xo.Class(Events,
     Co.Routine(this,
       function()
       {
-        return this._userInfo || this._auth.login();
+        return this._account.userInfo || this._auth.login();
       },
       function(r)
       {
         r = r();
+        if (!PrimaryFetcher)
+        {
+          PrimaryFetcher = this;
+        }
         this.emit("login", { screen_name: r.screen_name, user_id: r.user_id });
 
         if (this._loop)
@@ -64,6 +63,48 @@ var TweetFetcher = xo.Class(Events,
         if (this._loop.terminated)
         {
           return Co.Break();
+        }
+
+        return Ajax.create(
+        {
+          method: "GET",
+          url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=200",
+          auth: this._auth,
+          proxy: networkProxy
+        });
+      },
+      function(r)
+      {
+        try
+        {
+          Log.time("FavLoad");
+          this.emit("favs", r().json());
+          Log.timeEnd("FavLoad");
+        }
+        catch (e)
+        {
+          Log.exception("Fav fetch failed", e);
+        }
+
+        return Ajax.create(
+        {
+          method: "GET",
+          url: "https://api.twitter.com/1/statuses/mentions.json?include_entities=true&count=200",
+          auth: this._auth,
+          proxy: networkProxy
+        });
+      },
+      function(r)
+      {
+        try
+        {
+          Log.time("MentionLoad");
+          //this.emit("mentions", r().json());
+          Log.timeEnd("MentionLoad");
+        }
+        catch (e)
+        {
+          Log.exception("Fav fetch failed", e);
         }
 
         var lists = this._account.tweetLists;
@@ -111,27 +152,6 @@ var TweetFetcher = xo.Class(Events,
           this._account.errors.add("fetch");
           // And then terminate fetching immediately
           return Co.Break(false);
-        }
-
-        return Ajax.create(
-        {
-          method: "GET",
-          url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=100",
-          auth: this._auth,
-          proxy: networkProxy
-        });
-      },
-      function(r)
-      {
-        try
-        {
-          Log.time("FavLoad");
-          this.emit("favs", r().json());
-          Log.timeEnd("FavLoad");
-        }
-        catch (e)
-        {
-          Log.exception("Fav fetch failed", e);
         }
 
         return Co.Parallel(this,
@@ -477,7 +497,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._userInfo.user_id + "&" + key,
+          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
           auth: this._auth,
           proxy: networkProxy
         });

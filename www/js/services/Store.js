@@ -20,16 +20,16 @@ new xo.LocalStorageGridProvider(
   function(selector, path)
   {
     var p = selector.exec(path);
-    return "accounts__tweets_" + p[1] + "_" + p[2];
+    return "accounts_tweets_" + p[1] + "_" + p[2];
   },
   dbinfo
 );
 new xo.LocalStorageGridProvider(
   grid.get(),
-  /^\/topics\/(.*)$/,
+  /^\/topics$/,
   function(selector, path)
   {
-    return "accounts__topics_" + selector.exec(path)[1];
+    return "accounts_topics";
   },
   dbinfo
 );
@@ -38,7 +38,7 @@ new xo.LocalStorageGridProvider(
   /^\/errors$/,
   function()
   {
-    return "accounts__errors_errors";
+    return "accounts_errors";
   },
   dbinfo
 );
@@ -47,7 +47,7 @@ new xo.LocalStorageGridProvider(
   /^\/tweets\/(.*)$/,
   function(selector, path)
   {
-    return "accounts__alltweets_" + selector.exec(path)[1];
+    return "accounts_alltweets_" + selector.exec(path)[1];
   },
   dbinfo
 );

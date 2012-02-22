@@ -5,7 +5,6 @@ var Account = Class(Events,
     this._lgrid = grid.get();
     this.tweetLists = new TweetLists(this);
     this.errors = new Errors(this);
-    this.topics = new Topics(this);
     this.userAndTags = new UsersAndTags(this);
   },
 
@@ -20,12 +19,12 @@ var Account = Class(Events,
       {
         try
         {
-          info = info() || {};
+          info = info() || [ {} ];
         }
         catch (e)
         {
           Log.exception("No account info", e);
-          info = {};
+          info = [ {} ];
         }
         this._expander = new UrlExpander();
         this._expander.on("networkActivity", function(evt, activity)
@@ -33,25 +32,31 @@ var Account = Class(Events,
           var v = RootView.getViewByName("activity");
           v.property("activity", Math.max(0, (v.property("activity") || 0) + (activity ? 1 : -1)));
         });
-        if (info.userInfo && info.userInfo.screen_name)
+
+        info = info[0]; // First account only for now
+        this.userInfo = info.userInfo
+        if (this.userInfo && this.userInfo.screen_name)
         {
-          this.tweetLists.screenname = "@" + info.userInfo.screen_name;
+          this.tweetLists.screenname = "@" + this.userInfo.screen_name;
           this.emit("screenNameChange");
         }
         this._fetcher = new TweetFetcher(this, info);
         this._fetcher.on("login", function(evt, info)
         {
-          this.userInfo = info;
-          this.tweetLists.screenname = "@" + info.screen_name;
-          this.emit("screenNameChange");
-          this._lgrid.write("/accounts", this.serialize());
+          if (!this.userInfo || info.screen_name !== this.userInfo.screen_name || info.user_id !== this.userInfo.user_id)
+          {
+            this.userInfo = info;
+            this.tweetLists.screenname = "@" + info.screen_name;
+            this.emit("screenNameChange");
+            this._lgrid.write("/accounts", this.serialize());
+          }
         }, this);
 
         return this.tweetLists.restore();
       },
       function()
       {
-        this._fetcher.on("tweets favs unfavs searches dms", function(evt, tweets)
+        this._fetcher.on("tweets favs unfavs searches dms mentions", function(evt, tweets)
         {
           this.tweetLists.addTweets(evt, tweets);
         }, this);
@@ -288,17 +293,12 @@ var Account = Class(Events,
     return this._fetcher.fetchSearch(query);
   },
 
-  suggestions: function(slug)
-  {
-    return this._fetcher.suggestions(slug);
-  },
-
   serialize: function()
   {
-    return {
+    return [{
       version: 1,
       oauth: this._fetcher._auth.serialize(),
       userInfo: this.userInfo
-    };
+    }];
   }
 });

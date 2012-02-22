@@ -331,18 +331,6 @@ else if (typeof process !== "undefiend")
     Log.exception("uncaughtException", e);
   });
 }
-var Uuid = exports.Uuid =
-{
-  create: function()
-  {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
-    {
-        var r = Math.random() * 16 | 0;
-        var v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-  }
-};
 /**
  * @fileOverview Co.Routine
  * @author <a href="mailto:tim.j.wilkinson@gmail.com">Tim Wilkinson</a>
@@ -1243,6 +1231,7 @@ var ModelSet = exports.ModelSet = Class(Model,
 
   insertAt: function(idx, model)
   {
+    var count;
     if (idx < 0)
     {
       idx += this.models.length + 1;
@@ -1250,19 +1239,21 @@ var ModelSet = exports.ModelSet = Class(Model,
     if (Array.isArray(model))
     {
       this.models.splice.apply(this.models, [ idx, 0 ].concat(model));
+      count = model.length;
       this.emit("insert",
       {
         index: idx,
-        count: model.length
+        count: count
       });
     }
     else
     {
       this.models.splice(idx, 0, model);
+      count = 1;
       this.emit("insert",
       {
         index: idx,
-        count: 1
+        count: count
       });
     }
     if (this._limit && this.models.length > this._limit)
@@ -1274,7 +1265,7 @@ var ModelSet = exports.ModelSet = Class(Model,
         count: m.length
       });
     }
-    return true;
+    return count;
   },
 
   emit: function(evt)
@@ -1330,7 +1321,7 @@ var ModelSet = exports.ModelSet = Class(Model,
           index: nidx === undefined ? undefined : nidx - count,
           count: count
         });
-        return true;
+        return count;
       }
     }
     else
@@ -1344,10 +1335,10 @@ var ModelSet = exports.ModelSet = Class(Model,
           index: idx,
           count: 1
         });
-        return true;
+        return 1;
       }
     }
-    return false;
+    return 0;
   },
 
   removeAll: function()
@@ -1495,9 +1486,10 @@ var FilteredModelSet = exports.FilteredModelSet = Class(IndexedModelSet,
           filtered.push(m);
         }
       }, this);
+      var count = 0;
       if (passed.length)
       {
-        __super(idx, passed);
+        count = __super(idx, passed);
       }
       if (filtered.length)
       {
@@ -1505,12 +1497,8 @@ var FilteredModelSet = exports.FilteredModelSet = Class(IndexedModelSet,
         {
           models: filtered
         });
-        return false;
       }
-      else
-      {
-        return true;
-      }
+      return count;
     }
     else
     {
@@ -1524,7 +1512,7 @@ var FilteredModelSet = exports.FilteredModelSet = Class(IndexedModelSet,
         {
           models: [ model ]
         });
-        return false;
+        return 0;
       }
     }
   },
@@ -4236,9 +4224,10 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
 });
 var GridInstance = Class(
 {
-  constructor: function(grid)
+  constructor: function(grid, options)
   {
     this._grid = grid;
+    this._options = options || {};
   },
 
   read: function(path)
@@ -4256,34 +4245,34 @@ var GridInstance = Class(
     );
   },
 
-  write: function(path, data, touch)
+  write: function(path, data)
   {
-    return this._grid._write(this, path, data, touch);
+    return this._grid._write(this, path, data, this._options.touch);
   },
 
-  mwrite: function(pathsAndData, touch)
+  mwrite: function(pathsAndData)
   {
     return Co.Foreach(this, pathsAndData,
       function(pathAndData)
       {
         pathAndData = pathAndData();
-        return this.write(pathAndData[0], pathAndData[1], touch);
+        return this.write(pathAndData[0], pathAndData[1]);
       }
     );
   },
 
-  update: function(path, data, touch)
+  update: function(path, data)
   {
-    return this._grid._update(this, path, data, touch);
+    return this._grid._update(this, path, data, this._options.touch);
   },
 
-  mupdate: function(pathsAndData, touch)
+  mupdate: function(pathsAndData)
   {
     return Co.Foreach(this, pathsAndData,
       function(pathAndData)
       {
         pathAndData = pathAndData();
-        return this.update(pathAndData[0], pathAndData[1], touch);
+        return this.update(pathAndData[0], pathAndData[1]);
       }
     );
   },
@@ -4342,9 +4331,9 @@ var Grid = exports.Grid = Class(
     this._watchers = [];
   },
 
-  get: function()
+  get: function(options)
   {
-    return new GridInstance(this);
+    return new GridInstance(this, options);
   },
 
   _read: function(instance, path)
@@ -4386,14 +4375,11 @@ var Grid = exports.Grid = Class(
   _write: function(instance, path, data, touch)
   {
     var obj = this._findInCache(path);
-    if (obj.data !== data || obj.state !== GridObject.PRESENT)
-    {
-      obj.data = data;
-      obj.touch = touch;
-      touch && touch(path);
-      this._state(obj, GridObject.PRESENT);
-      this._notify(instance, obj, Grid.WRITE);
-    }
+    obj.data = data;
+    obj.touch = touch;
+    touch && touch(path);
+    this._state(obj, GridObject.PRESENT);
+    this._notify(instance, obj, Grid.WRITE);
     return data;
   },
 
@@ -4404,14 +4390,11 @@ var Grid = exports.Grid = Class(
     {
       return null;
     }
-    else if (obj.data !== data || obj.state !== GridObject.PRESENT)
-    {
-      obj.data = data;
-      obj.touch = touch;
-      touch && touch(path);
-      this._state(obj, GridObject.PRESENT);
-      this._notify(instance, obj, Grid.UPDATE);
-    }
+    obj.data = data;
+    obj.touch = touch;
+    touch && touch(path);
+    this._state(obj, GridObject.PRESENT);
+    this._notify(instance, obj, Grid.UPDATE);
     return data;
   },
 
@@ -4485,21 +4468,34 @@ var Grid = exports.Grid = Class(
 
   _notify: function(instance, obj, operation)
   {
+    var valid = false;
     var path = obj.path;
     this._watchers.forEach(function(watch)
     {
-      if (watch.instance !== instance && watch.selector.test(path))
+      if (watch.instance !== instance)
       {
-        try
+        if (watch.selector.test(path))
         {
-          watch.callback.call(watch.ctx, operation, path, obj.data);
-        }
-        catch (e)
-        {
-          this._exception(instance, path, e);
+          try
+          {
+            valid = true;
+            watch.callback.call(watch.ctx, operation, path, obj.data);
+          }
+          catch (e)
+          {
+            this._exception(instance, path, e);
+          }
         }
       }
+      else
+      {
+        valid = true;
+      }
     }, this);
+    if (!valid)
+    {
+      throw new Error("No one on Grid for path: " + path);
+    }
   },
 
   _addQ: function(obj)
@@ -4687,7 +4683,7 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
 
     grid.watch(selector, this, function(operation, path, data)
     {
-      var dpath = transform(selector, path);
+      var dpath = transform ? transform(selector, path) : selector.exec(path)[1];
       switch (operation)
       {
         case Grid.READ:
@@ -4698,6 +4694,7 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
             },
             function(db)
             {
+              Log.info("dbRead", dpath);
               return this._doTransaction(db(), 'SELECT * FROM ' + this._dbinfo.table + ' WHERE id=?', [ dpath ]);
             },
             function(r)
@@ -4723,6 +4720,7 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
             },
             function(db)
             {
+              Log.info("dbWrite", dpath);
               return this._doTransaction(db(), 'INSERT OR REPLACE INTO ' + this._dbinfo.table + ' (id, data) VALUES (?,?)', [ dpath, JSON.stringify(data) ]);
             },
             function(r)
@@ -4747,6 +4745,7 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
             },
             function(db)
             {
+              Log.info("dbRemove", dpath);
               return this._doTransaction(db(), 'DELETE FROM ' + this._dbinfo.table + ' WHERE id=?', [ dpath ]);
             },
             function(r)
@@ -4774,6 +4773,7 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
     var db = this._dbs[this._dbinfo.name];
     if (!db)
     {
+      Log.info("dbOpen", this._dbinfo.name);
       return Co.Lock(this,
         function()
         {
@@ -4898,4 +4898,16 @@ var LRU = exports.LRU = Class(Events,
     return Object.keys(this._hash);
   }
 });
+var Uuid = exports.Uuid =
+{
+  create: function()
+  {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
+    {
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+  }
+};
 })();

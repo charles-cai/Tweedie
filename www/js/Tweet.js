@@ -486,7 +486,7 @@ var Tweet = Model.create(
       tags.push({ title: name, type: "screenname", key: key });
       this._account.userAndTags.addUser(this.screen_name(), this.name());
 
-      this._account.topics.lookupByScreenName(key).forEach(function(topic)
+      Topics.lookupByScreenName(key).forEach(function(topic)
       {
         var key = topic.title.toLowerCase();
         used["topic:" + key] = true;

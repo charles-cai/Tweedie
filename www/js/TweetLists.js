@@ -3,12 +3,27 @@ var TweetLists = Class(
   constructor: function(account)
   {
     account.tweetLists = this;
+    this._account = account;
+    this.screenname = account.userInfo ? "@" + account.userInfo.screen_name : "@...";
+    this.createDefaultList();
+    this._lgrid = grid.get();
 
-    var main = new FilteredTweetsModel({ account: account, title: "Main", canEdit: true, canRemove: false, type: "tweets", name: "main", uuid: "00000000-0000-0000-0000-000000000001" });
-    var photos = new FilteredTweetsModel({ account: account, title: "Media", canEdit: true, canRemove: false, type: "tweets", uuid: "00000000-0000-0000-0000-000000000002" });
-    var fav = new FilteredTweetsModel({ account: account, title: "Favorites", canEdit: true, canRemoved: false, type: "favs", uuid: "00000000-0000-0000-0000-000000000003" });
-    var dms = new FilteredTweetsModel({ account: account, title: "Messages", canEdit: true, canRemoved: false, type: "dms", uuid: "00000000-0000-0000-0000-000000000004" });
-    var mentions = new FilteredTweetsModel({ account: account, title: "Mentions", canEdit: true, canRemoved: false, type: "tweets", uuid: "00000000-0000-0000-0000-000000000005" });
+    this._types =
+    {
+      dms: new IndexedModelSet({ key: "id", limit: 500 }),
+      favs: new IndexedModelSet({ key: "id", limit: 500 }),
+      mentions: new IndexedModelSet({ key: "id", limit: 200 }),
+      tweets: new IndexedModelSet({ key: "id", limit: 2000 }),
+    };
+  },
+
+  createDefaultList: function()
+  {
+    var main = new FilteredTweetsModel({ account: this._account, title: "Main", canRemove: false, name: "main", uuid: "00000000-0000-0000-0000-000000000001" });
+    var photos = new FilteredTweetsModel({ account:  this._account, title: "Media", canRemove: false, uuid: "00000000-0000-0000-0000-000000000002" });
+    var fav = new FilteredTweetsModel({ account:  this._account, title: "Favorites", canRemoved: false, uuid: "00000000-0000-0000-0000-000000000003" });
+    var dms = new FilteredTweetsModel({ account:  this._account, title: "Messages", canRemoved: false, uuid: "00000000-0000-0000-0000-000000000004", viz: "stack" });
+    var mentions = new FilteredTweetsModel({ account:  this._account, title: "Mentions", canRemoved: false, uuid: "00000000-0000-0000-0000-000000000005" });
 
     main.addIncludeTag(Tweet.TweetTag);
     main.addIncludeTag(Tweet.RetweetTag);
@@ -19,10 +34,7 @@ var TweetLists = Class(
     dms.addIncludeTag(Tweet.DMTag);
     mentions.addIncludeTag(Tweet.MentionTag);
 
-    this._account = account;
-    this.screenname = account.userInfo ? "@" + account.userInfo.screen_name : "@...";
-    this.lists = new ModelSet(
-    {
+    this.lists = new ModelSet({
       models:
       [
         main,
@@ -32,16 +44,6 @@ var TweetLists = Class(
         photos
       ]
     });
-
-    this._lgrid = grid.get();
-
-    this._types =
-    {
-      tweets: new IndexedModelSet({ key: "id", limit: 1000 }),
-      mentions: new IndexedModelSet({ key: "id", limit: 100 }),
-      favs: new IndexedModelSet({ key: "id", limit: 1000 }),
-      dms: new IndexedModelSet({ key: "id", limit: 1000 }),
-    };
   },
 
   createList: function(name)
@@ -332,14 +334,14 @@ var TweetLists = Class(
       }
     });
     var saves =
-    [
-      "/tweets/all",  lists
-    ];
+    {
+      lists: lists
+    };
     for (var type in this._types)
     {
-      saves.push([ "/tweets/" + type,  this._types[type].serialize() ]);
+      saves[type] = this._types[type].serialize();
     }
-    this._lgrid.mwrite(saves);
+    this._lgrid.write("/tweets/0", saves);
   },
 
   restore: function()
@@ -347,24 +349,18 @@ var TweetLists = Class(
     return Co.Routine(this,
       function(r)
       {
-        var loads = [ "/tweets/all" ];
-        for (var type in this._types)
-        {
-          loads.push("/tweets/" + type);
-        }
-        return this._lgrid.mread(loads);
+        return this._lgrid.read("/tweets/0");
       },
       function(all)
       {
-        all = all();
-        (all[0] || []).forEach(function(listinfo)
+        all = all() || {};
+        (all.lists || []).forEach(function(listinfo)
         {
-          this.lists.append(new FilteredTweetsModel({ account: this._account, title: listinfo.title, uuid: listinfo.uuid, canRemove: true, canEdit: true }));
+          this.lists.append(new FilteredTweetsModel({ account: this._account, title: listinfo.title, uuid: listinfo.uuid, canRemove: true }));
         }, this);
-        var idx = 1;
         for (var type in this._types)
         {
-          (all[idx++] || []).forEach(function(tweet)
+          (all[type] || []).forEach(function(tweet)
           {
             this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this._account));
           }, this);

@@ -119,11 +119,8 @@ function main()
       },
       onEditList: function(m, v)
       {
-        if (models.current_list().canEdit())
-        {
-          Log.metric("nav", "list:edit");
-          editList(v);
-        }
+        Log.metric("nav", "list:edit");
+        editList(v);
       },
       onRemoveList: function(m, v, e)
       {
@@ -208,7 +205,6 @@ function main()
       {
         Log.metric("details", "url");
         var url = e.target.dataset.href;
-        //var readModel = Readability.open(url);
         
         Co.Routine(this,
           function()
@@ -322,6 +318,11 @@ function main()
                 }
               );
             }, this);
+            // Force layout if we have text already (cached)
+            if (readModel.text())
+            {
+              readModel.emit("update");
+            }
           }
         );
       },

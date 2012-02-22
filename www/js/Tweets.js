@@ -3,7 +3,6 @@ var FilteredTweetsModel = Model.create(
   uuid: Model.Property,
   title: Model.Property,
   name: Model.Property,
-  canEdit: Model.Property,
   canRemove: Model.Property,
   tweets: Model.Property,
   unread: Model.Property,
@@ -22,7 +21,7 @@ var FilteredTweetsModel = Model.create(
     self._includeTags = [];
     self._excludeTags = [];
     self._tweetLists = values.account.tweetLists;
-    self.viz("list");
+    self.viz(self.viz() || "list");
   },
 
   restore: function(isNew)
@@ -34,11 +33,11 @@ var FilteredTweetsModel = Model.create(
       },
       function()
       {
-        this.on("update", function()
+        this._updateUnread();
+        this.on("update.tweets update.includeTags update.excludeTags update.lastRead update.viz", function()
         {
           this._save();
         }, this);
-        this._updateUnread();
         return true;
       }
     );
@@ -63,14 +62,26 @@ var FilteredTweetsModel = Model.create(
         }
       });
     }
-    this.tweets().prepend(ntweets);
-    this._save();
+    if (ntweets.length)
+    {
+      if (this.tweets().prepend(ntweets))
+      {
+        this.emit("update.tweets");
+        this.emit("update");
+      }
+    }
   },
 
   removeTweets: function(tweets)
   {
-    this.tweets().remove(tweets);
-    this._save();
+    if (tweets.length)
+    {
+      if (this.tweets().remove(tweets))
+      {
+        this.emit("update.tweets");
+        this.emit("update");
+      }
+    }
   },
 
   addIncludeTag: function(tag, refilter)
@@ -80,6 +91,7 @@ var FilteredTweetsModel = Model.create(
       var filter = this._makeRule(tag);
       this._includeTags.push({ tag: tag, filter: filter });
       this.tweets().addIncludeFilter(filter, refilter);
+      this.emit("update.includeTags");
       this.emit("update");
     }
   },
@@ -91,6 +103,7 @@ var FilteredTweetsModel = Model.create(
       var filter = this._makeRule(tag);
       this._excludeTags.push({ tag: tag, filter: filter });
       this.tweets().addExcludeFilter(filter, refilter);
+      this.emit("update.excludeTags");
       this.emit("update");
     }
   },
@@ -102,6 +115,7 @@ var FilteredTweetsModel = Model.create(
     {
       var e = this._includeTags.splice(idx, 1);
       this.tweets().removeIncludeFilter(e[0].filter, refilter);
+      this.emit("update.includeTags");
       this.emit("update");
     }
   },
@@ -113,6 +127,7 @@ var FilteredTweetsModel = Model.create(
     {
       var e = this._excludeTags.splice(idx, 1);
       this.tweets().removeExcludeFilter(e[0].filter, refilter);
+      this.emit("update.excludeTags");
       this.emit("update");
     }
   },
@@ -222,35 +237,20 @@ var FilteredTweetsModel = Model.create(
 
   remove: function()
   {
-    var prefix = "/tweetlist/" + this.uuid() + "/";
-    function p(_)
-    {
-      return prefix + _;
-    }
-    return this._lgrid.mremove([
-      p("tweets"),
-      p("lastRead"),
-      p("viz"),
-      p("includeTags"),
-      p("excludeTags"),
-    ]);
+    return this._lgrid.remove("/tweetlist/0/" + this.uuid());
   },
 
   _save: function()
   {
-    var prefix = "/tweetlist/" + this.uuid() + "/";
-    function p(_)
-    {
-      return prefix + _;
-    }
     this._updateUnread();
-    this._lgrid.mwrite([
-      [ p("includeTags"), this._includeTags ],
-      [ p("excludeTags"), this._excludeTags ],
-      [ p("tweets"), this.tweets().serialize().map(function(tweet) { return tweet.id_str; }) ],
-      [ p("lastRead"), this.lastRead() ],
-      [ p("vis"), this.viz() ]
-    ]);
+    this._lgrid.write("/tweetlist/0/" + this.uuid(),
+    {
+      includeTags: this._includeTags,
+      excludeTags: this._excludeTags,
+      tweets: this.tweets().serialize().map(function(tweet) { return tweet.id_str; }),
+      lastRead: this.lastRead(),
+      vis: this.viz()
+    });
   },
 
   _restore: function()
@@ -258,45 +258,37 @@ var FilteredTweetsModel = Model.create(
     return Co.Routine(this,
       function(r)
       {
-        var prefix = "/tweetlist/" + this.uuid() + "/";
-        function p(_)
-        {
-          return prefix + _;
-        }
-        return this._lgrid.mread([
-          p("tweets"),
-          p("lastRead"),
-          p("viz"),
-          p("includeTags"),
-          p("excludeTags"),
-        ]);
+        return this._lgrid.read("/tweetlist/0/" + this.uuid());
       },
       function(vals)
       {
-        vals = vals();
+        this.delayUpdate(function()
+        {
+          vals = vals() || {};
 
-        this.viz(vals[2] || this.viz());
-        var tweets = [];
-        var lists = this._tweetLists;
-        (vals[0] || []).forEach(function(id)
-        {
-          var tweet = lists.getTweet(id);
-          if (tweet)
+          this.viz(vals.viz || this.viz());
+          var tweets = [];
+          var lists = this._tweetLists;
+          (vals.tweets || []).forEach(function(id)
           {
-            tweets.push(tweet);
-          }
-        }, this);
-        this.addTweets(tweets);
-        this.lastRead(vals[1]);
-        this.recalcVelocity(this._tweetLists._getVelocity());
-        (vals[3] || []).forEach(function(t)
-        {
-          this.addIncludeTag(t.tag, false);
-        }, this);
-        (vals[4] || []).forEach(function(t)
-        {
-          this.addExcludeTag(t.tag, false);
-        }, this);
+            var tweet = lists.getTweet(id);
+            if (tweet)
+            {
+              tweets.push(tweet);
+            }
+          }, this);
+          this.addTweets(tweets);
+          this.lastRead(vals.lastRead);
+          this.recalcVelocity(this._tweetLists._getVelocity());
+          (vals.includeTags || []).forEach(function(t)
+          {
+            this.addIncludeTag(t.tag, false);
+          }, this);
+          (vals.excludeTags || []).forEach(function(t)
+          {
+            this.addExcludeTag(t.tag, false);
+          }, this);
+        });
         return true;
       }
     );

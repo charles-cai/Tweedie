@@ -111,34 +111,41 @@ var Errors = Model.create(
 
   _retry: function()
   {
-    return Co.Routine(this,
-      function()
-      {
-        var errors = this._errors;
-        this._errors = [];
-        return Co.Loop(this, errors.length,
-          function(idx)
+    if (this._errors.length)
+    {
+      return Co.Routine(this,
+        function()
+        {
+          var errors = this._errors;
+          this._errors = [];
+          return Co.Loop(this, errors.length,
+            function(idx)
+            {
+              var error = errors[idx()];
+              return this._account[error.op](error.details);
+            }
+          );
+        },
+        function(r)
+        {
+          try
           {
-            var error = errors[idx()];
-            return this._account[error.op](error.details);
+            r();
           }
-        );
-      },
-      function(r)
-      {
-        try
-        {
-          r();
+          catch (e)
+          {
+            Log.exception("Errors._runq", e);
+          }
+          this._save();
+          this.emit("update");
+          return true;
         }
-        catch (e)
-        {
-          Log.exception("Errors._runq", e);
-        }
-        this._save();
-        this.emit("update");
-        return true;
-      }
-    );
+      );
+    }
+    else
+    {
+      return false;
+    }
   },
 
   _save: function()
