@@ -305,7 +305,7 @@ function main()
                   }
                   function hide()
                   {
-                    this.style.display = "none";
+                    this.parentNode.removeChild(this);
                     recalc();
                   }
                   for (var i = 0; i < images.length; i++)
