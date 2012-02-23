@@ -2871,17 +2871,22 @@ var RootView = exports.RootView = Class(View,
           }
           if (!_dragContainer.firstChild)
           {
-            _dragContainer.appendChild(_maybeDrag.cloneNode(true));
             var area = _maybeDrag.getClientRects()[0];
             _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 35 : 0) };
+            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+            _dragContainer.appendChild(_maybeDrag.cloneNode(true));
             eventHandler(
             {
               type: "dragstart",
               target: _maybeDrag
             });
           }
-          _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
-          _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+          else
+          {
+            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+          }
         }
         target.addEventListener("touchstart", function(evt)
         {
@@ -4070,12 +4075,10 @@ var OAuth = exports.OAuth = Class(
 
   _encode: function(str)
   {
-    //return !str ? "" : encodeURIComponent(str).replace(/\!/g, "%21").replace(/\*/g, "%2A").replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
-    return !str ? "" : encodeURIComponent(str).replace(/\!\*'\(\)/g, function(s)
+    return !str ? "" : encodeURIComponent(str).replace(/[!*'()]/g, function(s)
     {
       switch(s)
       {
-        case "+": return "%20";
         case "!": return "%21";
         case '*': return "%2A";
         case "'": return "%27";

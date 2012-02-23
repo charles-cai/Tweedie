@@ -43,6 +43,7 @@ var Account = Class(Events,
         this._fetcher = new TweetFetcher(this, info);
         this._fetcher.on("login", function(evt, info)
         {
+          this.errors.open();
           if (!this.userInfo || info.screen_name !== this.userInfo.screen_name || info.user_id !== this.userInfo.user_id)
           {
             this.userInfo = info;
@@ -56,9 +57,21 @@ var Account = Class(Events,
       },
       function()
       {
-        this._fetcher.on("tweets favs unfavs searches dms mentions", function(evt, tweets)
+        this._fetcher.on("tweets", function(evt, tweets)
         {
-          this.tweetLists.addTweets(evt, tweets);
+          this.tweetLists.addTweets(tweets);
+        }, this);
+        this._fetcher.on("searches", function(evt, tweets)
+        {
+          this.tweetLists.addSearch(tweets);
+        }, this);
+        this._fetcher.on("favs", function(evt, tweets)
+        {
+          this.tweetLists.favTweets(tweets);
+        }, this);
+        this._fetcher.on("unfavs", function(evt, tweets)
+        {
+          this.tweetLists.unfavTweets(tweets);
         }, this);
         this._fetcher.on("networkActivity", function(evt, activity)
         {
@@ -200,7 +213,7 @@ var Account = Class(Events,
 
   favorite: function(tweet)
   {
-    this.tweetLists.addTweets("favs", [ tweet.serialize() ]);
+    this.tweetLists.favTweets([ tweet.serialize() ]);
     return Co.Routine(this,
       function()
       {
@@ -223,7 +236,7 @@ var Account = Class(Events,
 
   unfavorite: function(tweet)
   {
-    this.tweetLists.addTweets("unfavs", [ tweet.serialize() ]);
+    this.tweetLists.unfavTweets([ tweet.serialize() ]);
     return Co.Routine(this,
       function()
       {

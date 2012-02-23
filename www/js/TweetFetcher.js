@@ -57,6 +57,12 @@ var TweetFetcher = xo.Class(Events,
   {
     this._loop = this._runUserStreamer();
     var running = false;
+    var tweets;
+    var tweetId = "1";
+    var mentionId = "1";
+    var favId = "1";
+    var dmSendId = "1";
+    var dmRecvId = "1";
     Co.Forever(this,
       function()
       {
@@ -65,10 +71,12 @@ var TweetFetcher = xo.Class(Events,
           return Co.Break();
         }
 
-        return Ajax.create(
+        tweets = [];
+
+        return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=200",
+          url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=200&since_id=" + favId,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -77,19 +85,22 @@ var TweetFetcher = xo.Class(Events,
       {
         try
         {
-          Log.time("FavLoad");
-          this.emit("favs", r().json());
-          Log.timeEnd("FavLoad");
+          var json = r().json();
+          if (json.length)
+          {
+            favId = json[0].id_str;
+          }
+          tweets = tweets.concat(json);
         }
         catch (e)
         {
           Log.exception("Fav fetch failed", e);
         }
 
-        return Ajax.create(
+        return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "https://api.twitter.com/1/statuses/mentions.json?include_entities=true&count=200",
+          url: "https://api.twitter.com/1/statuses/mentions.json?include_entities=true&count=200&since_id=" + mentionId,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -98,79 +109,70 @@ var TweetFetcher = xo.Class(Events,
       {
         try
         {
-          Log.time("MentionLoad");
-          //this.emit("mentions", r().json());
-          Log.timeEnd("MentionLoad");
+          var json = r().json();
+          if (json.length)
+          {
+            mentionId = json[0].id_str;
+          }
+          tweets = tweets.concat(json);
         }
         catch (e)
         {
-          Log.exception("Fav fetch failed", e);
+          Log.exception("Mentions fetch failed", e);
         }
 
         var lists = this._account.tweetLists;
-
-        var alltweets = [];
+        var pg;
         return Co.Loop(this, 4,
           function(page)
           {
+            pg = page();
             return this._ajaxWithRetry(
             {
               method: "GET",
-              url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + page()),
+              url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + pg) + "&since_id=" + tweetId,
               auth: this._auth,
               proxy: networkProxy
             });
           },
           function(r)
           {
-            var tweets = r().json();
-            alltweets = alltweets.concat(tweets);
-            for (var i = tweets.length - 1; i >= 0; i--)
+            var ntweets = r().json();
+            if (ntweets.length && pg === 0)
             {
-              if (lists.getTweet(tweets[i].id_str))
+              tweetId = ntweets[0].id_str;
+            }
+            tweets = tweets.concat(ntweets);
+            for (var i = ntweets.length - 1; i >= 0; i--)
+            {
+              if (lists.getTweet(ntweets[i].id_str))
               {
-                return Co.Break(alltweets);
+                return Co.Break();
               }
             }
-            return alltweets;
+            return true;
           }
         );
       },
-      function(tweets)
+      function()
       {
-        try
-        {
-          tweets = tweets();
-          Log.time("TweetLoad");
-          this.emit("tweets", tweets);
-          Log.timeEnd("TweetLoad");
-        }
-        catch (e)
-        {
-          Log.exception("Tweet add failed", e);
-          // If the tweet fetch fails, we log an error to retry it later.
-          this._account.errors.add("fetch");
-          // And then terminate fetching immediately
-          return Co.Break(false);
-        }
-
         return Co.Parallel(this,
           function()
           {
-            return Ajax.create(
+            return this._ajaxWithRetry(
             {
               method: "GET",
-              url: "https://api.twitter.com/1/direct_messages.json?include_entities=true&count=100",
+              url: "https://api.twitter.com/1/direct_messages.json?include_entities=true&count=100&since_id=" + dmRecvId,
               auth: this._auth,
               proxy: networkProxy
             });
           },
           function()
           {
-            return Ajax.create(
+            return this._ajaxWithRetry(
             {
               method: "GET",
-              url: "https://api.twitter.com/1/direct_messages/sent.json?include_entities=true&count=100",
+              url: "https://api.twitter.com/1/direct_messages/sent.json?include_entities=true&count=100&since_id=" + dmSendId,
               auth: this._auth,
               proxy: networkProxy
             });
@@ -182,19 +184,32 @@ var TweetFetcher = xo.Class(Events,
         try
         {
           r = r();
-          var msgs = r[0].json().concat(r[1].json());
-          msgs.sort(function(a, b)
+          var recv = r[0].json();
+          var send = r[1].json();
+          if (recv.length)
           {
-            return a.id_str === b._id_str ? 0 : a.id_str < b.id_str ? 1 : -1;
-          });
-          Log.time("DMLoad");
-          this.emit("dms", msgs);
-          Log.timeEnd("DMLoad");
+            dmRecvId = recv[0].id_str;
+          }
+          if (send.length)
+          {
+            dmSendId = send[0].id_str;
+          }
+          tweets = tweets.concat(recv, send);
         }
         catch (e)
         {
           Log.exception("DM fetch failed", e);
         }
+
+        Log.time("TweetSort");
+        tweets.sort(function(a, b)
+        {
+          return a.id_str === b._id_str ? 0 : a.id_str < b.id_str ? 1 : -1;
+        });
+        Log.timeEnd("TweetSort");
+        Log.time("TweetLoad");
+        this.emit("tweets", tweets);
+        Log.timeEnd("TweetLoad");
 
         if (!running)
         {
@@ -233,7 +248,6 @@ var TweetFetcher = xo.Class(Events,
         var tweets = [];
         var favs = [];
         var unfavs = [];
-        var dms = [];
         for (var i = 0, len = lines.length - 1; i < len; i++)
         {
           var line = lines[i];
@@ -274,7 +288,7 @@ var TweetFetcher = xo.Class(Events,
                 }
                 else if (line.direct_message)
                 {
-                  dms.unshift(line.direct_message);
+                  tweets.unshift(line.direct_message);
                 }
                 else if (line.text)
                 {
@@ -290,7 +304,6 @@ var TweetFetcher = xo.Class(Events,
         }
 
         tweets.length && self.emit("tweets", tweets);
-        dms.length && self.emit("dms", dms);
         favs.length && self.emit("favs", favs);
         unfavs.length && self.emit("unfavs", unfavs);
 
