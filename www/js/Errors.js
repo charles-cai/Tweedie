@@ -7,6 +7,10 @@ var Errors = Model.create(
     this._running = false;
     this._account = account;
     this._errors = [];
+  },
+
+  open: function()
+  {
     Co.Routine(this,
       function()
       {
