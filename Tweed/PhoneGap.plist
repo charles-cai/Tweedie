@@ -11,11 +11,11 @@
 	<key>AutoHideSplashScreen</key>
 	<true/>
 	<key>ShowSplashScreenSpinner</key>
-	<false/>
+	<true/>
 	<key>MediaPlaybackRequiresUserAction</key>
 	<false/>
 	<key>AllowInlineMediaPlayback</key>
-	<true/>
+	<false/>
 	<key>OpenAllWhitelistURLsInWebView</key>
 	<true/>
 	<key>ExternalHosts</key>
@@ -24,8 +24,6 @@
 	</array>
 	<key>Plugins</key>
 	<dict>
-		<key>ChildBrowserCommand</key>
-		<string>ChildBrowserCommand</string>
 		<key>com.phonegap.accelerometer</key>
 		<string>PGAccelerometer</string>
 		<key>com.phonegap.camera</key>
@@ -50,6 +48,10 @@
 		<string>PGCapture</string>
 		<key>com.phonegap.splashscreen</key>
 		<string>PGSplashScreen</string>
+		<key>com.phonegap.battery</key>
+		<string>PGBattery</string>
+		<key>ChildBrowserCommand</key>
+		<string>ChildBrowserCommand</string>
 	</dict>
 </dict>
 </plist>
