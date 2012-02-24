@@ -10,10 +10,10 @@ var TweetLists = Class(
 
     this._types =
     {
+      tweets: new IndexedModelSet({ key: "id", limit: 2000 }),
+      mentions: new IndexedModelSet({ key: "id", limit: 200 }),
       dms: new IndexedModelSet({ key: "id", limit: 500 }),
       favs: new IndexedModelSet({ key: "id", limit: 500 }),
-      mentions: new IndexedModelSet({ key: "id", limit: 200 }),
-      tweets: new IndexedModelSet({ key: "id", limit: 2000 }),
     };
   },
 
@@ -149,6 +149,10 @@ var TweetLists = Class(
       {
         tweets = tweets.concat(this._types[type].models);
       }
+      tweets.sort(function(a, b)
+      {
+        return a.id_str === b._id_str ? 0 : a.id_str < b.id_str ? 1 : -1;
+      });
       listtweets.append(tweets);
     }
     Log.timeEnd("_refilter");
@@ -335,155 +339,6 @@ var TweetLists = Class(
     });
   },
 
-  XXXaddTweets: function(type, tweets)
-  {
-    var include = [];
-    var all = [];
-    var mentions = [];
-    return Co.Lock(this,
-      function()
-      {
-        var urls = [];
-        var target = this._types[type];
-        tweets.forEach(function(twt)
-        {
-          var tweet = this.getTweet(twt.id_str);
-          if (!tweet)
-          {
-            tweet = new Tweet(twt, this._account);
-            if (tweet.is_retweet())
-            {
-              urls = urls.concat(tweet.retweet().urls());
-            }
-            else
-            {
-              urls = urls.concat(tweet.urls());
-            }
-            all.push(tweet);
-            if (tweet.isMention())
-            {
-              mentions.push(tweet);
-            }
-          }
-          else if (!target || !target.findByProperty("id", tweet.id()))
-          {
-            all.push(tweet);
-          }
-          switch (type)
-          {
-            case "tweets":
-            case "searches":
-            case "dms":
-            default:
-              break;
-            case "favs":
-              tweet.favorited(true);
-              break;
-            case "unfavs":
-              tweet.favorited(false);
-              break;
-          }
-          include.push(tweet);
-        }, this);
-        if (all.length)
-        {
-          switch (type)
-          {
-            case "tweets":
-            case "favs":
-            case "searches":
-              return Co.Routine(this,
-                function()
-                {
-                  return this._account.expandUrls(urls);
-                },
-                function(r)
-                {
-                  var oembeds = r();
-                  for (var i = all.length - 1; i >= 0; i--)
-                  {
-                    var tweet = all[i];
-                    if (tweet.is_retweet())
-                    {
-                      tweet.retweet().oembeds(oembeds);
-                    }
-                    else
-                    {
-                      tweet.oembeds(oembeds);
-                    }
-                  }
-                  if (target)
-                  {
-                    target.prepend(all);
-                    this._types.mentions.prepend(mentions);
-                    this._save();
-                  }
-                  return true;
-                }
-              );
-              break;
-            case "dms":
-              if (target)
-              {
-                target.prepend(all);
-                this._save();
-              }
-              return true;
-
-            case "unfavs":
-            default:
-              return true;
-          }
-        }
-        else
-        {
-          return true;
-        }
-      },
-      function()
-      {
-        if (include.length)
-        {
-          var o = this._getVelocity();
-          if (type === "searches")
-          {
-            this.lists.forEach(function(list)
-            {
-              if (list.isSearch())
-              {
-                list.addTweets(include);
-                list.recalcVelocity(o);
-              }
-            });
-          }
-          else if (type.slice(0, 2) !== "un")
-          {
-            this.lists.forEach(function(list)
-            {
-              if (!list.isSearch())
-              {
-                list.addTweets(include);
-                list.recalcVelocity(o);
-              }
-            });
-          }
-          else
-          {
-            this.lists.forEach(function(list)
-            {
-              if (!list.isSearch())
-              {
-                list.removeTweets(include);
-                list.recalcVelocity(o);
-              }
-            });
-          }
-        }
-        return all.length;
-      }
-    )
-  },
-  
   _getVelocity: function()
   {
     return {
