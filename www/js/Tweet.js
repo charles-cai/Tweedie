@@ -155,6 +155,11 @@ var Tweet = Model.create(
     }
   },
 
+  at_screen_name: function()
+  {
+    return "@" + this.screen_name();
+  },
+
   conversation: function()
   {
     if (this._values.user)
@@ -447,11 +452,37 @@ var Tweet = Model.create(
 
   tagsHash: function()
   {
-    if (!this._tagsHash)
+    if (!this._tags)
     {
       this._buildTags();
     }
     return this._tagsHash;
+  },
+
+  tagkeys: function()
+  {
+    if (!this._tags)
+    {
+      this._buildTags();
+    }
+    if (!this._tagkeys)
+    {
+      var keys = "";
+      this._tags.forEach(function(key)
+      {
+        switch (key.type)
+        {
+          case "screenname":
+          case "hashtag":
+          case "hostname":
+            keys += key.key + " ";
+          default:
+            break;
+        }
+      });
+      this._tagkeys = keys.slice(0, -1);
+    }
+    return this._tagkeys;
   },
 
   _buildTags: function()
@@ -466,7 +497,7 @@ var Tweet = Model.create(
       used = retweet._tagsHash;
       retweet._tags = null;
       retweet._tagsHash = null;
-      var name = "@" + this.screen_name();
+      var name = this.at_screen_name();
       var key = name.toLowerCase();
       if (!used["screenname:" + key])
       {
@@ -480,7 +511,7 @@ var Tweet = Model.create(
     }
     else
     {
-      var name = "@" + this.screen_name();
+      var name = this.at_screen_name();
       var key = name.toLowerCase();
       used["screenname:" + key] = true;
       tags.push({ title: name, type: "screenname", key: key });

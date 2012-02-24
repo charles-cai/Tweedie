@@ -39,7 +39,7 @@ var TweetBox = Class(
     {
       tweet = tweet.retweet();
     }
-    var text = type === "reply" ? "@" + tweet.screen_name() : type === "retweet" ? tweet.text() : "";
+    var text = type === "reply" ? tweet.at_screen_name() : type === "retweet" ? tweet.text() : "";
     var send = new NewTweetModel(
     {
       text: text,
