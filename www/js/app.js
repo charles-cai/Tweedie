@@ -23,12 +23,14 @@ function main()
     name: function()
     {
       return account.tweetLists.screenname.slice(1);
-    }
+    },
+    filter: Model.Property,
   }))(
   {
     account: account,
     current_list: account.tweetLists.lists.models[0],
-    lists: account.tweetLists.lists
+    lists: account.tweetLists.lists,
+    filter: ""
   });
 
   account.on("screenNameChange", function()
@@ -46,6 +48,7 @@ function main()
     {
       RootView.getViewByName("tweets").scrollToTop();
     }
+    document.getElementById("filter").value = "";
     models.current_list(m);
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());
@@ -441,6 +444,16 @@ function main()
       },
       onOpenPreferences: function()
       {
+      },
+      onFilter: function(m, v, e)
+      {
+        RootView.getViewByName("tweets").filterText(e.target.value.toLowerCase());
+      },
+      onDropFilter: function(m, v, e)
+      {
+        var key = v.dropped().key;
+        e.target.value = key;
+        RootView.getViewByName("tweets").filterText(key);
       }
     }
   });

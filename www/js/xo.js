@@ -1193,11 +1193,12 @@ var Model = exports.Model = Class(Events,
 });
 var ModelSet = exports.ModelSet = Class(Model,
 {
-  constructor: function(args)
+  constructor: function(values)
   {
-    args = args || {};
-    this.models = args.models || [];
-    this._limit = args.limit;
+    values = values || {};
+    this._values = values;
+    this.models = values.models || [];
+    this._limit = values.limit;
     this.sequence = Model.nextSequence();
   },
 
@@ -1243,7 +1244,8 @@ var ModelSet = exports.ModelSet = Class(Model,
       this.emit("insert",
       {
         index: idx,
-        count: count
+        count: count,
+        models: model
       });
     }
     else
@@ -1253,7 +1255,8 @@ var ModelSet = exports.ModelSet = Class(Model,
       this.emit("insert",
       {
         index: idx,
-        count: count
+        count: count,
+        models: [ model ]
       });
     }
     if (this._limit && this.models.length > this._limit)
@@ -1297,11 +1300,13 @@ var ModelSet = exports.ModelSet = Class(Model,
     {
       var count = 0;
       var nidx = -1;
+      var removed = [];
       model.forEach(function(m)
       {
         var idx = this.indexOf(m);
         if (idx !== -1)
         {
+          removed.push(m);
           this.models.splice(idx, 1);
           if (nidx === -1 || nidx === idx)
           {
@@ -1319,7 +1324,8 @@ var ModelSet = exports.ModelSet = Class(Model,
         this.emit("remove",
         {
           index: nidx === undefined ? undefined : nidx - count,
-          count: count
+          count: count,
+          models: removed
         });
         return count;
       }
@@ -1333,7 +1339,8 @@ var ModelSet = exports.ModelSet = Class(Model,
         this.emit("remove",
         {
           index: idx,
-          count: 1
+          count: 1,
+          models: [ model ]
         });
         return 1;
       }
@@ -1346,11 +1353,12 @@ var ModelSet = exports.ModelSet = Class(Model,
     var len = this.models.length;
     if (len)
     {
-      this.models.splice(0, len);
+      var removed = this.models.splice(0, len);
       this.emit("remove",
       {
         index: 0,
-        count: len
+        count: len,
+        models: removed
       });
       return true;
     }
@@ -1390,14 +1398,14 @@ var ModelSet = exports.ModelSet = Class(Model,
 });
 var IndexedModelSet = exports.IndexedModelSet = Class(ModelSet,
 {
-  constructor: function(__super, args)
+  constructor: function(__super, values)
   {
-    if (args.key)
+    if (values.key)
     {
-      this._key = args.key;
+      this._key = values.key;
       this._index = {};
     }
-    __super(args);
+    __super(values);
   },
 
   findByProperty: function(__super, name, value)
@@ -2128,6 +2136,10 @@ var Template = exports.Template = Class(
 
     using: function(no, fn, extra)
     {
+      if (arguments.length === 3)
+      {
+        this.o.unshift([extra]);
+      }
       this.o.unshift(no);
       try
       {
@@ -2136,6 +2148,10 @@ var Template = exports.Template = Class(
       finally
       {
         this.o.shift();
+        if (arguments.length === 3)
+        {
+          this.o.shift();
+        }
       }
     }
   })
@@ -2278,7 +2294,7 @@ var LiveListViewMixin =
         {
           var container = this._scrollContainer();
       
-          if (!node.firstChild)
+          if (!node.childElementCount)
           {
             var count = Math.min(this._liveList._count + args.count, this._liveList._page);
             this._prependModels(node, count);
@@ -2520,7 +2536,7 @@ var StackedViewSetMixin =
   {
     var self = this;
     self._flatModels = args.model;
-    self._stackKey = args.key;
+    self._stackKey = args.stackKey;
     self._stacks = {};
     args.model = new IndexedModelSet(
     {
@@ -2591,6 +2607,94 @@ var StackedViewSetMixin =
         }
       }
     }, this);
+  }
+};
+var TextFilterViewMixin =
+{
+  constructor: function(__super, args)
+  {
+    var self = this;
+    self._srcModels = args.model;
+    self._tgtModels = new args.model.__proto__.constructor(args.model._values);
+    self._filterText = "";
+    self._keys = args.filterKeys;
+    self._lookups = {};
+    args.model = self._tgtModels;
+    self._textFilter(self._srcModels.models);
+    __super(args);
+    self.addListener(self._srcModels, "insert", function(evt, info)
+    {
+      self._textFilter(info.index === 0 ? info.models : this._srcModels.models);
+    });
+    self.addListener(self._srcModels, "remove truncate", function(evt, info)
+    {
+      var lookups = self._lookups;
+      info.models.forEach(function(model)
+      {
+        delete lookups[Model.identity(model)];
+      });
+      if (evt === "remove")
+      {
+        self._textFilter(self._srcModels.models);
+      }
+    });
+  },
+
+  identity: function()
+  {
+    return xo.View.buildIdentity(this.$renderer, this._srcModels);
+  },
+
+  filterText: function(text)
+  {
+    if (text !== this._filterText)
+    {
+      this._filterText = text;
+      this._textFilter(this._srcModels.models);
+    }
+  },
+
+  _textFilter: function(models)
+  {
+    if (models === this._srcModels.models)
+    {
+      this._tgtModels.removeAll();
+    }
+
+    var keys = this._keys;
+    var lookups = this._lookups;
+    var filter = this._filterText;
+
+    var include = [];
+    if (!filter)
+    {
+      include = models;
+    }
+    else
+    {
+      models.forEach(function(model)
+      {
+        var id = Model.identity(model);
+        var lookup = lookups[id];
+        if (!lookup)
+        {
+          var text = "";
+          keys.forEach(function(key)
+          {
+            text += " " + model[key]().toLowerCase();
+          });
+          lookup = lookups[id] = text;
+        }
+        if (lookup.indexOf(filter) != -1)
+        {
+          include.push(model);
+        }
+      });
+    }
+    if (include.length)
+    {
+      this._tgtModels.prepend(include);
+    }
   }
 };
 var RootView = exports.RootView = Class(View,
@@ -2700,19 +2804,22 @@ var RootView = exports.RootView = Class(View,
             for (var i = k.length - 1; i >= 2; i--)
             {
               var p = k[i].split(":");
-              if (p[0] === "view")
+              if (p.length === 2)
               {
-                args[p[0]] = RootView._getViewClass(p[1]);
-              }
-              else
-              {
-                try
+                if (p[0] === "view")
                 {
-                  args[p[0]] = eval(p[1]);
+                  args[p[0]] = RootView._getViewClass(p[1]);
                 }
-                catch (_)
+                else
                 {
-                  args[p[0]] = p[1];
+                  try
+                  {
+                    args[p[0]] = eval(p[1]);
+                  }
+                  catch (_)
+                  {
+                    args[p[0]] = p[1];
+                  }
                 }
               }
             }
@@ -2872,7 +2979,7 @@ var RootView = exports.RootView = Class(View,
           if (!_dragContainer.firstChild)
           {
             var area = _maybeDrag.getClientRects()[0];
-            _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 35 : 0) };
+            _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 25 : 0) };
             _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
             _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
             _dragContainer.appendChild(_maybeDrag.cloneNode(true));
@@ -2894,19 +3001,20 @@ var RootView = exports.RootView = Class(View,
           {
             var touch = evt.targetTouches[0];
             var target = touch.target;
-            if (getComputedStyle(target, null).WebkitUserDrag === "element")
+            for (var dtarget = target; dtarget; dtarget = dtarget.parentElement)
             {
-              _maybeDrag = target;
-              _dropTargets = document.querySelectorAll("[ondragover]");
-              _dropLastTarget = null;
-              doDrag(evt.targetTouches[0]);
+              if (getComputedStyle(dtarget, null).WebkitUserDrag === "element")
+              {
+                _maybeDrag = dtarget;
+                _dropTargets = document.querySelectorAll("[ondragover]");
+                _dropLastTarget = null;
+                doDrag(touch);
+                return;
+              }
             }
-            else
-            {
-              _maybeClick = target;
-              _maybeSwipe = RootView._findSwipeTarget(target);
-              _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
-            }
+            _maybeClick = target;
+            _maybeSwipe = RootView._findSwipeTarget(target);
+            _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
           }
         });
         target.addEventListener("touchend", function(evt)
@@ -3122,7 +3230,8 @@ var RootView = exports.RootView = Class(View,
     Drag: DragViewMixin,
     Drop: DropViewMixin,
     LiveList: LiveListViewMixin,
-    StackedList: StackedViewSetMixin
+    StackedList: StackedViewSetMixin,
+    TextFilter: TextFilterViewMixin
   }
 });
 var RenderQ = exports.RenderQ =

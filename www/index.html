@@ -133,17 +133,22 @@
           {{/_}}
         </div>
         <div class="col middle2">
+          <div class="pane filter">
+            {{#_ View.Drop}}
+              <input id="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>
+            {{/_}}
+          </div>
           <div class="pane tweets">
             {{#current_list View updateOn:"viz"}}
               {{:viz_list}}return this.v('viz') === 'list' ? 'selected' : ''{{/viz_list}}
               {{:viz_stack}}return this.v('viz') === 'stack' ? 'selected' : ''{{/viz_stack}}
               {{#viz_list}}
-                {{#tweets ViewSet.LiveList name:"tweets"}}
+                {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}
                   {{>tweet}}
                 {{/tweets}}
               {{/viz_list}}
               {{#viz_stack}}
-                {{#tweets ViewSet.StackedList.LiveList name:"tweets" key:"conversation"}}
+                {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}
                   {{>tweet}}
                 {{/tweets}}
               {{/viz_stack}}
@@ -177,7 +182,7 @@
           </div>
           <div class="tags">
             {{#tags}}
-              {{#_ View.Drag}}<div {{{drag_attributes}}} class="tag screen-name {{dragging}}">{{title}}</div>{{/_}}
+              {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag {{dragging}}">{{title}}</div></div>{{/_}}
             {{/tags}}
           </div>
           {{#has_children}}
