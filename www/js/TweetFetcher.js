@@ -73,6 +73,44 @@ var TweetFetcher = xo.Class(Events,
 
         tweets = [];
 
+        var lists = this._account.tweetLists;
+        return Co.Loop(this, 4,
+          function(page)
+          {
+            return this._ajaxWithRetry(
+            {
+              method: "GET",
+              url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + page()) + "&since_id=" + tweetId,
+              auth: this._auth,
+              proxy: networkProxy
+            });
+          },
+          function(r)
+          {
+            var ntweets = r().json();
+            tweets = tweets.concat(ntweets);
+            if (!ntweets.length)
+            {
+              return Co.Break();
+            }
+            for (var i = ntweets.length - 1; i >= 0; i--)
+            {
+              if (lists.getTweet(ntweets[i].id_str))
+              {
+                return Co.Break();
+              }
+            }
+            return true;
+          }
+        );
+      },
+      function()
+      {
+        if (tweets.length)
+        {
+          tweetId = tweets[0].id_str;
+        }
+
         return this._ajaxWithRetry(
         {
           method: "GET",
@@ -121,41 +159,6 @@ var TweetFetcher = xo.Class(Events,
           Log.exception("Mentions fetch failed", e);
         }
 
-        var lists = this._account.tweetLists;
-        var pg;
-        return Co.Loop(this, 4,
-          function(page)
-          {
-            pg = page();
-            return this._ajaxWithRetry(
-            {
-              method: "GET",
-              url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + pg) + "&since_id=" + tweetId,
-              auth: this._auth,
-              proxy: networkProxy
-            });
-          },
-          function(r)
-          {
-            var ntweets = r().json();
-            if (ntweets.length && pg === 0)
-            {
-              tweetId = ntweets[0].id_str;
-            }
-            tweets = tweets.concat(ntweets);
-            for (var i = ntweets.length - 1; i >= 0; i--)
-            {
-              if (lists.getTweet(ntweets[i].id_str))
-              {
-                return Co.Break();
-              }
-            }
-            return true;
-          }
-        );
-      },
-      function()
-      {
         return Co.Parallel(this,
           function()
           {
