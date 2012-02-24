@@ -216,6 +216,7 @@ body
 {
   border: 1px solid transparent;
   padding: 3px;
+  height: 18px;
   -webkit-border-radius: 3px;
 }
 .list:active
@@ -224,7 +225,7 @@ body
 }
 .list.selected
 {
-  background-color: yellow;
+  border-color: grey;
 }
 .list.dropzone, .create-list.dropzone, .list-tags.dropzone
 {
@@ -232,10 +233,10 @@ body
 }
 .list .unread
 {
+  float: right;
   border: 1px solid rgba(0,0,0,0.2);
   color: rgba(0,0,0,0.6);
   background-color: white;
-  float: right;
   padding: 0 5px;
   -webkit-border-radius: 10px;
   line-height: 18px;
@@ -244,6 +245,14 @@ body
 .list .unread.unread0
 {
   display: none;
+}
+.list .title
+{
+  display: inline-block;
+  width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .hotness50
 {

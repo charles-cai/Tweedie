@@ -67,7 +67,7 @@
               {{#lists ViewSet}}
                 {{#_ View.Drop name:m.name()}}
                   <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>
-                    <div class="title">{{title}}<span class="unread unread{{unread}}">{{unread}}</span></div>
+                    <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>
                   </div>
                 {{/_}}
               {{/lists}}

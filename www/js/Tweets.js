@@ -34,6 +34,7 @@ var FilteredTweetsModel = Model.create(
       function()
       {
         this._updateUnread();
+        this.recalcVelocity(this._tweetLists._getVelocity());
         this.on("update.tweets update.includeTags update.excludeTags update.lastRead update.viz", function()
         {
           this._save();
@@ -279,7 +280,6 @@ var FilteredTweetsModel = Model.create(
           }, this);
           this.addTweets(tweets);
           this.lastRead(vals.lastRead);
-          this.recalcVelocity(this._tweetLists._getVelocity());
           (vals.includeTags || []).forEach(function(t)
           {
             this.addIncludeTag(t.tag, false);
