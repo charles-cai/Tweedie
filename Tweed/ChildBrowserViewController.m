@@ -133,6 +133,7 @@
 	{
 		NSURL* pURL = [ [NSURL alloc] initWithString:imageURL ];
 		[ [ UIApplication sharedApplication ] openURL:pURL  ];
+    [pURL release];
 	}
 	else
 	{
