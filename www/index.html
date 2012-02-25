@@ -134,8 +134,9 @@
         </div>
         <div class="col middle2">
           <div class="pane filter">
-            {{#_ View.Drop}}
-              <input id="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>
+            {{:filterfull}}return !!this.v('filter'){{/filterfull}}
+            {{#_ View.Input.Drop}}
+              <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}
             {{/_}}
           </div>
           <div class="pane tweets">

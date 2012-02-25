@@ -2681,9 +2681,9 @@ var TextFilterViewMixin =
           var text = "";
           keys.forEach(function(key)
           {
-            text += " " + model[key]().toLowerCase();
+            text += " " + model[key]();
           });
-          lookup = lookups[id] = text;
+          lookup = lookups[id] = text.toLowerCase();
         }
         if (lookup.indexOf(filter) != -1)
         {

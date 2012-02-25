@@ -7,6 +7,7 @@ var imageProxy = Environment.isTouch() ? null : location.origin + "/image/";
 var partials;
 
 var editView = null;
+var filterInput = null;
 
 function main()
 {
@@ -48,6 +49,7 @@ function main()
     {
       RootView.getViewByName("tweets").scrollToTop();
     }
+    models.filter("");
     document.getElementById("filter").value = "";
     models.current_list(m);
     var last = m.tweets().models[0];
@@ -447,13 +449,22 @@ function main()
       },
       onFilter: function(m, v, e)
       {
-        RootView.getViewByName("tweets").filterText(e.target.value.toLowerCase());
+        filterInput = e.target;
+        RootView.getViewByName("tweets").filterText(filterInput.value.toLowerCase());
       },
       onDropFilter: function(m, v, e)
       {
+        filterInput = e.target;
         var key = v.dropped().key;
-        e.target.value = key;
+        models.filter(key);
+        filterInput.value = key;
         RootView.getViewByName("tweets").filterText(key);
+      },
+      onFilterClear: function()
+      {
+        filterInput && (filterInput.value = "");
+        models.filter("");
+        RootView.getViewByName("tweets").filterText("");
       }
     }
   });
