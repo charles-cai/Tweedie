@@ -11,11 +11,11 @@
 	<key>AutoHideSplashScreen</key>
 	<true/>
 	<key>ShowSplashScreenSpinner</key>
-	<true/>
+	<false/>
 	<key>MediaPlaybackRequiresUserAction</key>
-	<false/>
+	<true/>
 	<key>AllowInlineMediaPlayback</key>
-	<false/>
+	<true/>
 	<key>OpenAllWhitelistURLsInWebView</key>
 	<true/>
 	<key>ExternalHosts</key>
