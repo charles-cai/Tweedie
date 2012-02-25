@@ -263,7 +263,7 @@
             {{/isDM}}
           </div>
           <div class="tweet-dialog-body">
-            {{#isEdit}}{{#_ View}}<textarea type="url" class="tweet-text-edit" {{^isDM}}autofocus{{\iDM}}{{#screen_name}}autofocus{{\screen_name}} name="text" data-action-input="Input">{{text}}</textarea>{{/_}}{{/isEdit}}
+            {{#isEdit}}{{#_ View}}<textarea type="url" class="tweet-text-edit" {{^isDM}}autofocus{{\iDM}}{{#screen_name}} autofocus{{\screen_name}} name="text" data-action-input="Input">{{text}}</textarea>{{/_}}{{/isEdit}}
             {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}
           </div>
           <div class="tweet-dialog-footer">
