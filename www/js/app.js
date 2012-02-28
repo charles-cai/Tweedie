@@ -175,7 +175,7 @@ function main()
       onOpenTweet: function(m, v, e)
       {
         var nested = v.node().querySelector(".nested-tweets");
-        var open = v.property("open");
+        var open = v.property("tweet_open");
         if (open)
         {
           Co.Routine(this,
@@ -186,7 +186,7 @@ function main()
             },
             function()
             {
-              v.open(false);
+              v.tweet_open(false);
             }
           );
         }
@@ -196,7 +196,7 @@ function main()
             function()
             {
               nested.style.height = 0;
-              v.open(true);
+              v.tweet_open(true);
               Co.Yield();
             },
             function()
@@ -243,7 +243,8 @@ function main()
                     {
                       var r = document.querySelector("#readability-scroller .text");
                       pagenr = Math.min(maxpagenr - 1, pagenr + 1);
-                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
+                      //mv.translate("-webkit-transform: translate(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0)");
                       Co.Sleep(0.2);
                     },
                     function()
@@ -260,7 +261,8 @@ function main()
                     {
                       var r = document.querySelector("#readability-scroller .text");
                       pagenr = Math.max(0, pagenr - 1);
-                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,0)");
+                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
+                      //mv.translate("-webkit-transform: translate(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0)");
                       Co.Sleep(0.2);
                     },
                     function()
@@ -275,7 +277,6 @@ function main()
                   var browser = ChildBrowser.install();
                   browser.onClose = function()
                   {
-                    Readability.close();
                     mv.close();
                   };
                   browser.showWebPage(url);
@@ -527,7 +528,8 @@ function openProfileDialog(account, profile)
 function findTemplates()
 {
   var partials = {};
-  var templates = document.querySelectorAll(".template");
+  var root = document.querySelector("#templates");
+  var templates = root.querySelectorAll(".template");
   for (var i = templates.length - 1; i >= 0; i--)
   {
     var template = templates[i];
@@ -541,5 +543,6 @@ function findTemplates()
       }
     });
   }
+  root.parentNode.removeChild(root);
   return partials;
 }
