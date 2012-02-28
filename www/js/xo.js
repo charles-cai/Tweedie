@@ -1640,7 +1640,7 @@ var View = exports.View = Class(Model,
     self.$className = args.className || "view";
     self.$model = args.model;
     self.$renderer = args.renderer;
-    self.$cursor = new Template.Cursor([ self, self.$model ]);
+    self.$cursor = args.cursor ? args.cursor.clone([ self.$model, self ]) : new Template.Cursor([ self.$model, self ]);
     self.$updateHandler = function(evt)
     {
       RenderQ.add(self);
@@ -2115,6 +2115,34 @@ var Template = exports.Template = Class(
       this.o = o;
     },
 
+    clone: function(o)
+    {
+      return new Template.Cursor((o || []).concat(this.o));
+    },
+
+    equalEnd: function(other)
+    {
+      if (this !== other)
+      {
+        var o = this.o;
+        var oo = other.o;
+        var len = oo.length;
+        var offset = o.length - oo.length
+        if (offset < 0)
+        {
+          return false;
+        }
+        for (var i = 0; i < len; i++)
+        {
+          if (o[i + offset] !== oo[i])
+          {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
+
     v: function(key)
     {
       for (var i = 0, len = this.o.length; i < len; i++)
@@ -2153,6 +2181,11 @@ var Template = exports.Template = Class(
           this.o.shift();
         }
       }
+    },
+
+    push: function(o)
+    {
+      this.o = this.o.concat(o);
     }
   })
 });
@@ -2417,17 +2450,23 @@ var LiveListViewMixin =
           this._appendModels(staging, count, this._liveList._page);
           node.style.WebkitTransition = "-webkit-transform " + Math.min(count * 0.25, 1) + "s ease";
           node.style.WebkitTransform = "translate3d(0,0,0)";
+          //node.style.WebkitTransform = "translate(0,0)";
           Co.Sleep(0.5);
         },
         function()
         {
           node.style.WebkitTransform = "translate3d(0," + diff + "px,0)";
-          Co.Sleep(Math.min(count, 15));
+          //node.style.WebkitTransform = "translate(0," + diff + "px)";
+          Co.Sleep(Math.min(count * 0.25, 1));
         },
         function()
         {
           container.removeChild(node); // staging is the new 'node'
           staging.style.position = null;
+          Co.Sleep(Math.min(count, 15) - Math.min(count * 0.25, 1));
+        },
+        function()
+        {
           if (this._liveList._count === 0)
           {
             this._liveList._running = false;
@@ -2783,13 +2822,16 @@ var RootView = exports.RootView = Class(View,
       {
         k = k.split(" "); // 0:key 1:view 2...N:args
         var m;
+        var c;
         if (k[0] === "_")
         {
-          m = o.o[0].$model || o.o[0];
+          m = o.o[0];
+          c = o;
         }
         else
         {
           m = this.v(o, k[0]);
+          c = o;
         }
         if (m)
         {
@@ -2799,6 +2841,7 @@ var RootView = exports.RootView = Class(View,
             var args =
             {
               model: m,
+              cursor: c ? c : null,
               renderer: fn
             };
             for (var i = k.length - 1; i >= 2; i--)
@@ -2834,33 +2877,19 @@ var RootView = exports.RootView = Class(View,
           // views and models to this point (inside the template cursor) and compare them when
           // optimizing.  Only if these are identical, the model hasn't been changed, and we
           // are doing a merge operation, can we optimize the paint. Otherwise, we do a full render.
-          var parents = o.o.concat(o._parents || []);
           var mseq = m.sequence;
           var vseq = v.sequence;
-          if (RenderQ._inMerge && v.msequence === mseq && v.vsequence === vseq && mseq !== undefined && vseq !== undefined)
+          if (!v.$cursor.equalEnd(o))
           {
-            var len = parents.length;
-            var vparents = v.$cursor._parents;
-            if (len === vparents.length)
-            {
-              var i;
-              for (i = 0; i < len; i++)
-              {
-                if (parents[i] !== vparents[i])
-                {
-                  break;
-                }
-              }
-              if (i === len)
-              {
-                // The model hasn't changed since the view rendered it, so we don't render
-                // it again but use a NOCHANGE node to alert the merger
-                //console.log("***NO CHANGE ***");
-                return "<!--NOCHANGE-->";
-              }
-            }
+            v.$cursor = o.clone([ m, v ]);
           }
-          v.$cursor._parents = parents;
+          else if (RenderQ._inMerge && v.msequence === mseq && v.vsequence === vseq && mseq !== undefined && vseq !== undefined)
+          {
+            // The model hasn't changed since the view rendered it, so we don't render
+            // it again but use a NOCHANGE node to alert the merger
+            //console.log("***NO CHANGE ***");
+            return "<!--NOCHANGE-->";
+          }
           v.msequence = mseq;
           v.vsequence = vseq;
           return v.html();
@@ -3694,6 +3723,18 @@ var ModalView = exports.ModalView = Class(RootView,
     }
     self._open.modal = self;
     __super(args);
+    this.$controllers.push(
+    {
+      onClose: function()
+      {
+        self.close();
+      },
+      onIgnore: function(m, v, e)
+      {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
     if (args.clickToClose !== false)
     {
       self.addListener(document, "click", function()
@@ -4806,11 +4847,12 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
             },
             function(db)
             {
-              Log.info("dbRead", dpath);
+              Log.time("dbRead: " + dpath);
               return this._doTransaction(db(), 'SELECT * FROM ' + this._dbinfo.table + ' WHERE id=?', [ dpath ]);
             },
             function(r)
             {
+              Log.timeEnd("dbRead: " + dpath);
               r = r();
               if (r.rows.length > 0)
               {
@@ -4832,11 +4874,12 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
             },
             function(db)
             {
-              Log.info("dbWrite", dpath);
+              Log.time("dbWrite: " + dpath);
               return this._doTransaction(db(), 'INSERT OR REPLACE INTO ' + this._dbinfo.table + ' (id, data) VALUES (?,?)', [ dpath, JSON.stringify(data) ]);
             },
             function(r)
             {
+              Log.timeEnd("dbWrite: " + dpath);
               try
               {
                 r();
