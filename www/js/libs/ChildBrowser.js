@@ -12,7 +12,7 @@ function ChildBrowser() {
 // called from native
 ChildBrowser._onLocationChange = function(newLoc)
 {
-  window.plugins.childBrowser.onLocationChange(newLoc);
+  window.plugins.childBrowser.onLocationChange && window.plugins.childBrowser.onLocationChange(newLoc);
 };
 
 // Callback when the user chooses the 'Done' button
@@ -20,14 +20,14 @@ ChildBrowser._onLocationChange = function(newLoc)
 ChildBrowser._onClose = function()
 {
     window.plugins.childBrowser.isActive = false;
-    window.plugins.childBrowser.onClose();
+    window.plugins.childBrowser.onClose && window.plugins.childBrowser.onClose();
 };
 
 // Callback when the user chooses the 'open in Safari' button
 // called from native
 ChildBrowser._onOpenExternal = function()
 {
-  window.plugins.childBrowser.onOpenExternal();
+  window.plugins.childBrowser.onOpenExternal && window.plugins.childBrowser.onOpenExternal();
 };
 
 // Pages loaded into the ChildBrowser can execute callback scripts, so be careful to
@@ -52,7 +52,7 @@ ChildBrowser.prototype.showWebPage = function(loc)
   }
   else
   {
-      console.log("oops, ChildBrowser is already active ...  consider calling close first.");
+      Log.info("oops, ChildBrowser is already active ...  consider calling close first.");
       
   }
 };
