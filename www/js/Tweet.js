@@ -4,11 +4,38 @@ var Tweet = Model.create(
   text: Model.ROProperty,
   created_at: Model.ROProperty,
 
-  constructor: function(__super, values, account)
+  constructor: function(__super, values, account, reduce)
   {
     this._account = account
-    __super(values);
+    if (reduce === true)
+    {
+      __super(this._reduce(values));
+    }
+    else
+    {
+      __super(values);
+    }
     this._buildImageUrl();
+  },
+
+  _reduce: function(values)
+  {
+    return {
+      id_str: values.id_str,
+      entities: values.entities,
+      text: values.text,
+      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str },
+      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str },
+      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str },
+      from_user_name: values.from_user_name,
+      from_user: values.from_user,
+      profile_image_url: values.profile_image_url,
+      created_at: values.created_at,
+      favorited: values.favorited,
+      place: values.place && { full_name: values.place.full_name, id: values.place.id },
+      geo: values.geo && { coordinates: values.geo.coordinates },
+      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status),
+    }
   },
 
   entifiedText: function()
@@ -647,7 +674,7 @@ var Tweet = Model.create(
     if (this._retweet === undefined)
     {
       var rt = this._values.retweeted_status;
-      this._retweet = rt ? new Tweet(rt, this._account) : false;
+      this._retweet = rt ? new Tweet(rt, this._account, false) : false;
     }
     return this._retweet;
   },
@@ -661,6 +688,42 @@ var Tweet = Model.create(
   }
 }).statics(
 {
+  compareTweets: function(a, b)
+  {
+    var aid = a.id();
+    var bid = b.id();
+    if (aid === bid)
+    {
+      return 0;
+    }
+    else if (aid.length < bid.length || aid < bid)
+    {
+      return 1;
+    }
+    else
+    {
+      return -1;
+    }
+  },
+
+  compareRawTweets: function(a, b)
+  {
+    var aid = a.id_str;
+    var bid = b.id_str;
+    if (aid === bid)
+    {
+      return 0;
+    }
+    else if (aid.length < bid.length || aid < bid)
+    {
+      return 1;
+    }
+    else
+    {
+      return -1;
+    }
+  },
+
   TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
   RetweetTag: { title: "Retweet", type: "retweet", key: "retweet", hashkey: "retweet:retweet" },
   MentionTag: { title: "Mention", type: "mention", key: "mention", hashkey: "mention:mention" },
