@@ -179,7 +179,7 @@ var Errors = Model.create(
 
             // Retweets are real tweet objects
             case "retweet":
-              this._add(error.op, new Tweet(error.details));
+              this._add(error.op, new Tweet(error.details, this._account, false));
               break;
 
             // Everything else is a tweetbox model
