@@ -205,10 +205,7 @@ var TweetFetcher = xo.Class(Events,
         }
 
         Log.time("TweetSort");
-        tweets.sort(function(a, b)
-        {
-          return a.id_str === b._id_str ? 0 : a.id_str < b.id_str ? 1 : -1;
-        });
+        tweets.sort(Tweet.compareRawTweets);
         Log.timeEnd("TweetSort");
         Log.time("TweetLoad");
         this.emit("tweets", tweets);

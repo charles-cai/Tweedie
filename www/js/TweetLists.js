@@ -149,10 +149,7 @@ var TweetLists = Class(
       {
         tweets = tweets.concat(this._types[type].models);
       }
-      tweets.sort(function(a, b)
-      {
-        return a.id_str === b._id_str ? 0 : a.id_str < b.id_str ? 1 : -1;
-      });
+      tweets.sort(Tweet.compareTweets);
       listtweets.append(tweets);
     }
     Log.timeEnd("_refilter");
@@ -172,7 +169,7 @@ var TweetLists = Class(
       if (!tweet && id !== lastid)
       {
         lastid = id;
-        tweet = new Tweet(twt, this._account);
+        tweet = new Tweet(twt, this._account, true);
         if (tweet.is_retweet())
         {
           urls = urls.concat(tweet.retweet().urls());
@@ -382,23 +379,31 @@ var TweetLists = Class(
 
   restore: function()
   {
+    var all;
     return Co.Routine(this,
       function(r)
       {
         return this._lgrid.read("/tweets/0");
       },
-      function(all)
+      function(r)
       {
-        all = all() || {};
+        all = r() || {};
         (all.lists || []).forEach(function(listinfo)
         {
           this.lists.append(new FilteredTweetsModel({ account: this._account, title: listinfo.title, uuid: listinfo.uuid, canRemove: true }));
         }, this);
+
+        Co.Yield(); // Let it paint
+      },
+      function()
+      {
+        var seen = {};
         for (var type in this._types)
         {
           (all[type] || []).forEach(function(tweet)
           {
-            this._types[type].append(this.getTweet("id", tweet.id_str) || new Tweet(tweet, this._account));
+            var id = tweet.id_str;
+            this._types[type].append(seen[id] || (seen[id] = new Tweet(tweet, this._account, false)));
           }, this);
         }
 
