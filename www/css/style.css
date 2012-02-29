@@ -184,7 +184,7 @@ body
 }
 .lists-gear:active
 {
-  opacity: 0.5;
+  x-opacity: 0.5;
 }
 .lists-activity .show
 {
@@ -386,10 +386,9 @@ body
   color: #196DA9;
   text-decoration: none;
 }
-.tweet .text .url:hover, .tweet .text .user_mention:hover, .tweet .text .hashtag:hover, .tweet .text .media:hover
+.tweet .text .url:active, .tweet .text .user_mention:active, .tweet .text .media:active
 {
   text-decoration: underline;
-  cursor: pointer;
 }
 .tweet .retweetedby
 {
@@ -418,7 +417,6 @@ body
 .tags .tag-wrapper
 {
   display: inline-block;
-  cursor: move;
   -webkit-user-drag: element;
   padding: 7px 0px;
   margin: -7px 0px;
@@ -471,7 +469,6 @@ body
 .tweet .controls span
 {
   float: right;
-  cursor: pointer;
 }
 .tweet .actions
 {
@@ -679,7 +676,6 @@ body
 .button
 {
   display: inline-block;
-  cursor: pointer;
   background-color: #e6e6e6;
   background-repeat: no-repeat;
   background-image: -webkit-linear-gradient(#ffffff, #ffffff 25%, #e6e6e6);
