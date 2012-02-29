@@ -11,6 +11,8 @@ var filterInput = null;
 
 function main()
 {
+  //navigator.splashscreen && navigator.splashscreen.show();
+
   var selectedListView = null;
   var lgrid = grid.get();
 
@@ -395,7 +397,7 @@ function main()
       },
       onMention: function(m, v, e)
       {
-        var screenName = e.target.dataset.name.slice(1);
+        var screenName = e.target.dataset.name.slice(1).toLowerCase();
         Co.Routine(this,
           function()
           {
@@ -494,6 +496,27 @@ function main()
       editView.property("editMode", true);
     }
   }
+  
+  Co.Forever(this,
+    function()
+    {
+      var rel = {};
+      var times = document.querySelectorAll("[data-timestamp]");
+      for (var i = times.length - 1; i >= 0; i--)
+      {
+        var time = times[i];
+        var since = Tweet.tweetTime(time.dataset.timestamp, rel);
+        time.innerText = since;
+        if (!rel.relative)
+        {
+          delete time.dataset.timestamp;
+        }
+      }
+      return Co.Sleep(20);
+    }
+  );
+
+  //navigator.splashscreen && navigator.splashscreen.hide();
 }
 
 function openTweetDialog(account, type, tweet)
