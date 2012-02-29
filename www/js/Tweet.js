@@ -34,7 +34,7 @@ var Tweet = Model.create(
       favorited: values.favorited,
       place: values.place && { full_name: values.place.full_name, id: values.place.id },
       geo: values.geo && { coordinates: values.geo.coordinates },
-      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status),
+      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status)
     }
   },
 
@@ -410,7 +410,8 @@ var Tweet = Model.create(
 
   created_since: function()
   {
-    var since = (Date.now() - Date.parse(this._values.created_at)) / 1000;
+    var date = Date.parse(this._values.created_at);
+    var since = (Date.now() - date) / 1000;
     if (since < 60)
     {
       return "now";
@@ -427,7 +428,8 @@ var Tweet = Model.create(
     }
     else
     {
-      return "ages";
+      date = new Date(date).toDateString().split(" ");
+      return date[1] + " " + date[2];
     }
   },
 
