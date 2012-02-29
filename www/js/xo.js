@@ -2404,7 +2404,7 @@ var LiveListViewMixin =
     var fn = this.$renderer;
     for (var i = 0; i < len; i++)
     {
-      s += this.$cursor.using(models[i], fn, i); // fn(models[i], i);
+      s += this.$cursor.using(models[i], fn, i);
     }
     this._liveList._count = 0;
     return s;
@@ -2449,13 +2449,11 @@ var LiveListViewMixin =
           this._appendModels(staging, count, this._liveList._page);
           node.style.WebkitTransition = "-webkit-transform " + Math.min(count * 0.25, 1) + "s ease";
           node.style.WebkitTransform = "translate3d(0,0,0)";
-          //node.style.WebkitTransform = "translate(0,0)";
           Co.Sleep(0.5);
         },
         function()
         {
           node.style.WebkitTransform = "translate3d(0," + diff + "px,0)";
-          //node.style.WebkitTransform = "translate(0," + diff + "px)";
           Co.Sleep(Math.min(count * 0.25, 1));
         },
         function()
@@ -2466,7 +2464,7 @@ var LiveListViewMixin =
         },
         function()
         {
-          if (this._liveList._count === 0)
+          if (this._liveList._count === 0 || container.scrollTop > 0)
           {
             this._liveList._running = false;
             return Co.Break();

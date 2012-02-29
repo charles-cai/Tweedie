@@ -33,7 +33,7 @@ var __resources = {
 </div>',
 'inner_tweet': '<img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
 <div class="body">\
-  <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp">{{created_since}}</span>\
+  <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
   <div class="text">{{{entifiedText}}}</div>\
   {{#embed_photo_url}}\
     <img class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
