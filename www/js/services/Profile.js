@@ -49,7 +49,7 @@
         p = new Profile(p[0]);
 
         lgrid.write("/twitter/profile/id=" + p.id(), p);
-        lgrid.write("/twitter/profile/screenName=" + p.screen_name(), p);
+        lgrid.write("/twitter/profile/screenName=" + p.screen_name().toLowerCase(), p);
       }
     );
   }
