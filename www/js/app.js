@@ -25,7 +25,7 @@ function main()
     {
       return account.tweetLists.screenname.slice(1);
     },
-    filter: Model.Property,
+    filter: Model.Property
   }))(
   {
     account: account,
@@ -65,7 +65,7 @@ function main()
     selectedListView.property("selected", true);
   }
 
-  partials = findTemplates();
+  partials = __resources;
   var root = new RootView(
   {
     node: document.getElementById("root"),
@@ -232,7 +232,7 @@ function main()
               {
                 pages: 0,
                 pagenr: 0,
-                translate: "",
+                translate: ""
               },
               controller:
               {
@@ -523,26 +523,4 @@ function openProfileDialog(account, profile)
       }
     }
   });
-}
-
-function findTemplates()
-{
-  var partials = {};
-  var root = document.querySelector("#templates");
-  var templates = root.querySelectorAll(".template");
-  for (var i = templates.length - 1; i >= 0; i--)
-  {
-    var template = templates[i];
-    partials[template.id] = template.innerHTML.replace(/\n|\&gt;/g, function(s)
-    {
-      switch(s)
-      {
-        case "\n": return "";
-        case "&gt;": return ">";
-        default: return s;
-      }
-    });
-  }
-  root.parentNode.removeChild(root);
-  return partials;
 }

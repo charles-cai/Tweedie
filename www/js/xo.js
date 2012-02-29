@@ -1893,11 +1893,11 @@ var ViewSet = exports.ViewSet = Class(View,
   create: function(methods)
   {
     return Class(ViewSet, methods);
-  },
+  }
 });
 var Template = exports.Template = Class(
 {
-  _pattern: /({{#|{{\^|{{\/|{{\\|{{{|{{!|{{=|{{>|{{:|{{|}}}|}})/,
+  _pattern: /({{#|{{\^|{{\/|{{{|{{!|{{=|{{>|{{:|{{|}}}|}})/,
 
   constructor: function(str, partials, p)
   {
@@ -1933,7 +1933,6 @@ var Template = exports.Template = Class(
           
         // End of optional include
         case '{{/':
-        case '{{\\':
           if (!fnstack.length)
           {
             throw new Error("Mismatched {{/" + key);
@@ -3071,7 +3070,7 @@ var RootView = exports.RootView = Class(View,
               eventHandler(
               {
                 type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
-                target: _maybeSwipe,
+                target: _maybeSwipe
               });
             }
           }
@@ -3088,7 +3087,7 @@ var RootView = exports.RootView = Class(View,
               eventHandler(
               {
                 type: "drop",
-                target: _dropLastTarget,
+                target: _dropLastTarget
               });
             }
             eventHandler(
@@ -3651,7 +3650,7 @@ var RenderQ = exports.RenderQ =
     name: true,
     rel: true,
     rev: true,
-    target: true,
+    target: true
   },
 
   _mergeIFrameProperties:
@@ -4271,7 +4270,7 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
           method: "GET" in this._request ? "GET" : "POST",
           url: this._request.GET || this._request.POST,
           auth: this,
-          proxy: this._proxy,
+          proxy: this._proxy
         });
       },
       function(r)
@@ -4681,7 +4680,7 @@ var Grid = exports.Grid = Class(
   WRITE: 2,
   UPDATE: 3,
   REMOVE: 4,
-  EVICT: 5,
+  EVICT: 5
 });
 var GridObject = exports.GridObject = Class(
 {

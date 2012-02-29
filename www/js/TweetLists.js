@@ -13,7 +13,7 @@ var TweetLists = Class(
       tweets: new IndexedModelSet({ key: "id", limit: 2000 }),
       mentions: new IndexedModelSet({ key: "id", limit: 200 }),
       dms: new IndexedModelSet({ key: "id", limit: 500 }),
-      favs: new IndexedModelSet({ key: "id", limit: 500 }),
+      favs: new IndexedModelSet({ key: "id", limit: 500 })
     };
   },
 
