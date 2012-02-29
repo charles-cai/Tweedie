@@ -408,29 +408,14 @@ var Tweet = Model.create(
     }
   },
 
+  created_at: function()
+  {
+    return this._values.created_at;
+  },
+
   created_since: function()
   {
-    var date = Date.parse(this._values.created_at);
-    var since = (Date.now() - date) / 1000;
-    if (since < 60)
-    {
-      return "now";
-    }
-    since = parseInt(since / 60);
-    if (since < 60)
-    {
-      return since + "m";
-    }
-    since = parseInt(since / 60);
-    if (since < 24)
-    {
-      return since + "h";
-    }
-    else
-    {
-      date = new Date(date).toDateString().split(" ");
-      return date[1] + " " + date[2];
-    }
+    return Tweet.tweetTime(this._values.created_at);
   },
 
   isDM: function()
@@ -504,6 +489,7 @@ var Tweet = Model.create(
           case "screenname":
           case "hashtag":
           case "hostname":
+          case "topic":
             keys += key.key + " ";
           default:
             break;
@@ -690,6 +676,33 @@ var Tweet = Model.create(
   }
 }).statics(
 {
+  tweetTime: function(created_at, type)
+  {
+    type && (type.relative = true);
+    var date = new Date(created_at);
+    var since = parseInt((Date.now() - date.getTime()) / 1000);
+    if (since < 60)
+    {
+      return since + "s";
+    }
+    since = parseInt(since / 60);
+    if (since < 60)
+    {
+      return since + "m";
+    }
+    since = parseInt(since / 60);
+    if (since < 24)
+    {
+      return since + "h";
+    }
+    else
+    {
+      type && (type.relative = false);
+      date = date.toDateString().split(" ");
+      return date[1] + " " + date[2];
+    }
+  },
+
   compareTweets: function(a, b)
   {
     var aid = a.id();
