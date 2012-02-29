@@ -1,0 +1,47 @@
+<div class="dialog tweet-dialog">
+  <div class="inner">
+    <div class="tweet-dialog-header">
+      {{:is_dm}}return this.v('isDM'){{/is_dm}}
+      {{#isTweet}}Tweet{{/isTweet}}
+      {{#isRetweet}}Retweet{{/isRetweet}}
+      {{#isReply}}Reply{{/isReply}}
+      {{#is_dm}}
+        {{#screen_name}}Private message to @{{screen_name}}{{/screen_name}}
+        {{^screen_name}}{{#_ View.Input}}Private message to @<input autofocus type="to" class="tweet-dm-to" name="target" {{{input_attributes}}}>{{/_}}{{/screen_name}}
+      {{/is_dm}}
+    </div>
+    <div class="tweet-dialog-body">
+      {{#isEdit}}{{#_ View}}<textarea type="url" class="tweet-text-edit" {{^is_dm}}autofocus{{/is_dm}}{{#screen_name}} autofocus{{/screen_name}} name="text" data-action-input="Input">{{text}}</textarea>{{/_}}{{/isEdit}}
+      {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}
+    </div>
+    <div class="tweet-dialog-footer">
+      <div class="suggestions">
+        <div class="inside">
+          {{#usuggestions}}
+            {{#_ View className:'user-suggestion'}}
+              <div data-action-click="Suggestion">
+                <div class="name">{{name}}</div>
+                <div class="screenname">@{{screenname}}</div>
+              </div>
+            {{/_}}
+          {{/usuggestions}}
+          {{#hsuggestions}}
+            {{#_ View className:'hashtag-suggestion'}}
+              <div data-action-click="Suggestion">
+                {{name}}
+              </div>
+            {{/_}}
+          {{/hsuggestions}}
+        </div>
+      </div>
+      <div class="controls">
+        {{#isEdit}}<div class="tweet-count" >{{count}}</div>{{/isEdit}}
+        <div class="button" data-action-click="CancelButton">Cancel</div>
+        {{#isTweet}}<div class="button primary" data-action-click="TweetButton">Tweet</div>{{/isTweet}}
+        {{#isRetweet}}<div class="button primary" data-action-click="RetweetButton">Retweet</div>{{/isRetweet}}
+        {{#isReply}}<div class="button primary" data-action-click="ReplyButton">Reply</div>{{/isReply}}
+        {{#is_dm}}<div class="button primary" data-action-click="DMButton">Send</div>{{/is_dm}}
+      </div>
+    </div>
+  </div>
+</div>

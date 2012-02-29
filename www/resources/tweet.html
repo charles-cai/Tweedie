@@ -1,0 +1,40 @@
+{{#_ View}}
+  <div class="tweet" data-action-click="{{#has_children}}OpenTweet{{/has_children}}">
+    {{#retweet}}
+      {{>inner_tweet}}
+    {{/retweet}}
+    {{^retweet}}
+      {{>inner_tweet}}
+    {{/retweet}}
+    {{#is_retweet}}
+      <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
+    {{/is_retweet}}
+    <div class="actions">
+      {{#has_children}}{{:child_count}}return this.v('children').length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}
+      {{^isDM}}
+        <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
+        <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
+        <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>
+      {{/isDM}}
+      {{#isDM}}
+        <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>
+      {{/isDM}}
+    </div>
+    <div class="tags">
+      {{#tags}}
+        {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag {{dragging}}">{{title}}</div></div>{{/_}}
+      {{/tags}}
+    </div>
+    {{#has_children}}
+      <div class="nested-tweets">
+        {{#tweet_open}}
+          {{#children}}
+            <div class="tweet">
+              {{>inner_tweet}}
+            </div>
+          {{/children}}
+        {{/tweet_open}}
+      </div>
+    {{/has_children}}
+  </div>
+{{/_ View}}

@@ -1,0 +1,14 @@
+<div class="dialog readability{{#show}} show{{/show}}">
+  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">
+    {{#title}}
+      <div class="title">{{{title}}}</div>
+    {{/title}}
+    {{^title}}
+      <div class="title">Loading ...</div>
+    {{/title}}
+    {{#text}}<div style="{{translate}}" class="text">{{{text}}}</div>{{/text}}
+    <div class="readability-logo"></div>
+    <div class="footer pages{{pages}} pagenr{{pagenr}}"></div>
+    <div class="web button" data-action-click="OpenWeb">Web</div>
+  </div>
+</div>

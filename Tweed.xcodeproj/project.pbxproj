@@ -271,6 +271,7 @@
 				22EC03AC14F61B1700205358 /* Sources */,
 				22EC03AD14F61B1700205358 /* Frameworks */,
 				2217041414F6275B0097D266 /* ShellScript */,
+				2249DEE214FDA00700A22973 /* ShellScript */,
 				22EC03AE14F61B1700205358 /* ShellScript */,
 			);
 			buildRules = (
@@ -343,6 +344,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -x ../xojs/build.sh ../Tweed/www/js";
+			shellScript = "";
+			showEnvVarsInLog = 0;
+		};
+		2249DEE214FDA00700A22973 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = "/bin/sh ../Tweed/www/resources/build.sh ../Tweed/www/resources";
 			shellScript = "";
 			showEnvVarsInLog = 0;
 		};

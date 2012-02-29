@@ -1,0 +1,31 @@
+<div class="dialog tweet-profile">
+  <div class="border" data-action-click="Ignore">
+    <div class="background" style="{{#profile_background_image_url}}background-image:url({{profile_background_image_url}});{{^profile_background_tile}}background-repeat: no-repeat;{{/profile_background_tile}}{{/profile_background_image_url}}{{#profile_background_color}}background-color:#{{profile_background_color}};{{/profile_background_color}}">
+      <div class="inner">
+        <div class="left">
+          <img class="icon" src="{{profile_image_url}}">
+          <div class="body">
+            <span class="fullname">{{name}}</span>
+            <span class="screenname">@{{screen_name}}</span>
+          </div>
+          {{#location}}<div class="location">{{location}}</div>{{/location}}
+          {{#url}}<div class="url">{{url}}</span></div>{{/url}}
+          {{#description}}<div class="description">{{description}}</div>{{/description}}
+        </div>
+        <div class="right">
+          <div class="stats">
+            <div class="tweet-nr"><div class="label">Tweets</div>{{tweet_count}}</div>
+            <div class="following-nr"><div class="label">Following</div>{{friends_count}}</div>
+            <div class="followers-nr"><div class="label">Followers</div>{{followers_count}}</div>
+          </div>
+          {{#followed_by}}
+            <div class="button unfollow" data-action-click="Unfollow">Unfollow</div>
+          {{/followed_by}}
+          {{^followed_by}}
+            <div class="button follow" data-action-click="Follow">Follow</div>
+          {{/followed_by}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

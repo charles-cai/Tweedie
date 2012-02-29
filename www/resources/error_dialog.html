@@ -1,0 +1,24 @@
+<div class="dialog error-view">
+  <div class="inner" data-action-click="Ignore">
+    {{:has_errors}}return this.v('errors').length{{/has_errors}}
+    {{#has_errors}}
+      <div class="summary">Twitter is unavailable.  Retrying every 60 seconds.</div>
+      <div class="errors">
+        {{#errors}}
+          {{#_ View}}
+            <div class="error error-{{op}}">
+              {{#details}}
+                <div class="error-title"></div>
+                <div class="error-close" data-action-click="RemoveError">x</div>
+                {{#text}}<div class="error-text">{{text}}</div>{{/text}}
+              {{/details}}
+            </div>
+          {{/_}}
+        {{/errors}}
+      </div>
+    {{/has_errors}}
+    {{^has_errors}}
+      No problems.
+    {{/has_errors}}
+  </div>
+</div>

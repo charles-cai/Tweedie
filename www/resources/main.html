@@ -1,0 +1,114 @@
+<div class="main">
+  <div class="col right">
+    {{:is_dm_list}}return this.v('current_list').isDM();{{/is_dm_list}}
+    {{^is_dm_list}}
+      <div class="pane compose" data-action-click="ComposeTweet">
+        Tweet...
+      </div>
+    {{/is_dm_list}}
+    {{#is_dm_list}}
+      <div class="pane compose" data-action-click="ComposeDM">
+        Message...
+      </div>
+    {{/is_dm_list}}
+    <div class="pane lists">
+      <div class="lists-header">
+        <div class="lists-gear" data-action-click="OpenPreferences"></div>
+        <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>
+        {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
+        {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}
+      </div>
+      <div class="current-lists {{#open}}open{{/open}}">
+        {{#lists ViewSet}}
+          {{#_ View.Drop name:m.name()}}
+            <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>
+              <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>
+            </div>
+          {{/_}}
+        {{/lists}}
+        {{#_ View.Drop}}
+          <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>
+            <input placeholder="Create list or search..." data-action-change="NewList">
+          </div>
+        {{/_}}
+      </div>
+    </div>
+    {{#_ View}}
+      <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">
+        <div class="list-header">
+          <div class="title">
+            {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}
+            {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}
+          </div>
+        </div>
+        <div class="viz">Visual: 
+          {{^editMode}}
+            {{#current_list}}
+              <span class="tag">{{viz}}</span>
+            {{/current_list}}
+          {{/editMode}}
+          {{#editMode}}
+            {{#current_list View}}
+              <select data-action-change="ChangeViz">
+                <option value="list" {{viz_list}}>list</option>
+                <option value="stack" {{viz_stack}}>stack</options>
+              </select>
+            {{/current_list}}
+          {{/editMode}}
+        </div>
+        {{#current_list}}
+          {{#_ View.Drop}}
+            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>
+              Include:
+              {{#includeTags}}
+                {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}
+              {{/includeTags}}
+            </div>
+          {{/_}}
+          {{#_ View.Drop}}
+            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>
+              Exclude:
+              {{#excludeTags}}
+                {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}
+              {{/excludeTags}}
+            </div>
+          {{/_}}
+        {{/current_list}}
+        <div class="list-footer">
+          {{#editMode}}
+            {{#current_list}}
+              {{#canRemove}}
+                <div class="button danger" data-action-click="RemoveList">Remove</div>
+              {{/canRemove}}
+            {{/current_list}}
+            <div class="clear"></div>
+          {{/editMode}}
+        </div>
+      </div>
+    {{/_}}
+  </div>
+  <div class="col middle2">
+    <div class="pane filter">
+      {{:filterfull}}return !!this.v('filter'){{/filterfull}}
+      {{#_ View.Input.Drop}}
+        <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}
+      {{/_}}
+    </div>
+    <div class="pane tweets">
+      {{#current_list View updateOn:"viz"}}
+        {{:viz_list}}return this.v('viz') === 'list' ? 'selected' : ''{{/viz_list}}
+        {{:viz_stack}}return this.v('viz') === 'stack' ? 'selected' : ''{{/viz_stack}}
+        {{#viz_list}}
+          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}
+            {{>tweet}}
+          {{/tweets}}
+        {{/viz_list}}
+        {{#viz_stack}}
+          {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}
+            {{>tweet}}
+          {{/tweets}}
+        {{/viz_stack}}
+      {{/current_list}}
+    </div>
+  </div>
+</div>
