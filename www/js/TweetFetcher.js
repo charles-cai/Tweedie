@@ -42,15 +42,20 @@ var TweetFetcher = xo.Class(Events,
         }
         this.emit("login", { screen_name: r.screen_name, user_id: r.user_id });
 
-        if (this._loop)
-        {
-          this._loop.terminate = true;
-          this._loop.abort && this._loop.abort("terminate");
-          this._loop = null;
-        }
+        this.fetchAbort();
         this._startFetchLoop();
       }
     );
+  },
+
+  fetchAbort: function()
+  {
+    if (this._loop)
+    {
+      this._loop.terminate = true;
+      this._loop.abort && this._loop.abort("terminate");
+      this._loop = null;
+    }
   },
 
   _startFetchLoop: function()
