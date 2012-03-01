@@ -22,6 +22,7 @@ var FilteredTweetsModel = Model.create(
     self._excludeTags = [];
     self._tweetLists = values.account.tweetLists;
     self.viz(self.viz() || "list");
+    self._removed = false;
   },
 
   restore: function(isNew)
@@ -238,20 +239,24 @@ var FilteredTweetsModel = Model.create(
 
   remove: function()
   {
+    this._removed = true;
     return this._lgrid.remove("/tweetlist/0/" + this.uuid());
   },
 
   _save: function()
   {
-    this._updateUnread();
-    this._lgrid.write("/tweetlist/0/" + this.uuid(),
+    if (!this._removed)
     {
-      includeTags: this._includeTags,
-      excludeTags: this._excludeTags,
-      tweets: this.tweets().serialize().map(function(tweet) { return tweet.id_str; }),
-      lastRead: this.lastRead(),
-      vis: this.viz()
-    });
+      this._updateUnread();
+      this._lgrid.write("/tweetlist/0/" + this.uuid(),
+      {
+        includeTags: this._includeTags,
+        excludeTags: this._excludeTags,
+        tweets: this.tweets().serialize().map(function(tweet) { return tweet.id_str; }),
+        lastRead: this.lastRead(),
+        vis: this.viz()
+      });
+    }
   },
 
   _restore: function()
