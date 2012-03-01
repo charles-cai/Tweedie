@@ -91,6 +91,10 @@ var Account = Class(Events,
         }
         document.addEventListener("online", retry);
         document.addEventListener("resume", retry);
+        document.addEventListener("pause", function()
+        {
+          self._fetcher.fetchAbort();
+        });
         this.fetch();
 
         return true;
