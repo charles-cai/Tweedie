@@ -164,11 +164,6 @@ function main()
           account.tweetLists.removeExcludeTag(models.current_list(), m);
         }
       },
-      onChangeTweetSource: function(m, v, e)
-      {
-        Log.metric("nav", "changeSource");
-        account.tweetLists.changeType(models.current_list(), e.target.value);
-      },
       onChangeViz: function(m, v, e)
       {
         Log.metric("nav", "changeViz");
@@ -474,8 +469,6 @@ function main()
 
   selectList(models.current_list(), RootView.getViewByName("main"));
 
-  account.open();
-
   document.addEventListener("click", function()
   {
     editList(null);
@@ -513,6 +506,40 @@ function main()
         }
       }
       return Co.Sleep(20);
+    }
+  );
+  
+  Co.Routine(this,
+    function()
+    {
+      return lgrid.read("/accounts");
+    },
+    function(info)
+    {
+      if (info())
+      {
+        account.open();
+      }
+      else
+      {
+        // Welcome
+        new ModalView(
+        {
+          node: document.getElementById("root-dialog"),
+          template: partials.welcome,
+          partials: partials,
+          model: {},
+          clickToClose: false,
+          controller:
+          {
+            onStart: function(m, v)
+            {
+              v.close();
+              account.open();
+            }
+          }
+        });
+      }
     }
   );
 

@@ -27,7 +27,6 @@ body
 {
   width: 100%;
   -webkit-transform: translate3d(0,0,0);
-  x-webkit-transform: translate(0,0);
 }
 #templates
 {
@@ -742,7 +741,6 @@ body
   -webkit-column-gap: 10px;
   height: 788px;
   -webkit-transform: translate3d(0,0,1px);
-  x-webkit-transform: translate(0,0);
   -webkit-transition: -webkit-transform 0.2s ease;
 }
 .readability > .inner > .text a
@@ -1038,4 +1036,22 @@ body
 .error-view .errors .error-dm .error-title::after
 {
   content: "Direct Message";
+}
+.welcome
+{
+  text-align: center;
+}
+.welcome .inner
+{
+  height: 200px;
+}
+.welcome-title
+{
+  font-size: 32px;
+  padding: 20px;
+}
+.welcome-body
+{
+  font-size: 20px;
+  padding-bottom: 40px;
 }
