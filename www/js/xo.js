@@ -226,7 +226,7 @@ var Log = exports.Log = Mixin({}, Events,
 
   exception: function(message, exception)
   {
-    if (!this.emit("exception", [ message, exception ]))
+    if (!Log.emit("exception", [ message, exception ]))
     {
       if (exception)
       {
@@ -266,8 +266,16 @@ var Log = exports.Log = Mixin({}, Events,
 
   timeEnd: function(key)
   {
-    Log.info(key, (Date.now() - Log._times[key]) + "ms");
+    Log.timing(key, Date.now() - (Log._times[key] || 0));
     delete Log._times[key];
+  },
+
+  timing: function(key, time)
+  {
+    if (!Log.emit("timing", [ key, time ]))
+    {
+      Log.info(key, time + "ms");
+    }
   },
 
   _out: function(type, args)

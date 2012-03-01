@@ -10,6 +10,21 @@ if (KEYS.ga)
     _gaq.push(['_trackEvent', info.category, info.action, info.description, info.value]);
   });
 
+  Log.on("exception", function(evt, info)
+  {
+    _gaq.push(['_trackEvent', "exception", "unexpected", "", info[0] + ":" + info[1] ]);
+    Log.error("Exception: ", info[0], info[1] && (info[1].stack || info[1]));
+  });
+
+  Log.on("timing", function(evt, info)
+  {
+    if (info[0] === "runtime")
+    {
+      _gaq.push(['_trackEvent', "timing", "runtime", "", info[1] / 1000 ]);
+    }
+    Log.info(info[0], info[1] + "ms");
+  });
+
   Log.on("action", function(evt, info)
   {
     if (info.event && info.event.view && info.event.view.$name === "tweets")
@@ -17,13 +32,13 @@ if (KEYS.ga)
       switch (info.type)
       {
         case "scroll-to-top":
-          Log.metric("nav", "list:scrollToTop");
+          Log.metric("list", "top:scroll");
           break;
         case "scroll-insert-above":
-          Log.metric("nav", "list:insertAtTop");
+          Log.metric("list", "top:insert");
           break;
         case "scroll-insert-below":
-          Log.metric("nav", "list:scrollDown");
+          Log.metric("list", "bottom:insert");
           break;
       }
     }

@@ -1,9 +1,3 @@
-
-var networkProxy = Environment.isTouch() ? null : location.origin + "/api/twitter/";
-var streamProxy = Environment.isTouch() ? null : location.origin + "/userstream/twitter/";
-var readabilityProxy = Environment.isTouch() ? null : location.origin + "/readability/";
-var imageProxy = Environment.isTouch() ? null : location.origin + "/image/";
-
 var partials;
 
 var editView = null;
@@ -11,6 +5,16 @@ var filterInput = null;
 
 function main()
 {
+  Log.time("runtime");
+  document.addEventListener("resume", function()
+  {
+    Log.time("runtime");
+  });
+  document.addEventListener("pause", function()
+  {
+    Log.timeEnd("runtime");
+  });
+
   //navigator.splashscreen && navigator.splashscreen.show();
 
   var selectedListView = null;
@@ -43,11 +47,7 @@ function main()
   
   function selectList(m, v)
   {
-    if (models.current_list() !== m)
-    {
-      Log.metric("nav", "list:select");
-    }
-    else
+    if (models.current_list() === m)
     {
       RootView.getViewByName("tweets").scrollToTop();
     }
@@ -82,6 +82,7 @@ function main()
     {
       onToggleShow: function()
       {
+        Log.metric("lists", root.open() ? "close" : "open");
         root.open(!root.open());
       },
       onSelectList: function(m, v)
@@ -90,15 +91,22 @@ function main()
         var query = m.asSearch();
         if (query)
         {
+          Log.metric("lists", "select:search");
           account.search(query);
+        }
+        else
+        {
+          Log.metric("lists", "select:list");
         }
       },
       onDropToList: function(m, v)
       {
+        Log.metric("tweet", "list:include:add")
         account.tweetLists.addIncludeTag(m, v.dropped());
       },
       onDropToNewList: function(m, v)
       {
+        Log.metric("tweet", "list:new:drop");
         var listName = v.dropped().title;
         switch (v.dropped().type)
         {
@@ -117,6 +125,7 @@ function main()
       },
       onNewList: function(m, v, e)
       {
+        Log.metric("global", "list:new:type");
         var listName = e.target.value;
         if (listName)
         {
@@ -126,12 +135,12 @@ function main()
       },
       onEditList: function(m, v)
       {
-        Log.metric("nav", "list:edit");
+        Log.metric("list", "edit");
         editList(v);
       },
       onRemoveList: function(m, v, e)
       {
-        Log.metric("nav", "list:remove");
+        Log.metric("list", "remove");
         account.tweetLists.removeList(models.current_list());
         editList(null);
         models.current_list(account.tweetLists.lists.models[0]);
@@ -140,19 +149,19 @@ function main()
       },
       onDropInclude: function(m, v)
       {
-        Log.metric("nav", "add:include");
+        Log.metric("list", "include:add");
         account.tweetLists.addIncludeTag(models.current_list(), v.dropped());
       },
       onDropExclude: function(m, v)
       {
-        Log.metric("nav", "add:exclude");
+        Log.metric("list", "exclude:add");
         account.tweetLists.addExcludeTag(models.current_list(), v.dropped());
       },
       onKillInclude: function(m)
       {
         if (editView && editView.property("editMode"))
         {
-          Log.metric("nav", "remove:include");
+          Log.metric("list", "include:remove");
           account.tweetLists.removeIncludeTag(models.current_list(), m);
         }
       },
@@ -160,13 +169,13 @@ function main()
       {
         if (editView && editView.property("editMode"))
         {
-          Log.metric("nav", "remove:exclude");
+          Log.metric("list", "exclude:remove");
           account.tweetLists.removeExcludeTag(models.current_list(), m);
         }
       },
       onChangeViz: function(m, v, e)
       {
-        Log.metric("nav", "changeViz");
+        Log.metric("list", "viz:change");
         account.tweetLists.changeViz(models.current_list(), e.target.value);
       },
       onOpenTweet: function(m, v, e)
@@ -175,6 +184,7 @@ function main()
         var open = v.property("tweet_open");
         if (open)
         {
+          Log.metric("tweet", "nested:open");
           Co.Routine(this,
             function()
             {
@@ -189,6 +199,7 @@ function main()
         }
         else
         {
+          Log.metric("tweet", "nested:close");
           Co.Routine(this,
             function()
             {
@@ -205,7 +216,7 @@ function main()
       },
       onUrl: function(m, v, e)
       {
-        Log.metric("details", "url");
+        Log.metric("tweet", "url:open");
         var url = e.target.dataset.href;
         
         Co.Routine(this,
@@ -247,7 +258,7 @@ function main()
                     function()
                     {
                       mv.pagenr(pagenr);
-                      Log.metric("details", "url:page:forward", pagenr);
+                      Log.metric("readable", "page:forward", pagenr);
                     }
                   );
                 },
@@ -265,7 +276,7 @@ function main()
                     function()
                     {
                       mv.pagenr(pagenr);
-                      Log.metric("details", "url:page:backward", pagenr);
+                      Log.metric("readable", "page:backward", pagenr);
                     }
                   );
                 },
@@ -277,11 +288,12 @@ function main()
                     mv.close();
                   };
                   browser.showWebPage(url);
-                  Log.metric("details", "url:inBrowser");
+                  Log.metric("readable", "browser:open");
                 },
                 onClose: function()
                 {
-                  Readability.close();
+                  Log.metric("readable", "close");
+                  mv.close();
                 }
               }
             });
@@ -331,7 +343,7 @@ function main()
       },
       onMedia: function(m, v, e)
       {
-        Log.metric("details", "image");
+        Log.metric("tweet", "image:open");
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
@@ -345,7 +357,7 @@ function main()
       },
       onVideo: function(m, v, e)
       {
-        Log.metric("details", "video");
+        Log.metric("tweet", "video:open");
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
@@ -359,14 +371,17 @@ function main()
       },
       onComposeTweet: function()
       {
+        Log.metric("global", "tweet:compose");
         openTweetDialog(account, "tweet");
       },
       onComposeDM: function()
       {
+        Log.metric("global", "dm:compose");
         openTweetDialog(account, "dm");
       },
       onToggleFavorite: function(m)
       {
+        Log.metric("tweet", m.favorited() ? "unfav" : "fav");
         if (m.favorited())
         {
           m.favorited(false);
@@ -380,18 +395,22 @@ function main()
       },
       onSendRetweet: function(tweet)
       {
+        Log.metric("tweet", "retweet:compose");
         openTweetDialog(account, "retweet", tweet);
       },
       onSendReply: function(tweet)
       {
+        Log.metric("tweet", "reply:compose");
         openTweetDialog(account, "reply", tweet);
       },
       onSendDM: function(tweet)
       {
+        Log.metric("tweet", "dm:compose");
         openTweetDialog(account, "dm", tweet);
       },
       onMention: function(m, v, e)
       {
+        Log.metric("tweet", "mention:open");
         var screenName = e.target.dataset.name.slice(1).toLowerCase();
         Co.Routine(this,
           function()
@@ -406,6 +425,7 @@ function main()
       },
       onProfilePic: function(tweet)
       {
+        Log.metric("tweet", "pic:open");
         Co.Routine(this,
           function()
           {
@@ -423,7 +443,7 @@ function main()
       },
       onOpenErrors: function()
       {
-        Log.metric("details", "image");
+        Log.metric("account", "errors:open");
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
@@ -447,11 +467,13 @@ function main()
       },
       onFilter: function(m, v, e)
       {
+        Log.metric("global", "filter:type");
         filterInput = e.target;
         RootView.getViewByName("tweets").filterText(filterInput.value.toLowerCase());
       },
       onDropFilter: function(m, v, e)
       {
+        Log.metric("global", "filter:drop");
         filterInput = e.target;
         var key = v.dropped().key;
         models.filter(key);
@@ -460,6 +482,7 @@ function main()
       },
       onFilterClear: function()
       {
+        Log.metric("global", "filter:clear");
         filterInput && (filterInput.value = "");
         models.filter("");
         RootView.getViewByName("tweets").filterText("");
