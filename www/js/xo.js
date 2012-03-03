@@ -2310,7 +2310,7 @@ var LiveListViewMixin =
       _count: 0,
       _running: false,
       _page: args.pageSize || 20,
-      _ignoreNextScrollIn: args.scrollInLimit || 20
+      _length: 0
     };
     __super(args);
     RenderQ.addFn(function()
@@ -2344,10 +2344,6 @@ var LiveListViewMixin =
             // Inserting 'above the fold' where we can't see.  We will scroll these in when we get
             // back to the top (if we do anything now the screen will flicker).
             this._liveList._count += args.count
-          }
-          else if (this._liveList._count + args.count > this._liveList._scrollInLimit)
-          {
-            RenderQ.add(this);
           }
           else
           {
@@ -2414,6 +2410,7 @@ var LiveListViewMixin =
     {
       s += this.$cursor.using(models[i], fn, i);
     }
+    this._liveList._length = len;
     this._liveList._count = 0;
     return s;
   },
@@ -2454,7 +2451,9 @@ var LiveListViewMixin =
           this._liveList._count = 0;
           this.action("scroll-insert-above", { count: count });
           diff = this._prependModels(staging, count);
-          this._appendModels(staging, count, this._liveList._page);
+          var rest = Math.min(this.$model.models.length, this._liveList._page);
+          this._appendModels(staging, count, rest);
+          this._liveList._length = rest;
           node.style.WebkitTransition = "-webkit-transform " + Math.min(count * 0.25, 1) + "s ease";
           node.style.WebkitTransform = "translate3d(0,0,0)";
           Co.Sleep(0.5);
@@ -2554,7 +2553,7 @@ var LiveListViewMixin =
       var node = self.node();
       if (container.scrollTop + container.offsetHeight * 2 > container.scrollHeight)
       {
-        var offset = node.children.length + self._liveList._count;
+        var offset = self._liveList._length + self._liveList._count;
         var limit = offset + self._liveList._page;
         var len = self.$model.models.length;
         if (limit > len)
@@ -2564,7 +2563,9 @@ var LiveListViewMixin =
         if (offset < limit)
         {
           self._appendModels(node, offset, limit);
-          self.action("scroll-insert-below", { count: limit - offset });
+          var count = limit - offset;
+          self._liveList._length += count;
+          self.action("scroll-insert-below", { count: count });
         }
       }
       else if (container.scrollTop === 0)

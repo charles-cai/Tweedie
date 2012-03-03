@@ -1,7 +1,14 @@
-var partials;
-
-var editView = null;
-var filterInput = null;
+var RootModel = Model.create(
+{
+  account: Model.Property,
+  current_list: Model.Property,
+  lists: Model.Property,
+  name: function()
+  {
+    return this.account().tweetLists.screenname.slice(1);
+  },
+  filter: Model.Property
+});
 
 function main()
 {
@@ -17,22 +24,14 @@ function main()
 
   //navigator.splashscreen && navigator.splashscreen.show();
 
+  var editView = null;
+  var filterInput = null;
   var selectedListView = null;
   var lgrid = grid.get();
 
   var account = new Account();
 
-  models = new (Model.create(
-  {
-    account: Model.Property,
-    current_list: Model.Property,
-    lists: Model.Property,
-    name: function()
-    {
-      return account.tweetLists.screenname.slice(1);
-    },
-    filter: Model.Property
-  }))(
+  models = new RootModel(
   {
     account: account,
     current_list: account.tweetLists.lists.models[0],
@@ -67,12 +66,11 @@ function main()
     selectedListView.property("selected", true);
   }
 
-  partials = __resources;
   var root = new RootView(
   {
     node: document.getElementById("root"),
-    template: partials.main,
-    partials: partials,
+    template: __resources.main,
+    partials: __resources,
     model: models,
     properties:
     {
@@ -233,8 +231,8 @@ function main()
             var mv = new ModalView(
             {
               node: document.getElementById("root-dialog"),
-              template: partials.readability,
-              partials: partials,
+              template: __resources.readability,
+              partials: __resources,
               model: readModel,
               properties:
               {
@@ -347,8 +345,8 @@ function main()
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
-          template: partials.imageview,
-          partials: partials,
+          template: __resources.imageview,
+          partials: __resources,
           model:
           {
             url: e.target.dataset.href
@@ -361,8 +359,8 @@ function main()
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
-          template: partials.videoview,
-          partials: partials,
+          template: __resources.videoview,
+          partials: __resources,
           model:
           {
             embed: unescape(e.target.dataset.embed)
@@ -447,8 +445,8 @@ function main()
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
-          template: partials.error_dialog,
-          partials: partials,
+          template: __resources.error_dialog,
+          partials: __resources,
           model: models.account().errors,
           controller:
           {
@@ -549,8 +547,8 @@ function main()
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
-          template: partials.welcome,
-          partials: partials,
+          template: __resources.welcome,
+          partials: __resources,
           model: {},
           clickToClose: false,
           controller:
@@ -579,8 +577,8 @@ function openProfileDialog(account, profile)
   new ModalView(
   {
     node: document.getElementById("root-dialog"),
-    template: partials.tweet_profile,
-    partials: partials,
+    template: __resources.tweet_profile,
+    partials: __resources,
     model: profile,
     controller:
     {
