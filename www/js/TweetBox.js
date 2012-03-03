@@ -51,8 +51,8 @@ var TweetBox = Class(
     var mv = new ModalView(
     {
       node: document.getElementById("root-dialog"),
-      template: partials.tweet_dialog,
-      partials: partials,
+      template: __resources.tweet_dialog,
+      partials: __resources,
       model: send,
       clickToClose: false,
       properties:
