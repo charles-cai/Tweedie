@@ -98,6 +98,7 @@ var __resources = {
               <select data-action-change="ChangeViz">\
                 <option value="list" {{viz_list}}>list</option>\
                 <option value="stack" {{viz_stack}}>stack</options>\
+                <option value="media" {{viz_media}}>media</options>\
               </select>\
             {{/current_list}}\
           {{/editMode}}\
@@ -144,6 +145,7 @@ var __resources = {
       {{#current_list View updateOn:"viz"}}\
         {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
         {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\
+        {{:viz_media}}return this.v(\'viz\') === \'media\' ? \'selected\' : \'\'{{/viz_media}}\
         {{#viz_list}}\
           {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
             {{>tweet}}\
@@ -154,10 +156,27 @@ var __resources = {
             {{>tweet}}\
           {{/tweets}}\
         {{/viz_stack}}\
+        {{#viz_media}}\
+          {{#tweets ViewSet.LiveList name:"tweets"}}\
+            {{>media}}\
+          {{/tweets}}\
+        {{/viz_media}}\
       {{/current_list}}\
     </div>\
   </div>\
 </div>',
+'media': '{{#embed_photo_url}}\
+  <div class="media-box">\
+    <div class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+  </div>\
+{{/embed_photo_url}}\
+{{^embed_photo_url}}\
+  {{#embed_video_html}}\
+    <div class="media-box">\
+      <div class="video">{{{embed_video_html}}}</div>\
+    </div>\
+  {{/embed_video_html}}\
+{{/embed_photo_url}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
   <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">\
     {{#title}}\

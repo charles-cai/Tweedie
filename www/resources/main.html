@@ -52,6 +52,7 @@
               <select data-action-change="ChangeViz">
                 <option value="list" {{viz_list}}>list</option>
                 <option value="stack" {{viz_stack}}>stack</options>
+                <option value="media" {{viz_media}}>media</options>
               </select>
             {{/current_list}}
           {{/editMode}}
@@ -98,6 +99,7 @@
       {{#current_list View updateOn:"viz"}}
         {{:viz_list}}return this.v('viz') === 'list' ? 'selected' : ''{{/viz_list}}
         {{:viz_stack}}return this.v('viz') === 'stack' ? 'selected' : ''{{/viz_stack}}
+        {{:viz_media}}return this.v('viz') === 'media' ? 'selected' : ''{{/viz_media}}
         {{#viz_list}}
           {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}
             {{>tweet}}
@@ -108,6 +110,11 @@
             {{>tweet}}
           {{/tweets}}
         {{/viz_stack}}
+        {{#viz_media}}
+          {{#tweets ViewSet.LiveList name:"tweets"}}
+            {{>media}}
+          {{/tweets}}
+        {{/viz_media}}
       {{/current_list}}
     </div>
   </div>
