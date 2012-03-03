@@ -254,7 +254,7 @@ var FilteredTweetsModel = Model.create(
         excludeTags: this._excludeTags,
         tweets: this.tweets().serialize().map(function(tweet) { return tweet.id_str; }),
         lastRead: this.lastRead(),
-        vis: this.viz()
+        viz: this.viz()
       });
     }
   },
