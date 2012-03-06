@@ -2486,9 +2486,10 @@ var LiveListViewMixin =
   {
     var models = this.$model.models;
     var html = "";
+    var fn = this.$renderer;
     for (var idx = 0; idx < count && models[idx]; idx++)
     {
-      html += this.$renderer(models[idx]);
+      html += this.$cursor.using(models[idx], fn, idx);
     }
 
     var sHeight = node.scrollHeight;
@@ -2500,9 +2501,10 @@ var LiveListViewMixin =
   {
     var models = this.$model.models;
     var html = "";
+    var fn = this.$renderer;
     for (var idx = offset; idx < limit && models[idx]; idx++)
     {
-      html += this.$renderer(models[idx]);
+      html += this.$cursor.using(models[idx], fn, idx);
     }
 
     var sHeight = node.scrollHeight;

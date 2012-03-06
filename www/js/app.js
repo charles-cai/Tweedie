@@ -74,7 +74,10 @@ function main()
     model: models,
     properties:
     {
-      open: true
+      open: true,
+      include_children: true,
+      include_tags: true,
+      include_media: true
     },
     controller:
     {
@@ -207,7 +210,7 @@ function main()
             },
             function()
             {
-              nested.style.height = nested.scrollHeight + "px";
+              nested.style.height = (20 + nested.scrollHeight) + "px";
             }
           );
         }
@@ -339,7 +342,7 @@ function main()
           }
         );
       },
-      onMedia: function(m, v, e)
+      onImage: function(m, v, e)
       {
         Log.metric("tweet", "image:open");
         new ModalView(
@@ -349,7 +352,44 @@ function main()
           partials: __resources,
           model:
           {
-            url: e.target.dataset.href
+            url: e.target.dataset.href,
+            tweet: models.current_list().viz() === "media" ? m : null
+          },
+          controller:
+          {
+            onToggleFavorite: function(m)
+            {
+              var tweet = m.tweet;
+              Log.metric("tweet:image", tweet.favorited() ? "unfav" : "fav");
+              if (tweet.favorited())
+              {
+                tweet.favorited(false);
+                account.unfavorite(tweet.is_retweet() ? tweet.retweet() : tweet);
+              }
+              else
+              {
+                tweet.favorited(true);
+                account.favorite(tweet.is_retweet() ? tweet.retweet() : tweet);
+              }
+            },
+            onSendRetweet: function(m)
+            {
+              var tweet = m.tweet;
+              Log.metric("tweet:image", "retweet:compose");
+              openTweetDialog(account, "retweet", tweet);
+            },
+            onSendReply: function(m)
+            {
+              var tweet = m.tweet;
+              Log.metric("tweet:image", "reply:compose");
+              openTweetDialog(account, "reply", tweet);
+            },
+            onSendDM: function(m)
+            {
+              var tweet = m.tweet;
+              Log.metric("tweet:image", "dm:compose");
+              openTweetDialog(account, "dm", tweet);
+            }
           }
         });
       },
