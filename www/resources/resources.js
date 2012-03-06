@@ -1,4 +1,85 @@
 var __resources = {
+'basic_tweet': '{{#_ View}}\
+<div class="tweet"{{#has_children}} data-action-click="OpenTweet"{{/has_children}}>\
+  {{#retweet}}\
+    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+    <div class="body">\
+      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+      <div class="text">{{{entifiedText}}}</div>\
+      {{#include_media}}\
+        {{#embed_photo_url}}\
+          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
+        {{/embed_photo_url}}\
+        {{^embed_photo_url}}\
+          {{#embed_video_html}}\
+            <div class="video">{{{embed_video_html}}}</div>\
+          {{/embed_video_html}}\
+        {{/embed_photo_url}}\
+      {{/include_media}}\
+    </div>\
+  {{/retweet}}\
+  {{^retweet}}\
+    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+    <div class="body">\
+      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+      <div class="text">{{{entifiedText}}}</div>\
+      {{#include_media}}\
+        {{#embed_photo_url}}\
+          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
+        {{/embed_photo_url}}\
+        {{^embed_photo_url}}\
+          {{#embed_video_html}}\
+            <div class="video">{{{embed_video_html}}}</div>\
+          {{/embed_video_html}}\
+        {{/embed_photo_url}}\
+      {{/include_media}}\
+    </div>\
+  {{/retweet}}\
+  {{#is_retweet}}\
+    <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
+  {{/is_retweet}}\
+  <div class="actions">\
+    {{#include_children}}\
+      {{#has_children}}\
+        {{:child_count}}return this.v(\'children\').length(){{/child_count}}\
+        <div class="child-count">{{child_count}}</div>\
+      {{/has_children}}\
+    {{/include_children}}\
+    {{^isDM}}\
+      <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>\
+      <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>\
+      <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>\
+    {{/isDM}}\
+    {{#isDM}}\
+      <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>\
+    {{/isDM}}\
+  </div>\
+  {{#include_tags}}\
+    <div class="tags">\
+      {{#tags}}\
+        {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag tag-{{type}}{{#dragging}} {{dragging}}{{/dragging}}">{{title}}</div></div>{{/_}}\
+      {{/tags}}\
+    </div>\
+  {{/include_tags}}\
+  {{#include_children}}\
+    {{#has_children}}\
+      <div class="nested-tweets">\
+        {{#tweet_open}}\
+          {{#children}}\
+            <div class="tweet">\
+              <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+              <div class="body">\
+                <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+                <div class="text">{{{entifiedText}}}</div>\
+              </div>\
+            </div>\
+          {{/children}}\
+        {{/tweet_open}}\
+      </div>\
+    {{/has_children}}\
+  {{/include_children}}\
+</div>\
+{{/_}}',
 'create-list': '<div class="create-list-modal">\
   Name: <input>\
 </div>',
@@ -29,20 +110,8 @@ var __resources = {
 'imageview': '<div class="dialog image-view">\
   <div class="inner" data-action-click="Ignore">\
     <img src="{{url}}">\
+    {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
   </div>\
-</div>',
-'inner_tweet': '<img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-<div class="body">\
-  <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-  <div class="text">{{{entifiedText}}}</div>\
-  {{#embed_photo_url}}\
-    <img class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
-  {{/embed_photo_url}}\
-  {{^embed_photo_url}}\
-    {{#embed_video_html}}\
-      <div class="video">{{{embed_video_html}}}</div>\
-    {{/embed_video_html}}\
-  {{/embed_photo_url}}\
 </div>',
 'main': '<div class="main">\
   <div class="col right">\
@@ -148,12 +217,12 @@ var __resources = {
         {{:viz_media}}return this.v(\'viz\') === \'media\' ? \'selected\' : \'\'{{/viz_media}}\
         {{#viz_list}}\
           {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>tweet}}\
+            {{>basic_tweet}}\
           {{/tweets}}\
         {{/viz_list}}\
         {{#viz_stack}}\
           {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>tweet}}\
+            {{>basic_tweet}}\
           {{/tweets}}\
         {{/viz_stack}}\
         {{#viz_media}}\
@@ -167,7 +236,7 @@ var __resources = {
 </div>',
 'media': '{{#embed_photo_url}}\
   <div class="media-box">\
-    <div class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+    {{#_ View}}<div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>{{/_}}\
   </div>\
 {{/embed_photo_url}}\
 {{^embed_photo_url}}\
@@ -191,46 +260,6 @@ var __resources = {
     <div class="web button" data-action-click="OpenWeb">Web</div>\
   </div>\
 </div>',
-'tweet': '{{#_ View}}\
-  <div class="tweet" data-action-click="{{#has_children}}OpenTweet{{/has_children}}">\
-    {{#retweet}}\
-      {{>inner_tweet}}\
-    {{/retweet}}\
-    {{^retweet}}\
-      {{>inner_tweet}}\
-    {{/retweet}}\
-    {{#is_retweet}}\
-      <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
-    {{/is_retweet}}\
-    <div class="actions">\
-      {{#has_children}}{{:child_count}}return this.v(\'children\').length(){{/child_count}}<div class="child-count">{{child_count}}</div>{{/has_children}}\
-      {{^isDM}}\
-        <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>\
-        <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>\
-        <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>\
-      {{/isDM}}\
-      {{#isDM}}\
-        <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>\
-      {{/isDM}}\
-    </div>\
-    <div class="tags">\
-      {{#tags}}\
-        {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag {{dragging}}">{{title}}</div></div>{{/_}}\
-      {{/tags}}\
-    </div>\
-    {{#has_children}}\
-      <div class="nested-tweets">\
-        {{#tweet_open}}\
-          {{#children}}\
-            <div class="tweet">\
-              {{>inner_tweet}}\
-            </div>\
-          {{/children}}\
-        {{/tweet_open}}\
-      </div>\
-    {{/has_children}}\
-  </div>\
-{{/_ View}}',
 'tweet_dialog': '<div class="dialog tweet-dialog">\
   <div class="inner">\
     <div class="tweet-dialog-header">\

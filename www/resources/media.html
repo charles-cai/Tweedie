@@ -1,6 +1,6 @@
 {{#embed_photo_url}}
   <div class="media-box">
-    <div class="photo" data-action-click="Media" data-href="{{embed_photo_url}}" style="background-image: url('{{embed_photo_url_small}}')"></div>
+    {{#_ View}}<div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url('{{embed_photo_url_small}}')"></div>{{/_}}
   </div>
 {{/embed_photo_url}}
 {{^embed_photo_url}}

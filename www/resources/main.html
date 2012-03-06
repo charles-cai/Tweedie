@@ -102,12 +102,12 @@
         {{:viz_media}}return this.v('viz') === 'media' ? 'selected' : ''{{/viz_media}}
         {{#viz_list}}
           {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}
-            {{>tweet}}
+            {{>basic_tweet}}
           {{/tweets}}
         {{/viz_list}}
         {{#viz_stack}}
           {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}
-            {{>tweet}}
+            {{>basic_tweet}}
           {{/tweets}}
         {{/viz_stack}}
         {{#viz_media}}

@@ -1,0 +1,81 @@
+{{#_ View}}
+<div class="tweet"{{#has_children}} data-action-click="OpenTweet"{{/has_children}}>
+  {{#retweet}}
+    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">
+    <div class="body">
+      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>
+      <div class="text">{{{entifiedText}}}</div>
+      {{#include_media}}
+        {{#embed_photo_url}}
+          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">
+        {{/embed_photo_url}}
+        {{^embed_photo_url}}
+          {{#embed_video_html}}
+            <div class="video">{{{embed_video_html}}}</div>
+          {{/embed_video_html}}
+        {{/embed_photo_url}}
+      {{/include_media}}
+    </div>
+  {{/retweet}}
+  {{^retweet}}
+    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">
+    <div class="body">
+      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>
+      <div class="text">{{{entifiedText}}}</div>
+      {{#include_media}}
+        {{#embed_photo_url}}
+          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">
+        {{/embed_photo_url}}
+        {{^embed_photo_url}}
+          {{#embed_video_html}}
+            <div class="video">{{{embed_video_html}}}</div>
+          {{/embed_video_html}}
+        {{/embed_photo_url}}
+      {{/include_media}}
+    </div>
+  {{/retweet}}
+  {{#is_retweet}}
+    <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
+  {{/is_retweet}}
+  <div class="actions">
+    {{#include_children}}
+      {{#has_children}}
+        {{:child_count}}return this.v('children').length(){{/child_count}}
+        <div class="child-count">{{child_count}}</div>
+      {{/has_children}}
+    {{/include_children}}
+    {{^isDM}}
+      <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>
+      <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>
+      <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>
+    {{/isDM}}
+    {{#isDM}}
+      <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>
+    {{/isDM}}
+  </div>
+  {{#include_tags}}
+    <div class="tags">
+      {{#tags}}
+        {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag tag-{{type}}{{#dragging}} {{dragging}}{{/dragging}}">{{title}}</div></div>{{/_}}
+      {{/tags}}
+    </div>
+  {{/include_tags}}
+  {{#include_children}}
+    {{#has_children}}
+      <div class="nested-tweets">
+        {{#tweet_open}}
+          {{#children}}
+            <div class="tweet">
+              <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">
+              <div class="body">
+                <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>
+                <div class="text">{{{entifiedText}}}</div>
+              </div>
+            </div>
+          {{/children}}
+        {{/tweet_open}}
+      </div>
+    {{/has_children}}
+  {{/include_children}}
+</div>
+{{/_}}

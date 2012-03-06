@@ -368,19 +368,19 @@ body
   color: #808080;
   font-size: 12px;
 }
-.tweet .timestamp
+.timestamp
 {
   color: #808080;
   float: right;
   font-size: 12px;
 }
-.tweet .text
+.text
 {
   width: 100%;
   padding: 2px 0px;
   word-wrap: break-word;
 }
-.tweet .text .url, .tweet .text .user_mention, .tweet .text .hashtag, .tweet .text .media
+.text .url, .text .user_mention, .text .hashtag, .text .media
 {
   color: #196DA9;
   text-decoration: none;
@@ -389,13 +389,13 @@ body
 {
   text-decoration: underline;
 }
-.tweet .retweetedby
+.retweetedby
 {
   padding-left: 56px;
   font-size: 12px;
   color: #808080;
 }
-.tweet .retweetedby .retweetby-screenname
+.retweetedby .retweetby-screenname
 {
   font-size: 10px;
   color: #c0c0c0;
@@ -429,7 +429,7 @@ body
   font-size: 9px;
   color: rgba(0,0,0,0.5);
   -webkit-border-radius: 5px;
-  background-color: white;
+  background-color: hsl(149,98%,98%);
 }
 .kill-tag
 {
@@ -469,13 +469,13 @@ body
 {
   float: right;
 }
-.tweet .actions
+.actions
 {
   position: absolute;
   right: 10px;
   bottom: 6px;
 }
-.tweet .actions .child-count
+.actions .child-count
 {
   display: inline-block;
   border: 1px solid rgba(0,0,0,0.2);
@@ -486,39 +486,39 @@ body
   font-size: 10px;
   vertical-align: text-top;
 }
-.tweet .actions .action-box
+.actions .action-box
 {
   display: inline-block;
   height: 20px;
   margin-left: 20px;
 }
-.tweet .actions .action
+.actions .action
 {
   display: inline-block;
   height: 20px;
   background: url("../img/tweet-icons.png") no-repeat left top;
   opacity: 0.2;
 }
-.tweet .actions .action:active
+.actions .action:active
 {
   opacity: 1;
 }
-.tweet .actions .action.reply
+.actions .action.reply
 {
   width: 20px;
   background-position: -71px 0;
 }
-.tweet .actions .action.retweet
+.actions .action.retweet
 {
   width: 28px;
   background-position: -43px 0;
 }
-.tweet .actions .action.favorite
+.actions .action.favorite
 {
   width: 21px;
   background-position: -21px 0;
 }
-.tweet .actions .action.favorite.active
+.actions .action.favorite.active
 {
   width: 21px;
   background-position: 0 0;
@@ -551,6 +551,33 @@ body
   font-size: 10px;
 }
 
+.image-view .tweet
+{
+  text-align: left;
+  line-height: normal;
+  border-bottom: none;
+  background-color: white;
+}
+.image-view .tweet .body
+{
+  padding-bottom: 24px;
+}
+
+.basic-tweet
+{
+  min-width: 400px;
+  box-sizing: border-box;
+  line-height: normal;
+  text-align: -webkit-auto;
+  padding-top: 15px;
+}
+.basic-tweet .actions
+{
+  position: relative;
+  float: right;
+  padding-top: 10px;
+}
+
 .media-box
 {
   width: 273px;
@@ -559,6 +586,11 @@ body
   padding: 5px;
   box-sizing: border-box;
   z-index: 1;
+}
+.media-box > .view
+{
+  width: 100%;
+  height: 100%;
 }
 .media-box .photo
 {
@@ -614,6 +646,7 @@ body
   display: block;
   max-width: 100%;
   max-height: 100%;
+  margin: auto;
 }
 
 .tweet-dialog .inner
