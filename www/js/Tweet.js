@@ -123,7 +123,7 @@ var Tweet = Model.create(
               }
               else
               {
-                text += '<span class="media" data-action-click="Media" data-href="' + t.entity.media_url + '">' + durl(t) + '</span>';
+                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '">' + durl(t) + '</span>';
               }
               break;
             case "url":
