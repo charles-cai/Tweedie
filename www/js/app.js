@@ -52,6 +52,7 @@ function main()
     }
     models.filter("");
     document.getElementById("filter").value = "";
+    PrimaryFetcher && PrimaryFetcher.abortSearch();
     models.current_list(m);
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());

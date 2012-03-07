@@ -239,7 +239,7 @@ var TweetFetcher = xo.Class(Events,
       method: "GET",
       url: "https://userstream.twitter.com/2/user.json",
       auth: this._auth,
-      proxy: streamProxy,
+      proxy: networkProxy,
       onText: function(chunk)
       {
         count += chunk.length;
@@ -366,10 +366,13 @@ var TweetFetcher = xo.Class(Events,
 
   fetchSearch: function(query)
   {
+    this.abortSearch();
+    this._searchLoop = this._runSearchStreamer([ query ]);
+
     var config =
     {
       method: "GET",
-      url: "http://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
+      url: "https://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
       auth: this._auth,
       proxy: networkProxy
     };
@@ -389,9 +392,119 @@ var TweetFetcher = xo.Class(Events,
         {
           Log.exception("fetchSearch", e);
         }
+        this._searchLoop.run();
         return true;
       }
     );
+  },
+
+  abortSearch: function()
+  {
+    if (this._searchLoop)
+    {
+      this._searchLoop.terminate = true;
+      this._searchLoop.abort && this._searchLoop.abort("terminate");
+      this._searchLoop = null;
+    }
+  },
+
+  _runSearchStreamer: function(query)
+  {
+    var self = this;
+    var pending = "";
+    var count = 0;
+    var timer = null;
+    var config =
+    {
+      method: "GET",
+      url: "https://stream.twitter.com/1/statuses/filter.json?track=" + query.map(encodeURIComponent).join(","),
+      auth: this._auth,
+      proxy: networkProxy,
+      onText: function(chunk)
+      {
+        count += chunk.length;
+        if (count > 1024 * 1024)
+        {
+          return this.abort("toolong");
+        }
+        var offset = 0;
+        pending += chunk;
+        var lines = pending.split("\r");
+        var searches = [];
+        for (var i = 0, len = lines.length - 1; i < len; i++)
+        {
+          var line = lines[i];
+          offset += line.length + 1; // length + \r
+          line = line.trim();
+          if (line)
+          {
+            try
+            {
+              line = JSON.parse(line);
+              if (line.text)
+              {
+                searches.unshift(line);
+              }
+            }
+            catch (e)
+            {
+              Log.exception("Bad stream data", e);
+            }
+          }
+        }
+
+        searches.length && self.emit("searches", searches);
+
+        pending = pending.substr(offset);
+        if (timer)
+        {
+          clearTimeout(timer);
+        }
+        timer = setTimeout(function()
+        {
+          config.abort("timeout");
+        }, 120000)
+      },
+      run: function()
+      {
+        Co.Forever(this,
+          function()
+          {
+            return AjaxStream.create(config);
+          },
+          function(r)
+          {
+            var reason;
+            try
+            {
+              reason = r().reason;
+            }
+            catch (e)
+            {
+              reason = e.reason;
+            }
+            switch (reason)
+            {
+              case "terminate":
+                return Co.Break();
+
+              case "toolong":
+                Log.info("TooLong");
+                return Co.Yield();
+
+              case "timeout":
+                Log.info("Timeout");
+                return Co.Sleep(10);
+
+              default:
+                Log.info("Sleeping");
+                return Co.Sleep(30);
+            }
+          }
+        );
+      }
+    };
+    return config;
   },
 
   tweet: function(m)
