@@ -74,7 +74,7 @@ var Composite =
       function()
       {
         var i = document.createElement("img");
-        i.src = imageProxy ? imageProxy + escape(url) : url;
+        i.src = networkProxy ? networkProxy + escape(url) : url;
         if (i.complete)
         {
           return i;
