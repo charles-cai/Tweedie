@@ -6,19 +6,7 @@
     text: Model.Property
   });
 
-  var lru = new xo.LRU(5);
-  lru.on("evict", function(event, path)
-  {
-    lgrid.evict(path);
-  });
-  function touch(path)
-  {
-    lru.get(path, function()
-    {
-      return true;
-    });
-  }
-  var lgrid = grid.get({ touch: touch });
+  var lgrid = grid.get({ lru: 5 });
   var selector = /^\/readable=(.*)$/;
   var pending = null;
   var stage = document.createElement("div");
