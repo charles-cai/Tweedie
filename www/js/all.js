@@ -260,11 +260,12 @@ PhoneGap.exec = function() {
     // commands to execute, unless the queue is currently being flushed, in
     // which case the command will be picked up without notification.
     if (PhoneGap.commandQueue.length == 1 && !PhoneGap.commandQueueFlushing) {
-        if (!PhoneGap.gapBridge) {
+        /*if (!PhoneGap.gapBridge) {
             PhoneGap.gapBridge = PhoneGap.createGapBridge();
         }
 
-        PhoneGap.gapBridge.src = "gap://ready";
+        PhoneGap.gapBridge.src = "gap://ready";*/
+        location = "gap://ready";
     }
 }
 
@@ -5859,6 +5860,7 @@ var View = exports.View = Class(Model,
     self.$depth = 0;
     self.$node = null;
     self.$className = args.className || "view";
+    self.$style = args.style;
     self.$model = args.model;
     self.$renderer = args.renderer;
     self.$cursor = args.cursor ? args.cursor.clone([ self.$model, self ]) : new Template.Cursor([ self.$model, self ]);
@@ -5903,7 +5905,7 @@ var View = exports.View = Class(Model,
 
   htmlOptions: function()
   {
-    return 'class="' + this.$className + '" data-view="' + this.identity() + '"' + (this.$name ? ' data-name="' + this.$name + '"' : '')
+    return 'class="' + this.$className + (this.$style ? '" style="' + this.$style : '') + '" data-view="' + this.identity() + '"' + (this.$name ? ' data-name="' + this.$name + '"' : '')
   },
 
   innerHtml: function()
@@ -6605,7 +6607,9 @@ var LiveListViewMixin =
   html: function()
   {
     return '<div ' + this.htmlOptions() + '>' +
-      '<div class="xo-scrollable">' + this.innerHtml() + '</div>' +
+      //'<div class="xo-scrollable-container">' +
+        '<div class="xo-scrollable">' + this.innerHtml() + '</div>' +
+      //'</div>' +
     '</div>';
   },
 
@@ -6631,7 +6635,7 @@ var LiveListViewMixin =
   node: function(__super)
   {
     var node = __super();
-    return node ? node.firstChild : null;
+    return node && node.firstChild ? node.firstChild : null;
   },
 
   _scrollContainer: function()
@@ -7068,21 +7072,24 @@ var RootView = exports.RootView = Class(View,
             for (var i = k.length - 1; i >= 2; i--)
             {
               var p = k[i].split(":");
-              if (p.length === 2)
+              if (p.length >= 2)
               {
-                if (p[0] === "view")
+                var pk = p.shift();
+                var pv = p.join(":");
+                if (pk === "view")
                 {
-                  args[p[0]] = RootView._getViewClass(p[1]);
+                  args[pk] = RootView._getViewClass(pv);
                 }
                 else
                 {
+                  
                   try
                   {
-                    args[p[0]] = eval(p[1]);
+                    args[pk] = eval(pv);
                   }
                   catch (_)
                   {
-                    args[p[0]] = p[1];
+                    args[pk] = pv;
                   }
                 }
               }
@@ -7444,7 +7451,7 @@ var RootView = exports.RootView = Class(View,
               {
                 try
                 {
-                  if (fn.call(controller, view.$model, view, evt) !== false)
+                  if (fn.call(controller, view.$model, view, evt, cview.$model, cview) !== false)
                   {
                     stop++;
                   }
@@ -7975,6 +7982,18 @@ var ModalView = exports.ModalView = Class(RootView,
   {
     this.action("close");
     this.destructor();
+  }
+});
+var Controller = exports.Controller = Class(
+{
+  constructor: function()
+  {
+  }
+}).statics(
+{
+  create: function(methods)
+  {
+    return Class(Controller, methods);
   }
 });
 var Url = exports.Url = Class(
@@ -8602,6 +8621,21 @@ var GridInstance = Class(
   {
     this._grid = grid;
     this._options = options || {};
+    if (this._options.lru)
+    {
+      var lru = new LRU(this._options.lru);
+      lru.on("evict", function(event, path)
+      {
+        this.evict(path);
+      }, this);
+      this._options.touch = function(path)
+      {
+        lru.get(path, function()
+        {
+          return true;
+        });
+      }
+    }
   },
 
   read: function(path)
@@ -9551,7 +9585,7 @@ var Tweet = Model.create(
               }
               else
               {
-                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '">' + durl(t) + '</span>';
+                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
               }
               break;
             case "url":
@@ -9805,7 +9839,7 @@ var Tweet = Model.create(
               media.push(
               {
                 type: o.type,
-                media_url: o.medial_url || o.url,
+                media_url: o.media_url || o.url,
                 display_url: o.url,
                 resolved_url: o.url,
                 resolved_display_url: o.url && this.make_display_url(o.url),
@@ -10721,12 +10755,17 @@ var TweetLists = Class(
         var tweetb = [];
         var mentionb = [];
         var dmb = [];
+        var favb = [];
 
         include.forEach(function(tweet)
         {
           if (tweet.isDM())
           {
             dmb.push(tweet);
+          }
+          else if (tweet.favorited())
+          {
+            favb.push(tweet);
           }
           else if (tweet.isMention())
           {
@@ -10736,11 +10775,12 @@ var TweetLists = Class(
           {
             tweetb.push(tweet);
           }
-        }, this);
+        });
 
         tweetb.length && this._types.tweets.prepend(tweetb);
         mentionb.length && this._types.mentions.prepend(mentionb);
         dmb.length && this._types.dms.prepend(dmb);
+        favb.length && this._types.favs.prepend(favb);
         this._save();
 
         var o = this._getVelocity();
@@ -10799,7 +10839,11 @@ var TweetLists = Class(
   favTweets: function(tweets)
   {
     var tweets = this._separateTweets(tweets);
-    tweets.include.concat(tweets.exclude).forEach(function(tweet)
+    tweets.include.forEach(function(tweet)
+    {
+      tweet.favorited(true);
+    });
+    tweets.exclude.forEach(function(tweet)
     {
       tweet.favorited(true);
       tweets.include.push(tweet);
@@ -11271,7 +11315,7 @@ var TweetFetcher = xo.Class(Events,
     var config =
     {
       method: "GET",
-      url: "http://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
+      url: "https://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
       auth: this._auth,
       proxy: networkProxy
     };
@@ -11506,7 +11550,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/users/show.json?include_entities=true&" + key,
+          url: "https://api.twitter.com/1/users/show.json?include_entities=true&" + key,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -11527,7 +11571,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
+          url: "https://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -11547,7 +11591,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
+          url: "https://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
           auth: this._auth,
           proxy: networkProxy
         });
@@ -11590,6 +11634,64 @@ var TweetFetcher = xo.Class(Events,
         }
       }
     );
+  }
+});
+var UsersAndTags = Class(
+{
+  constructor: function(account)
+  {
+    this._account = account;
+    this._usersLRU = new xo.LRU(1000);
+    this._tagsLRU = new xo.LRU(100);
+  },
+
+  addUser: function(screenname, name)
+  {
+    var val =
+    {
+      key: screenname.toLowerCase(),
+      name: name,
+      screenname: screenname
+    };
+    this._usersLRU.add(name.toLowerCase(), val);
+    this._usersLRU.add(val.key, val);
+  },
+
+  suggestUser: function(partialName)
+  {
+    var seen = {};
+    var matches = [];
+    this._usersLRU.keys().forEach(function(key)
+    {
+      if (key.indexOf(partialName) === 0)
+      {
+        var val = this._usersLRU.get(key);
+        if (!seen[val.key])
+        {
+          seen[val.key] = true;
+          matches.push(val);
+        }
+      }
+    }, this);
+    return matches;
+  },
+
+  addHashtag: function(tag)
+  {
+    this._tagsLRU.add(tag, { name: tag });
+  },
+
+  suggestHashtag: function(partialTag)
+  {
+    var matches = [];
+    this._tagsLRU.keys().forEach(function(key)
+    {
+      if (key.indexOf(partialTag) === 0)
+      {
+        matches.push(this._tagsLRU.get(key));
+      }
+    }, this);
+    return matches;
   }
 });
 var Account = Class(Events,
@@ -11645,7 +11747,10 @@ var Account = Class(Events,
             this.emit("screenNameChange");
             this._lgrid.write("/accounts", this.serialize());
           }
+          this.emit("opened");
         }, this);
+
+        Topics.open();
 
         return this.tweetLists.restore();
       },
@@ -11688,6 +11793,7 @@ var Account = Class(Events,
         document.addEventListener("pause", function()
         {
           self._fetcher.fetchAbort();
+          self._fetcher.searchAbort();
         });
         this.fetch();
 
@@ -12173,12 +12279,12 @@ var UrlExpander = Class(Events,
     {
       return {
         url: url + "/media?size=m",
-        medial_url: url + "/media?size=l",
+        media_url: url + "/media?size=l",
         type: "photo"
       };
     }
-    // YouTube
-    else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
+    // YouTube - No YouTube for now because iframes mess up the touch scolling in iOS 5.1 :-(
+    /* else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
     {
       var v = new xo.Url(url).getParameter("v");
       return {
@@ -12187,13 +12293,23 @@ var UrlExpander = Class(Events,
         html: '<iframe width="350" height="262" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>',
         html_large: '<iframe width="640" height="360" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>'
       }
+    } */
+    // YouTube - picture only
+    else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
+    {
+      var v = new xo.Url(url).getParameter("v");
+      return {
+        url: url,
+        type: "photo",
+        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg"
+      }
     }
     // Twitpic
     else if (url.indexOf("http://twitpic.com/") === 0)
     {
       return {
         url: url,
-        medial_url: "http://twitpic.com/show/large/" + new xo.Url(url).pathname,
+        media_url: "http://twitpic.com/show/large/" + new xo.Url(url).pathname,
         type: "photo"
       };
     }
@@ -12202,7 +12318,7 @@ var UrlExpander = Class(Events,
     {
       return {
         url: url + ":iphone",
-        medial_url: url + ":medium",
+        media_url: url + ":medium",
         type: "photo"
       };
     }
@@ -12520,12 +12636,17 @@ var TweetBox = Class(
         }
       });
     }
+    if (text)
+    {
+      var ta = mv.node().querySelector("textarea");
+      ta.selectionStart = ta.selectionEnd = text.length;
+    }
   }
 });
 var dbinfo =
 {
   name: "storage",
-  size: 10 * 1024 * 1024,
+  size: 5 * 1024 * 1024,
   table: "appstore"
 };
 
@@ -12583,19 +12704,7 @@ new xo.LocalStorageGridProvider(
     text: Model.Property
   });
 
-  var lru = new xo.LRU(5);
-  lru.on("evict", function(event, path)
-  {
-    lgrid.evict(path);
-  });
-  function touch(path)
-  {
-    lru.get(path, function()
-    {
-      return true;
-    });
-  }
-  var lgrid = grid.get({ touch: touch });
+  var lgrid = grid.get({ lru: 5 });
   var selector = /^\/readable=(.*)$/;
   var pending = null;
   var stage = document.createElement("div");
@@ -12740,124 +12849,603 @@ var Topics = {};
     return name2topic[name] || [];
   };
 
-  Co.Routine(this,
-    function()
-    {
-      return lgrid.read("/topics");
-    },
-    function(data)
-    {
-      data = data() || {};
-      name2topic = data.name2topic || [];
-      lastupdate = data.lastupdate || 0;
-
-      if (Date.now() - lastupdate > refreshTimeout)
+  Topics.open = function()
+  {
+    Co.Routine(this,
+      function()
       {
-        return Co.Routine(this,
-          function()
-          {
-            return Co.Forever(this,
-              function()
-              {
-                return PrimaryFetcher ? Co.Break() : Co.Sleep(60);
-              }
-            );
-          },
-          function()
-          {
-            return PrimaryFetcher.suggestions();
-          },
-          function(r)
-          {
-            return Co.Foreach(this, r(),
-              function(suggestion)
-              {
-                return PrimaryFetcher.suggestions(suggestion().slug);
-              }
-            );
-          },
-          function(s)
-          {
-            var hash = {};
-            s().forEach(function(suggestion)
-            {
-              var name = suggestion.name;
-              suggestion.users.forEach(function(user)
-              {
-                var screenname = "@" + user.screen_name.toLowerCase();
-                (hash[screenname] || (hash[screenname] = [])).push({ title: name });
-              });
-            });
-            name2topic = hash;
-            lastupdate = Date.now();
-            lgrid.write("/topics",
-            {
-              name2topic: name2topic,
-              lastupdate: lastupdate
-            });
-          }
-        );
-      }
-    }
-  );
-})();
-var UsersAndTags = Class(
-{
-  constructor: function(account)
-  {
-    this._account = account;
-    this._usersLRU = new xo.LRU(1000);
-    this._tagsLRU = new xo.LRU(100);
-  },
-
-  addUser: function(screenname, name)
-  {
-    var val =
-    {
-      key: screenname.toLowerCase(),
-      name: name,
-      screenname: screenname
-    };
-    this._usersLRU.add(name.toLowerCase(), val);
-    this._usersLRU.add(val.key, val);
-  },
-
-  suggestUser: function(partialName)
-  {
-    var seen = {};
-    var matches = [];
-    this._usersLRU.keys().forEach(function(key)
-    {
-      if (key.indexOf(partialName) === 0)
+        return lgrid.read("/topics");
+      },
+      function(data)
       {
-        var val = this._usersLRU.get(key);
-        if (!seen[val.key])
+        data = data() || {};
+        name2topic = data.name2topic || [];
+        lastupdate = data.lastupdate || 0;
+
+        if (Date.now() - lastupdate > refreshTimeout)
         {
-          seen[val.key] = true;
-          matches.push(val);
+          return Co.Routine(this,
+            function()
+            {
+              return Co.Forever(this,
+                function()
+                {
+                  return PrimaryFetcher ? Co.Break() : Co.Sleep(10);
+                }
+              );
+            },
+            function()
+            {
+              return PrimaryFetcher.suggestions();
+            },
+            function(r)
+            {
+              return Co.Foreach(this, r(),
+                function(suggestion)
+                {
+                  return PrimaryFetcher.suggestions(suggestion().slug);
+                }
+              );
+            },
+            function(s)
+            {
+              var hash = {};
+              s().forEach(function(suggestion)
+              {
+                var name = suggestion.name;
+                suggestion.users.forEach(function(user)
+                {
+                  var screenname = "@" + user.screen_name.toLowerCase();
+                  (hash[screenname] || (hash[screenname] = [])).push({ title: name });
+                });
+              });
+              name2topic = hash;
+              lastupdate = Date.now();
+              lgrid.write("/topics",
+              {
+                name2topic: name2topic,
+                lastupdate: lastupdate
+              });
+            }
+          );
         }
       }
-    }, this);
-    return matches;
-  },
-
-  addHashtag: function(tag)
-  {
-    this._tagsLRU.add(tag, { name: tag });
-  },
-
-  suggestHashtag: function(partialTag)
-  {
-    var matches = [];
-    this._tagsLRU.keys().forEach(function(key)
-    {
-      if (key.indexOf(partialTag) === 0)
-      {
-        matches.push(this._tagsLRU.get(key));
-      }
-    }, this);
-    return matches;
+    );
   }
+})();
+var TweetController = xo.Controller.create(
+{
+  constructor: function(__super)
+  {
+    __super();
+    this.lgrid = grid.get();
+  },
+
+  onUrl: function(m, v, e)
+  {
+    Log.metric("tweet", "url:open");
+    var url = e.target.dataset.href;
+
+    Co.Routine(this,
+      function()
+      {
+        return this.lgrid.read("/readable=" + url);
+      },
+      function(readModel)
+      {
+        readModel = readModel();
+
+        var pagenr = 0;
+        var maxpagenr = 0;
+        var mv = new ModalView(
+        {
+          node: document.getElementById("root-dialog"),
+          template: __resources.readability,
+          partials: __resources,
+          model: readModel,
+          properties:
+          {
+            pages: 0,
+            pagenr: 0,
+            translate: ""
+          },
+          controller:
+          {
+            onForward: function()
+            {
+              Co.Routine(this,
+                function()
+                {
+                  var r = document.querySelector("#readability-scroller .text");
+                  pagenr = Math.min(maxpagenr - 1, pagenr + 1);
+                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
+                  Co.Sleep(0.2);
+                },
+                function()
+                {
+                  mv.pagenr(pagenr);
+                  Log.metric("readable", "page:forward", pagenr);
+                }
+              );
+            },
+            onBackward: function()
+            {
+              Co.Routine(this,
+                function()
+                {
+                  var r = document.querySelector("#readability-scroller .text");
+                  pagenr = Math.max(0, pagenr - 1);
+                  mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
+                  Co.Sleep(0.2);
+                },
+                function()
+                {
+                  mv.pagenr(pagenr);
+                  Log.metric("readable", "page:backward", pagenr);
+                }
+              );
+            },
+            onOpenWeb: function()
+            {
+              var browser = ChildBrowser.install();
+              browser.onClose = function()
+              {
+                mv.close();
+              };
+              browser.showWebPage(url);
+              Log.metric("readable", "browser:open");
+            },
+            onClose: function()
+            {
+              Log.metric("readable", "close");
+              mv.close();
+            }
+          }
+        });
+        mv.addListener(mv.node(), "click", function(e)
+        {
+          e.preventDefault();
+        });
+        readModel.on("update", function()
+        {
+          Co.Routine(this,
+            function()
+            {
+              Co.Yield();
+            },
+            function()
+            {
+              var r = document.querySelector("#readability-scroller .text");
+              var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+              var images = r.querySelectorAll("img");
+              function recalc()
+              {
+                maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+                mv.pages(Math.min(10, maxpagenr));
+              }
+              function hide()
+              {
+                this.parentNode.removeChild(this);
+                recalc();
+              }
+              for (var i = 0; i < images.length; i++)
+              {
+                var img = images[i];
+                img.onload = recalc;
+                img.onerror = hide;
+                if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0)
+                {
+                  img.onerror();
+                }
+              }
+              recalc();
+              mv.pagenr(0);
+            }
+          );
+        }, this);
+        // Force layout if we have text already (cached)
+        if (readModel.text())
+        {
+          readModel.emit("update");
+        }
+      }
+    );
+  },
+
+  onImage: function(_, _, e)
+  {
+    Log.metric("tweet", "image:open");
+
+    var url = e.target.dataset.href;
+    var furl = e.target.dataset.fullHref || url;
+
+    if (furl.indexOf("http://www.youtube.com/watch") === 0 || furl.indexOf("http://youtube.com/watch") === 0)
+    {
+      // Open Safari
+      location = furl;
+      return;
+    }
+    new ModalView(
+    {
+      node: document.getElementById("root-dialog"),
+      template: __resources.imageview,
+      partials: __resources,
+      model:
+      {
+        url: url,
+        tweet: this.models.current_list().viz() === "media" ? m : null
+      },
+      controller: this
+    });
+  },
+
+  onVideo: function(_, _, e)
+  {
+    Log.metric("tweet", "video:open");
+    new ModalView(
+    {
+      node: document.getElementById("root-dialog"),
+      template: __resources.videoview,
+      partials: __resources,
+      model:
+      {
+        embed: unescape(e.target.dataset.embed)
+      }
+    });
+  },
+
+  onToggleFavorite: function(m, _, _, models)
+  {
+    Log.metric("tweet", m.favorited() ? "unfav" : "fav");
+    if (m.favorited())
+    {
+      m.favorited(false);
+      models.account().unfavorite(m.is_retweet() ? m.retweet() : m);
+    }
+    else
+    {
+      m.favorited(true);
+      models.account().favorite(m.is_retweet() ? m.retweet() : m);
+    }
+  },
+
+  onSendRetweet: function(tweet, _, _, models)
+  {
+    Log.metric("tweet", "retweet:compose");
+    new TweetBox().open(models.account(), "retweet", tweet);
+  },
+
+  onSendReply: function(tweet, _, _, models)
+  {
+    Log.metric("tweet", "reply:compose");
+    new TweetBox().open(models.account(), "reply", tweet);
+  },
+
+  onSendDM: function(tweet, _, _, models)
+  {
+    Log.metric("tweet", "dm:compose");
+    new TweetBox().open(models.account(), "dm", tweet);
+  },
+
+  onMention: function(_, _, e, models)
+  {
+    Log.metric("tweet", "mention:open");
+    var screenName = e.target.dataset.name.slice(1).toLowerCase();
+    Co.Routine(this,
+      function()
+      {
+        return this.lgrid.read("/twitter/profile/screenName=" + screenName);
+      },
+      function(p)
+      {
+        this._openProfileDialog(p(), models);
+      }
+    );
+  },
+
+  onProfilePic: function(tweet, _, _, models)
+  {
+    Log.metric("tweet", "pic:open");
+    Co.Routine(this,
+      function()
+      {
+        if (tweet.is_retweet())
+        {
+          tweet = tweet.retweet();
+        }
+        return this.lgrid.read("/twitter/profile/id=" + tweet.user().id_str);
+      },
+      function(p)
+      {
+        this._openProfileDialog(p(), models);
+      }
+    );
+  },
+
+  onOpenTweet: function(_, v, e)
+  {
+    var nested = v.node().querySelector(".nested-tweets");
+    var open = v.property("tweet_open");
+    if (open)
+    {
+      Log.metric("tweet", "nested:open");
+      Co.Routine(this,
+        function()
+        {
+          nested.style.height = 0;
+          Co.Sleep(0.5);
+        },
+        function()
+        {
+          v.tweet_open(false);
+        }
+      );
+    }
+    else
+    {
+      Log.metric("tweet", "nested:close");
+      Co.Routine(this,
+        function()
+        {
+          nested.style.height = 0;
+          v.tweet_open(true);
+          Co.Yield();
+        },
+        function()
+        {
+          nested.style.height = (20 + nested.scrollHeight) + "px";
+        }
+      );
+    }
+  },
+
+  _openProfileDialog: function(profile, models)
+  {
+    new ModalView(
+    {
+      node: document.getElementById("root-dialog"),
+      template: __resources.tweet_profile,
+      partials: __resources,
+      model: profile,
+      controller:
+      {
+        onFollow: function()
+        {
+          profile.followed_by(true);
+          models().account.follow(profile);
+        },
+        onUnfollow: function()
+        {
+          profile.followed_by(false);
+          models.account().unfollow(profile);
+        }
+      }
+    });
+  }
+});
+var ListController = xo.Controller.create(
+{
+  constructor: function(__super)
+  {
+    __super();
+    var self = this;
+    document.addEventListener("click", function()
+    {
+      self._editList(null, null);
+    });
+  },
+
+  onSelectList: function(m, v, _, models)
+  {
+    if (models.current_list() === m)
+    {
+      RootView.getViewByName("tweets").scrollToTop();
+    }
+    models.filter("");
+    document.getElementById("filter").value = "";
+    PrimaryFetcher && PrimaryFetcher.abortSearch();
+    models.current_list(m);
+    var last = m.tweets().models[0];
+    m.lastRead(last && last.id());
+    m.velocity(0);
+    this._editList(null, null);
+    if (!this._selectedListView)
+    {
+      this._selectedListView = RootView.getViewByName("main");
+    }
+    if (this._selectedListView)
+    {
+      this._selectedListView.property("selected", false);
+      this._selectedListView = null;
+    }
+    this._selectedListView = v;
+    this._selectedListView.property("selected", true);
+
+    var query = m.asSearch();
+    if (query)
+    {
+      Log.metric("lists", "select:search");
+      models.account().search(query);
+    }
+    else
+    {
+      Log.metric("lists", "select:list");
+    }
+  },
+
+  onDropToList: function(m, v, _, models)
+  {
+    Log.metric("tweet", "list:include:add")
+    models.account().tweetLists.addIncludeTag(m, v.dropped());
+  },
+
+  onDropToNewList: function(m, v, _, models)
+  {
+    Log.metric("tweet", "list:new:drop");
+    var listName = v.dropped().title;
+    switch (v.dropped().type)
+    {
+      case "hashtag":
+      case "somewhere":
+        listName += "?";
+        break;
+      default:
+        break;
+    }
+    var list = models.account().tweetLists.createList(listName);
+    if (list && !list.isSearch())
+    {
+      models.account().tweetLists.addIncludeTag(list, v.dropped());
+    }
+  },
+
+  onNewList: function(m, v, e, models)
+  {
+    Log.metric("global", "list:new:type");
+    var listName = e.target.value;
+    if (listName)
+    {
+      models.account().tweetLists.createList(listName);
+    }
+    e.target.value = "";
+  },
+
+  onEditList: function(_, v, _, models)
+  {
+    Log.metric("list", "edit");
+    this._editList(v, models);
+  },
+
+  onRemoveList: function(_, _, _, models)
+  {
+    Log.metric("list", "remove");
+    models.account().tweetLists.removeList(models.current_list());
+    this._editList(null, null);
+    models.current_list(models.account().tweetLists.lists.models[0]);
+    this._selectedListView = RootView.getViewByName("main");
+    this._selectedListView.property("selected", true);
+  },
+
+  onDropInclude: function(_, v, _, models)
+  {
+    Log.metric("list", "include:add");
+    models.account().tweetLists.addIncludeTag(models.current_list(), v.dropped());
+  },
+
+  onDropExclude: function(_, v, _, models)
+  {
+    Log.metric("list", "exclude:add");
+    models.account().tweetLists.addExcludeTag(models.current_list(), v.dropped());
+  },
+
+  onKillInclude: function(m, _, _, models)
+  {
+    if (this._editView && this._editView.property("editMode"))
+    {
+      Log.metric("list", "include:remove");
+      models.account().tweetLists.removeIncludeTag(models.current_list(), m);
+    }
+  },
+
+  onKillExclude: function(m, _, _, models)
+  {
+    if (this._editView && this._editView.property("editMode"))
+    {
+      Log.metric("list", "exclude:remove");
+      models.account().tweetLists.removeExcludeTag(models.current_list(), m);
+    }
+  },
+
+  onChangeViz: function(_, _, e, models)
+  {
+    Log.metric("list", "viz:change");
+    models.account().tweetLists.changeViz(models.current_list(), e.target.value);
+  },
+
+  _editList: function(v, models)
+  {
+    if (this._editView)
+    {
+      this._editModels.account().tweetLists._save();
+      this._editModels.current_list()._save();
+      this._editView.property("editMode", false);
+      this._editView = null;
+      this._editModels = null;
+    }
+    if (v)
+    {
+      this._editView = v;
+      this._editView.property("editMode", true);
+      this._editModels = models;
+    }
+  }
+});
+var FilterController = xo.Controller.create(
+{
+  onFilter: function(_, _, e)
+  {
+    Log.metric("global", "filter:type");
+    this._filterInput = e.target;
+    RootView.getViewByName("tweets").filterText(this._filterInput.value.toLowerCase());
+  },
+  onDropFilter: function(_, v, e, models)
+  {
+    Log.metric("global", "filter:drop");
+    this._filterInput = e.target;
+    var key = v.dropped().key;
+    models.filter(key);
+    this._filterInput.value = key;
+    RootView.getViewByName("tweets").filterText(key);
+  },
+  onFilterClear: function(_, _, _, models)
+  {
+    Log.metric("global", "filter:clear");
+    this._filterInput && (this._filterInput.value = "");
+    models.filter("");
+    RootView.getViewByName("tweets").filterText("");
+  }
+});
+var GlobalController = xo.Controller.create(
+{
+  onToggleShow: function(_, _, _, _, root)
+  {
+    Log.metric("lists", root.open() ? "close" : "open");
+    root.open(!root.open());
+  },
+
+  onComposeTweet: function(_, _, _, models)
+  {
+    Log.metric("global", "tweet:compose");
+    new TweetBox().open(models.account(), "tweet");
+  },
+
+  onComposeDM: function(_, _, _, models)
+  {
+    Log.metric("global", "dm:compose");
+    new TweetBox().open(models.account(), "dm");
+  },
+
+  onOpenErrors: function(_, _, _, models)
+  {
+    Log.metric("account", "errors:open");
+    new ModalView(
+    {
+      node: document.getElementById("root-dialog"),
+      template: __resources.error_dialog,
+      partials: __resources,
+      model: models.account().errors,
+      controller:
+      {
+        onRemoveError: function(m)
+        {
+          if (m.op !== "fetch")
+          {
+            models.account().errors.remove(m);
+          }
+        }
+      }
+    });
+  },
 });
 var __resources = {
 'basic_tweet': '{{#_ View}}\
@@ -13212,18 +13800,6 @@ var __resources = {
   </div>\
 </div>',
 '_':null};
-var RootModel = Model.create(
-{
-  account: Model.Property,
-  current_list: Model.Property,
-  lists: Model.Property,
-  name: function()
-  {
-    return this.account().tweetLists.screenname.slice(1);
-  },
-  filter: Model.Property
-});
-
 function main()
 {
   Log.time("runtime");
@@ -13236,11 +13812,18 @@ function main()
     Log.timeEnd("runtime");
   });
 
-  //navigator.splashscreen && navigator.splashscreen.show();
+  var RootModel = Model.create(
+  {
+    account: Model.Property,
+    current_list: Model.Property,
+    lists: Model.Property,
+    name: function()
+    {
+      return this.account().tweetLists.screenname.slice(1);
+    },
+    filter: Model.Property
+  });
 
-  var editView = null;
-  var filterInput = null;
-  var selectedListView = null;
   var lgrid = grid.get();
 
   var account = new Account();
@@ -13257,29 +13840,6 @@ function main()
   {
     models.emit("update");
   });
-  
-  function selectList(m, v)
-  {
-    if (models.current_list() === m)
-    {
-      RootView.getViewByName("tweets").scrollToTop();
-    }
-    models.filter("");
-    document.getElementById("filter").value = "";
-    PrimaryFetcher && PrimaryFetcher.abortSearch();
-    models.current_list(m);
-    var last = m.tweets().models[0];
-    m.lastRead(last && last.id());
-    m.velocity(0);
-    editList(null);
-    if (selectedListView)
-    {
-      selectedListView.property("selected", false);
-      selectedListView = null;
-    }
-    selectedListView = v;
-    selectedListView.property("selected", true);
-  }
 
   var root = new RootView(
   {
@@ -13294,477 +13854,14 @@ function main()
       include_tags: true,
       include_media: true
     },
-    controller:
-    {
-      onToggleShow: function()
-      {
-        Log.metric("lists", root.open() ? "close" : "open");
-        root.open(!root.open());
-      },
-      onSelectList: function(m, v)
-      {
-        selectList(m, v);
-        var query = m.asSearch();
-        if (query)
-        {
-          Log.metric("lists", "select:search");
-          account.search(query);
-        }
-        else
-        {
-          Log.metric("lists", "select:list");
-        }
-      },
-      onDropToList: function(m, v)
-      {
-        Log.metric("tweet", "list:include:add")
-        account.tweetLists.addIncludeTag(m, v.dropped());
-      },
-      onDropToNewList: function(m, v)
-      {
-        Log.metric("tweet", "list:new:drop");
-        var listName = v.dropped().title;
-        switch (v.dropped().type)
-        {
-          case "hashtag":
-          case "somewhere":
-            listName += "?";
-            break;
-          default:
-            break;
-        }
-        var list = account.tweetLists.createList(listName);
-        if (list && !list.isSearch())
-        {
-          account.tweetLists.addIncludeTag(list, v.dropped());
-        }
-      },
-      onNewList: function(m, v, e)
-      {
-        Log.metric("global", "list:new:type");
-        var listName = e.target.value;
-        if (listName)
-        {
-          account.tweetLists.createList(listName);
-        }
-        e.target.value = "";
-      },
-      onEditList: function(m, v)
-      {
-        Log.metric("list", "edit");
-        editList(v);
-      },
-      onRemoveList: function(m, v, e)
-      {
-        Log.metric("list", "remove");
-        account.tweetLists.removeList(models.current_list());
-        editList(null);
-        models.current_list(account.tweetLists.lists.models[0]);
-        selectedListView = RootView.getViewByName("main");
-        selectedListView.property("selected", true);
-      },
-      onDropInclude: function(m, v)
-      {
-        Log.metric("list", "include:add");
-        account.tweetLists.addIncludeTag(models.current_list(), v.dropped());
-      },
-      onDropExclude: function(m, v)
-      {
-        Log.metric("list", "exclude:add");
-        account.tweetLists.addExcludeTag(models.current_list(), v.dropped());
-      },
-      onKillInclude: function(m)
-      {
-        if (editView && editView.property("editMode"))
-        {
-          Log.metric("list", "include:remove");
-          account.tweetLists.removeIncludeTag(models.current_list(), m);
-        }
-      },
-      onKillExclude: function(m)
-      {
-        if (editView && editView.property("editMode"))
-        {
-          Log.metric("list", "exclude:remove");
-          account.tweetLists.removeExcludeTag(models.current_list(), m);
-        }
-      },
-      onChangeViz: function(m, v, e)
-      {
-        Log.metric("list", "viz:change");
-        account.tweetLists.changeViz(models.current_list(), e.target.value);
-      },
-      onOpenTweet: function(m, v, e)
-      {
-        var nested = v.node().querySelector(".nested-tweets");
-        var open = v.property("tweet_open");
-        if (open)
-        {
-          Log.metric("tweet", "nested:open");
-          Co.Routine(this,
-            function()
-            {
-              nested.style.height = 0;
-              Co.Sleep(0.5);
-            },
-            function()
-            {
-              v.tweet_open(false);
-            }
-          );
-        }
-        else
-        {
-          Log.metric("tweet", "nested:close");
-          Co.Routine(this,
-            function()
-            {
-              nested.style.height = 0;
-              v.tweet_open(true);
-              Co.Yield();
-            },
-            function()
-            {
-              nested.style.height = (20 + nested.scrollHeight) + "px";
-            }
-          );
-        }
-      },
-      onUrl: function(m, v, e)
-      {
-        Log.metric("tweet", "url:open");
-        var url = e.target.dataset.href;
-        
-        Co.Routine(this,
-          function()
-          {
-            return lgrid.read("/readable=" + url);
-          },
-          function(readModel)
-          {
-            readModel = readModel();
-
-            var pagenr = 0;
-            var maxpagenr = 0;
-            var mv = new ModalView(
-            {
-              node: document.getElementById("root-dialog"),
-              template: __resources.readability,
-              partials: __resources,
-              model: readModel,
-              properties:
-              {
-                pages: 0,
-                pagenr: 0,
-                translate: ""
-              },
-              controller:
-              {
-                onForward: function()
-                {
-                  Co.Routine(this,
-                    function()
-                    {
-                      var r = document.querySelector("#readability-scroller .text");
-                      pagenr = Math.min(maxpagenr - 1, pagenr + 1);
-                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
-                      //mv.translate("-webkit-transform: translate(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0)");
-                      Co.Sleep(0.2);
-                    },
-                    function()
-                    {
-                      mv.pagenr(pagenr);
-                      Log.metric("readable", "page:forward", pagenr);
-                    }
-                  );
-                },
-                onBackward: function()
-                {
-                  Co.Routine(this,
-                    function()
-                    {
-                      var r = document.querySelector("#readability-scroller .text");
-                      pagenr = Math.max(0, pagenr - 1);
-                      mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
-                      //mv.translate("-webkit-transform: translate(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0)");
-                      Co.Sleep(0.2);
-                    },
-                    function()
-                    {
-                      mv.pagenr(pagenr);
-                      Log.metric("readable", "page:backward", pagenr);
-                    }
-                  );
-                },
-                onOpenWeb: function()
-                {
-                  var browser = ChildBrowser.install();
-                  browser.onClose = function()
-                  {
-                    mv.close();
-                  };
-                  browser.showWebPage(url);
-                  Log.metric("readable", "browser:open");
-                },
-                onClose: function()
-                {
-                  Log.metric("readable", "close");
-                  mv.close();
-                }
-              }
-            });
-            mv.addListener(mv.node(), "click", function(e)
-            {
-              e.preventDefault();
-            });
-            readModel.on("update", function()
-            {
-              Co.Routine(this,
-                function()
-                {
-                  Co.Yield();
-                },
-                function()
-                {
-                  var r = document.querySelector("#readability-scroller .text");
-                  var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-                  var images = r.querySelectorAll("img");
-                  function recalc()
-                  {
-                    maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-                    mv.pages(Math.min(10, maxpagenr));
-                  }
-                  function hide()
-                  {
-                    this.parentNode.removeChild(this);
-                    recalc();
-                  }
-                  for (var i = 0; i < images.length; i++)
-                  {
-                    images[i].onload = recalc;
-                    images[i].onerror = hide;
-                  }
-                  recalc();
-                  mv.pagenr(0);
-                }
-              );
-            }, this);
-            // Force layout if we have text already (cached)
-            if (readModel.text())
-            {
-              readModel.emit("update");
-            }
-          }
-        );
-      },
-      onImage: function(m, v, e)
-      {
-        Log.metric("tweet", "image:open");
-        new ModalView(
-        {
-          node: document.getElementById("root-dialog"),
-          template: __resources.imageview,
-          partials: __resources,
-          model:
-          {
-            url: e.target.dataset.href,
-            tweet: models.current_list().viz() === "media" ? m : null
-          },
-          controller:
-          {
-            onToggleFavorite: function(m)
-            {
-              var tweet = m.tweet;
-              Log.metric("tweet:image", tweet.favorited() ? "unfav" : "fav");
-              if (tweet.favorited())
-              {
-                tweet.favorited(false);
-                account.unfavorite(tweet.is_retweet() ? tweet.retweet() : tweet);
-              }
-              else
-              {
-                tweet.favorited(true);
-                account.favorite(tweet.is_retweet() ? tweet.retweet() : tweet);
-              }
-            },
-            onSendRetweet: function(m)
-            {
-              var tweet = m.tweet;
-              Log.metric("tweet:image", "retweet:compose");
-              openTweetDialog(account, "retweet", tweet);
-            },
-            onSendReply: function(m)
-            {
-              var tweet = m.tweet;
-              Log.metric("tweet:image", "reply:compose");
-              openTweetDialog(account, "reply", tweet);
-            },
-            onSendDM: function(m)
-            {
-              var tweet = m.tweet;
-              Log.metric("tweet:image", "dm:compose");
-              openTweetDialog(account, "dm", tweet);
-            }
-          }
-        });
-      },
-      onVideo: function(m, v, e)
-      {
-        Log.metric("tweet", "video:open");
-        new ModalView(
-        {
-          node: document.getElementById("root-dialog"),
-          template: __resources.videoview,
-          partials: __resources,
-          model:
-          {
-            embed: unescape(e.target.dataset.embed)
-          }
-        });
-      },
-      onComposeTweet: function()
-      {
-        Log.metric("global", "tweet:compose");
-        openTweetDialog(account, "tweet");
-      },
-      onComposeDM: function()
-      {
-        Log.metric("global", "dm:compose");
-        openTweetDialog(account, "dm");
-      },
-      onToggleFavorite: function(m)
-      {
-        Log.metric("tweet", m.favorited() ? "unfav" : "fav");
-        if (m.favorited())
-        {
-          m.favorited(false);
-          account.unfavorite(m.is_retweet() ? m.retweet() : m);
-        }
-        else
-        {
-          m.favorited(true);
-          account.favorite(m.is_retweet() ? m.retweet() : m);
-        }
-      },
-      onSendRetweet: function(tweet)
-      {
-        Log.metric("tweet", "retweet:compose");
-        openTweetDialog(account, "retweet", tweet);
-      },
-      onSendReply: function(tweet)
-      {
-        Log.metric("tweet", "reply:compose");
-        openTweetDialog(account, "reply", tweet);
-      },
-      onSendDM: function(tweet)
-      {
-        Log.metric("tweet", "dm:compose");
-        openTweetDialog(account, "dm", tweet);
-      },
-      onMention: function(m, v, e)
-      {
-        Log.metric("tweet", "mention:open");
-        var screenName = e.target.dataset.name.slice(1).toLowerCase();
-        Co.Routine(this,
-          function()
-          {
-            return lgrid.read("/twitter/profile/screenName=" + screenName);
-          },
-          function(p)
-          {
-            openProfileDialog(account, p());
-          }
-        );
-      },
-      onProfilePic: function(tweet)
-      {
-        Log.metric("tweet", "pic:open");
-        Co.Routine(this,
-          function()
-          {
-            if (tweet.is_retweet())
-            {
-              tweet = tweet.retweet();
-            }
-            return lgrid.read("/twitter/profile/id=" + tweet.user().id_str);
-          },
-          function(p)
-          {
-            openProfileDialog(account, p());
-          }
-        );
-      },
-      onOpenErrors: function()
-      {
-        Log.metric("account", "errors:open");
-        new ModalView(
-        {
-          node: document.getElementById("root-dialog"),
-          template: __resources.error_dialog,
-          partials: __resources,
-          model: models.account().errors,
-          controller:
-          {
-            onRemoveError: function(m, v, e)
-            {
-              if (m.op !== "fetch")
-              {
-                account.errors.remove(m);
-              }
-            }
-          }
-        });
-      },
-      onOpenPreferences: function()
-      {
-      },
-      onFilter: function(m, v, e)
-      {
-        Log.metric("global", "filter:type");
-        filterInput = e.target;
-        RootView.getViewByName("tweets").filterText(filterInput.value.toLowerCase());
-      },
-      onDropFilter: function(m, v, e)
-      {
-        Log.metric("global", "filter:drop");
-        filterInput = e.target;
-        var key = v.dropped().key;
-        models.filter(key);
-        filterInput.value = key;
-        RootView.getViewByName("tweets").filterText(key);
-      },
-      onFilterClear: function()
-      {
-        Log.metric("global", "filter:clear");
-        filterInput && (filterInput.value = "");
-        models.filter("");
-        RootView.getViewByName("tweets").filterText("");
-      }
-    }
+    controllers:
+    [
+      new TweetController(),
+      new ListController(),
+      new FilterController(),
+      new GlobalController()
+    ]
   });
-
-  selectList(models.current_list(), RootView.getViewByName("main"));
-
-  document.addEventListener("click", function()
-  {
-    editList(null);
-  });
-
-  function editList(v)
-  {
-    if (editView)
-    {
-      account.tweetLists._save();
-      models.current_list()._save();
-      editView.property("editMode", false);
-      editView = null;
-    }
-    if (v)
-    {
-      editView = v;
-      editView.property("editMode", true);
-    }
-  }
   
   Co.Forever(this,
     function()
@@ -13794,11 +13891,13 @@ function main()
     {
       if (info())
       {
+        account.on("opened", splash);
         account.open();
       }
       else
       {
         // Welcome
+        splash();
         new ModalView(
         {
           node: document.getElementById("root-dialog"),
@@ -13818,388 +13917,9 @@ function main()
       }
     }
   );
-
-  //navigator.splashscreen && navigator.splashscreen.hide();
 }
 
-function openTweetDialog(account, type, tweet)
+function splash()
 {
-  new TweetBox().open(account, type, tweet);
+  navigator.splashscreen && navigator.splashscreen.hide();
 }
-
-function openProfileDialog(account, profile)
-{
-  new ModalView(
-  {
-    node: document.getElementById("root-dialog"),
-    template: __resources.tweet_profile,
-    partials: __resources,
-    model: profile,
-    controller:
-    {
-      onFollow: function()
-      {
-        profile.followed_by(true);
-        account.follow(profile);
-      },
-      onUnfollow: function()
-      {
-        profile.followed_by(false);
-        account.unfollow(profile);
-      }
-    }
-  });
-}
-var __resources = {
-'basic_tweet': '{{#_ View}}\
-<div class="tweet"{{#has_children}} data-action-click="OpenTweet"{{/has_children}}>\
-  {{#retweet}}\
-    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-    <div class="body">\
-      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-      <div class="text">{{{entifiedText}}}</div>\
-      {{#include_media}}\
-        {{#embed_photo_url}}\
-          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
-        {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
-        {{/embed_photo_url}}\
-      {{/include_media}}\
-    </div>\
-  {{/retweet}}\
-  {{^retweet}}\
-    <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-    <div class="body">\
-      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-      <div class="text">{{{entifiedText}}}</div>\
-      {{#include_media}}\
-        {{#embed_photo_url}}\
-          <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
-        {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
-        {{/embed_photo_url}}\
-      {{/include_media}}\
-    </div>\
-  {{/retweet}}\
-  {{#is_retweet}}\
-    <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
-  {{/is_retweet}}\
-  <div class="actions">\
-    {{#include_children}}\
-      {{#has_children}}\
-        {{:child_count}}return this.v(\'children\').length(){{/child_count}}\
-        <div class="child-count">{{child_count}}</div>\
-      {{/has_children}}\
-    {{/include_children}}\
-    {{^isDM}}\
-      <div class="action-box" data-action-click="SendReply"><div class="action reply"></div></div>\
-      <div class="action-box" data-action-click="SendRetweet"><div class="action retweet"></div></div>\
-      <div class="action-box" data-action-click="ToggleFavorite"><div class="action favorite {{#favorited}}active{{/favorited}}"></div></div>\
-    {{/isDM}}\
-    {{#isDM}}\
-      <div class="action-box" data-action-click="SendDM"><div class="action reply"></div></div>\
-    {{/isDM}}\
-  </div>\
-  {{#include_tags}}\
-    <div class="tags">\
-      {{#tags}}\
-        {{#_ View.Drag}}<div class="tag-wrapper" {{{drag_attributes}}}><div class="tag tag-{{type}}{{#dragging}} {{dragging}}{{/dragging}}">{{title}}</div></div>{{/_}}\
-      {{/tags}}\
-    </div>\
-  {{/include_tags}}\
-  {{#include_children}}\
-    {{#has_children}}\
-      <div class="nested-tweets">\
-        {{#tweet_open}}\
-          {{#children}}\
-            <div class="tweet">\
-              <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-              <div class="body">\
-                <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-                <div class="text">{{{entifiedText}}}</div>\
-              </div>\
-            </div>\
-          {{/children}}\
-        {{/tweet_open}}\
-      </div>\
-    {{/has_children}}\
-  {{/include_children}}\
-</div>\
-{{/_}}',
-'create-list': '<div class="create-list-modal">\
-  Name: <input>\
-</div>',
-'error_dialog': '<div class="dialog error-view">\
-  <div class="inner" data-action-click="Ignore">\
-    {{:has_errors}}return this.v(\'errors\').length{{/has_errors}}\
-    {{#has_errors}}\
-      <div class="summary">Twitter is unavailable.  Retrying every 60 seconds.</div>\
-      <div class="errors">\
-        {{#errors}}\
-          {{#_ View}}\
-            <div class="error error-{{op}}">\
-              {{#details}}\
-                <div class="error-title"></div>\
-                <div class="error-close" data-action-click="RemoveError">x</div>\
-                {{#text}}<div class="error-text">{{text}}</div>{{/text}}\
-              {{/details}}\
-            </div>\
-          {{/_}}\
-        {{/errors}}\
-      </div>\
-    {{/has_errors}}\
-    {{^has_errors}}\
-      No problems.\
-    {{/has_errors}}\
-  </div>\
-</div>',
-'imageview': '<div class="dialog image-view">\
-  <div class="inner" data-action-click="Ignore">\
-    <img src="{{url}}">\
-    {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
-  </div>\
-</div>',
-'main': '<div class="main">\
-  <div class="col right">\
-    {{:is_dm_list}}return this.v(\'current_list\').isDM();{{/is_dm_list}}\
-    {{^is_dm_list}}\
-      <div class="pane compose" data-action-click="ComposeTweet">\
-        Tweet...\
-      </div>\
-    {{/is_dm_list}}\
-    {{#is_dm_list}}\
-      <div class="pane compose" data-action-click="ComposeDM">\
-        Message...\
-      </div>\
-    {{/is_dm_list}}\
-    <div class="pane lists">\
-      <div class="lists-header">\
-        <div class="lists-gear" data-action-click="OpenPreferences"></div>\
-        <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
-        {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
-        {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\
-      </div>\
-      <div class="current-lists {{#open}}open{{/open}}">\
-        {{#lists ViewSet}}\
-          {{#_ View.Drop name:m.name()}}\
-            <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>\
-              <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>\
-            </div>\
-          {{/_}}\
-        {{/lists}}\
-        {{#_ View.Drop}}\
-          <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>\
-            <input placeholder="Create list or search..." data-action-change="NewList">\
-          </div>\
-        {{/_}}\
-      </div>\
-    </div>\
-    {{#_ View}}\
-      <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">\
-        <div class="list-header">\
-          <div class="title">\
-            {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}\
-            {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}\
-          </div>\
-        </div>\
-        <div class="viz">Visual: \
-          {{^editMode}}\
-            {{#current_list}}\
-              <span class="tag">{{viz}}</span>\
-            {{/current_list}}\
-          {{/editMode}}\
-          {{#editMode}}\
-            {{#current_list View}}\
-              <select data-action-change="ChangeViz">\
-                <option value="list" {{viz_list}}>list</option>\
-                <option value="stack" {{viz_stack}}>stack</options>\
-                <option value="media" {{viz_media}}>media</options>\
-              </select>\
-            {{/current_list}}\
-          {{/editMode}}\
-        </div>\
-        {{#current_list}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>\
-              Include:\
-              {{#includeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/includeTags}}\
-            </div>\
-          {{/_}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>\
-              Exclude:\
-              {{#excludeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/excludeTags}}\
-            </div>\
-          {{/_}}\
-        {{/current_list}}\
-        <div class="list-footer">\
-          {{#editMode}}\
-            {{#current_list}}\
-              {{#canRemove}}\
-                <div class="button danger" data-action-click="RemoveList">Remove</div>\
-              {{/canRemove}}\
-            {{/current_list}}\
-            <div class="clear"></div>\
-          {{/editMode}}\
-        </div>\
-      </div>\
-    {{/_}}\
-  </div>\
-  <div class="col middle2">\
-    <div class="pane filter">\
-      {{:filterfull}}return !!this.v(\'filter\'){{/filterfull}}\
-      {{#_ View.Input.Drop}}\
-        <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}\
-      {{/_}}\
-    </div>\
-    <div class="pane tweets">\
-      {{#current_list View updateOn:"viz"}}\
-        {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
-        {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\
-        {{:viz_media}}return this.v(\'viz\') === \'media\' ? \'selected\' : \'\'{{/viz_media}}\
-        {{#viz_list}}\
-          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>basic_tweet}}\
-          {{/tweets}}\
-        {{/viz_list}}\
-        {{#viz_stack}}\
-          {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>basic_tweet}}\
-          {{/tweets}}\
-        {{/viz_stack}}\
-        {{#viz_media}}\
-          {{#tweets ViewSet.LiveList name:"tweets"}}\
-            {{>media}}\
-          {{/tweets}}\
-        {{/viz_media}}\
-      {{/current_list}}\
-    </div>\
-  </div>\
-</div>',
-'media': '{{#embed_photo_url}}\
-  <div class="media-box">\
-    {{#_ View}}<div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>{{/_}}\
-  </div>\
-{{/embed_photo_url}}\
-{{^embed_photo_url}}\
-  {{#embed_video_html}}\
-    <div class="media-box">\
-      <div class="video">{{{embed_video_html}}}</div>\
-    </div>\
-  {{/embed_video_html}}\
-{{/embed_photo_url}}',
-'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
-  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">\
-    {{#title}}\
-      <div class="title">{{{title}}}</div>\
-    {{/title}}\
-    {{^title}}\
-      <div class="title">Loading ...</div>\
-    {{/title}}\
-    {{#text}}<div style="{{translate}}" class="text">{{{text}}}</div>{{/text}}\
-    <div class="readability-logo"></div>\
-    <div class="footer pages{{pages}} pagenr{{pagenr}}"></div>\
-    <div class="web button" data-action-click="OpenWeb">Web</div>\
-  </div>\
-</div>',
-'tweet_dialog': '<div class="dialog tweet-dialog">\
-  <div class="inner">\
-    <div class="tweet-dialog-header">\
-      {{:is_dm}}return this.v(\'isDM\'){{/is_dm}}\
-      {{#isTweet}}Tweet{{/isTweet}}\
-      {{#isRetweet}}Retweet{{/isRetweet}}\
-      {{#isReply}}Reply{{/isReply}}\
-      {{#is_dm}}\
-        {{#screen_name}}Private message to @{{screen_name}}{{/screen_name}}\
-        {{^screen_name}}{{#_ View.Input}}Private message to @<input autofocus type="to" class="tweet-dm-to" name="target" {{{input_attributes}}}>{{/_}}{{/screen_name}}\
-      {{/is_dm}}\
-    </div>\
-    <div class="tweet-dialog-body">\
-      {{#isEdit}}{{#_ View}}<textarea type="url" class="tweet-text-edit" {{^is_dm}}autofocus{{/is_dm}}{{#screen_name}} autofocus{{/screen_name}} name="text" data-action-input="Input">{{text}}</textarea>{{/_}}{{/isEdit}}\
-      {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}\
-    </div>\
-    <div class="tweet-dialog-footer">\
-      <div class="suggestions">\
-        <div class="inside">\
-          {{#usuggestions}}\
-            {{#_ View className:\'user-suggestion\'}}\
-              <div data-action-click="Suggestion">\
-                <div class="name">{{name}}</div>\
-                <div class="screenname">@{{screenname}}</div>\
-              </div>\
-            {{/_}}\
-          {{/usuggestions}}\
-          {{#hsuggestions}}\
-            {{#_ View className:\'hashtag-suggestion\'}}\
-              <div data-action-click="Suggestion">\
-                {{name}}\
-              </div>\
-            {{/_}}\
-          {{/hsuggestions}}\
-        </div>\
-      </div>\
-      <div class="controls">\
-        {{#isEdit}}<div class="tweet-count" >{{count}}</div>{{/isEdit}}\
-        <div class="button" data-action-click="CancelButton">Cancel</div>\
-        {{#isTweet}}<div class="button primary" data-action-click="TweetButton">Tweet</div>{{/isTweet}}\
-        {{#isRetweet}}<div class="button primary" data-action-click="RetweetButton">Retweet</div>{{/isRetweet}}\
-        {{#isReply}}<div class="button primary" data-action-click="ReplyButton">Reply</div>{{/isReply}}\
-        {{#is_dm}}<div class="button primary" data-action-click="DMButton">Send</div>{{/is_dm}}\
-      </div>\
-    </div>\
-  </div>\
-</div>',
-'tweet_profile': '<div class="dialog tweet-profile">\
-  <div class="border" data-action-click="Ignore">\
-    <div class="background" style="{{#profile_background_image_url}}background-image:url({{profile_background_image_url}});{{^profile_background_tile}}background-repeat: no-repeat;{{/profile_background_tile}}{{/profile_background_image_url}}{{#profile_background_color}}background-color:#{{profile_background_color}};{{/profile_background_color}}">\
-      <div class="inner">\
-        <div class="left">\
-          <img class="icon" src="{{profile_image_url}}">\
-          <div class="body">\
-            <span class="fullname">{{name}}</span>\
-            <span class="screenname">@{{screen_name}}</span>\
-          </div>\
-          {{#location}}<div class="location">{{location}}</div>{{/location}}\
-          {{#url}}<div class="url">{{url}}</span></div>{{/url}}\
-          {{#description}}<div class="description">{{description}}</div>{{/description}}\
-        </div>\
-        <div class="right">\
-          <div class="stats">\
-            <div class="tweet-nr"><div class="label">Tweets</div>{{tweet_count}}</div>\
-            <div class="following-nr"><div class="label">Following</div>{{friends_count}}</div>\
-            <div class="followers-nr"><div class="label">Followers</div>{{followers_count}}</div>\
-          </div>\
-          {{#followed_by}}\
-            <div class="button unfollow" data-action-click="Unfollow">Unfollow</div>\
-          {{/followed_by}}\
-          {{^followed_by}}\
-            <div class="button follow" data-action-click="Follow">Follow</div>\
-          {{/followed_by}}\
-        </div>\
-      </div>\
-    </div>\
-  </div>\
-</div>',
-'videoview': '<div class="dialog image-view">\
-  <div class="inner" data-action-click="Ignore">\
-    {{{embed}}}\
-  </div>\
-</div>',
-'welcome': '<div class="dialog welcome">\
-  <div class="inner">\
-    <div class="welcome-title">Welcome to Tweed</div>\
-    <div class="welcome-body">To start, hit the button and log into Twitter.</div>\
-    <div class="button" data-action-click="Start">Start</div>\
-  </div>\
-</div>',
-'_':null};
