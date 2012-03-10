@@ -208,5 +208,10 @@ var TweetBox = Class(
         }
       });
     }
+    if (text)
+    {
+      var ta = mv.node().querySelector("textarea");
+      ta.selectionStart = ta.selectionEnd = text.length;
+    }
   }
 });
