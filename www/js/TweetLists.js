@@ -241,12 +241,17 @@ var TweetLists = Class(
         var tweetb = [];
         var mentionb = [];
         var dmb = [];
+        var favb = [];
 
         include.forEach(function(tweet)
         {
           if (tweet.isDM())
           {
             dmb.push(tweet);
+          }
+          else if (tweet.favorited())
+          {
+            favb.push(tweet);
           }
           else if (tweet.isMention())
           {
@@ -256,11 +261,12 @@ var TweetLists = Class(
           {
             tweetb.push(tweet);
           }
-        }, this);
+        });
 
         tweetb.length && this._types.tweets.prepend(tweetb);
         mentionb.length && this._types.mentions.prepend(mentionb);
         dmb.length && this._types.dms.prepend(dmb);
+        favb.length && this._types.favs.prepend(favb);
         this._save();
 
         var o = this._getVelocity();
@@ -319,7 +325,11 @@ var TweetLists = Class(
   favTweets: function(tweets)
   {
     var tweets = this._separateTweets(tweets);
-    tweets.include.concat(tweets.exclude).forEach(function(tweet)
+    tweets.include.forEach(function(tweet)
+    {
+      tweet.favorited(true);
+    });
+    tweets.exclude.forEach(function(tweet)
     {
       tweet.favorited(true);
       tweets.include.push(tweet);
