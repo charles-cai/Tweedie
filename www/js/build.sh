@@ -12,4 +12,3 @@ for i in $(grep -o "[a-zA-z0-9./\-]*\.js" $DIR/../desktop.html)
 do
   cat $DIR/../$i >> $FILE
 done
-cat $DIR/../resources/resources.js >> $FILE
