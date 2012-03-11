@@ -1646,6 +1646,7 @@ var View = exports.View = Class(Model,
     self.$depth = 0;
     self.$node = null;
     self.$className = args.className || "view";
+    self.$style = args.style;
     self.$model = args.model;
     self.$renderer = args.renderer;
     self.$cursor = args.cursor ? args.cursor.clone([ self.$model, self ]) : new Template.Cursor([ self.$model, self ]);
@@ -1690,7 +1691,7 @@ var View = exports.View = Class(Model,
 
   htmlOptions: function()
   {
-    return 'class="' + this.$className + '" data-view="' + this.identity() + '"' + (this.$name ? ' data-name="' + this.$name + '"' : '')
+    return 'class="' + this.$className + (this.$style ? '" style="' + this.$style : '') + '" data-view="' + this.identity() + '"' + (this.$name ? ' data-name="' + this.$name + '"' : '')
   },
 
   innerHtml: function()
@@ -2855,21 +2856,24 @@ var RootView = exports.RootView = Class(View,
             for (var i = k.length - 1; i >= 2; i--)
             {
               var p = k[i].split(":");
-              if (p.length === 2)
+              if (p.length >= 2)
               {
-                if (p[0] === "view")
+                var pk = p.shift();
+                var pv = p.join(":");
+                if (pk === "view")
                 {
-                  args[p[0]] = RootView._getViewClass(p[1]);
+                  args[pk] = RootView._getViewClass(pv);
                 }
                 else
                 {
+                  
                   try
                   {
-                    args[p[0]] = eval(p[1]);
+                    args[pk] = eval(pv);
                   }
                   catch (_)
                   {
-                    args[p[0]] = p[1];
+                    args[pk] = pv;
                   }
                 }
               }
@@ -3231,7 +3235,7 @@ var RootView = exports.RootView = Class(View,
               {
                 try
                 {
-                  if (fn.call(controller, view.$model, view, evt) !== false)
+                  if (fn.call(controller, view.$model, view, evt, cview.$model, cview) !== false)
                   {
                     stop++;
                   }
@@ -3762,6 +3766,18 @@ var ModalView = exports.ModalView = Class(RootView,
   {
     this.action("close");
     this.destructor();
+  }
+});
+var Controller = exports.Controller = Class(
+{
+  constructor: function()
+  {
+  }
+}).statics(
+{
+  create: function(methods)
+  {
+    return Class(Controller, methods);
   }
 });
 var Url = exports.Url = Class(
@@ -4389,6 +4405,21 @@ var GridInstance = Class(
   {
     this._grid = grid;
     this._options = options || {};
+    if (this._options.lru)
+    {
+      var lru = new LRU(this._options.lru);
+      lru.on("evict", function(event, path)
+      {
+        this.evict(path);
+      }, this);
+      this._options.touch = function(path)
+      {
+        lru.get(path, function()
+        {
+          return true;
+        });
+      }
+    }
   },
 
   read: function(path)

@@ -226,7 +226,7 @@ var __resources = {
           {{/tweets}}\
         {{/viz_stack}}\
         {{#viz_media}}\
-          {{#tweets ViewSet.LiveList name:"tweets"}}\
+          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
             {{>media}}\
           {{/tweets}}\
         {{/viz_media}}\
@@ -234,18 +234,42 @@ var __resources = {
     </div>\
   </div>\
 </div>',
-'media': '{{#embed_photo_url}}\
-  <div class="media-box">\
-    {{#_ View}}<div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>{{/_}}\
-  </div>\
-{{/embed_photo_url}}\
-{{^embed_photo_url}}\
-  {{#embed_video_html}}\
-    <div class="media-box">\
-      <div class="video">{{{embed_video_html}}}</div>\
-    </div>\
-  {{/embed_video_html}}\
-{{/embed_photo_url}}',
+'media': '{{#retweet}}\
+  {{#embed_photo_url}}\
+    {{#_ View}}\
+      <div class="media-box">\
+        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+      </div>\
+    {{/_}}\
+  {{/embed_photo_url}}\
+  {{^embed_photo_url}}\
+    {{#embed_video_html}}\
+      {{#_ View}}\
+        <div class="media-box">\
+          <div class="video">{{{embed_video_html}}}</div>\
+        </div>\
+      {{/_}}\
+    {{/embed_video_html}}\
+  {{/embed_photo_url}}\
+{{/retweet}}\
+{{^retweet}}\
+  {{#embed_photo_url}}\
+    {{#_ View}}\
+      <div class="media-box">\
+        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+      </div>\
+    {{/_}}\
+  {{/embed_photo_url}}\
+  {{^embed_photo_url}}\
+    {{#embed_video_html}}\
+      {{#_ View}}\
+        <div class="media-box">\
+          <div class="video">{{{embed_video_html}}}</div>\
+        </div>\
+      {{/_}}\
+    {{/embed_video_html}}\
+  {{/embed_photo_url}}\
+{{/retweet}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
   <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">\
     {{#title}}\
