@@ -51,7 +51,10 @@ var Account = Class(Events,
             this.emit("screenNameChange");
             this._lgrid.write("/accounts", this.serialize());
           }
+          this.emit("opened");
         }, this);
+
+        Topics.open();
 
         return this.tweetLists.restore();
       },
@@ -94,6 +97,7 @@ var Account = Class(Events,
         document.addEventListener("pause", function()
         {
           self._fetcher.fetchAbort();
+          self._fetcher.searchAbort();
         });
         this.fetch();
 

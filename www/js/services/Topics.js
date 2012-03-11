@@ -12,64 +12,67 @@ var Topics = {};
     return name2topic[name] || [];
   };
 
-  Co.Routine(this,
-    function()
-    {
-      return lgrid.read("/topics");
-    },
-    function(data)
-    {
-      data = data() || {};
-      name2topic = data.name2topic || [];
-      lastupdate = data.lastupdate || 0;
-
-      if (Date.now() - lastupdate > refreshTimeout)
+  Topics.open = function()
+  {
+    Co.Routine(this,
+      function()
       {
-        return Co.Routine(this,
-          function()
-          {
-            return Co.Forever(this,
-              function()
-              {
-                return PrimaryFetcher ? Co.Break() : Co.Sleep(60);
-              }
-            );
-          },
-          function()
-          {
-            return PrimaryFetcher.suggestions();
-          },
-          function(r)
-          {
-            return Co.Foreach(this, r(),
-              function(suggestion)
-              {
-                return PrimaryFetcher.suggestions(suggestion().slug);
-              }
-            );
-          },
-          function(s)
-          {
-            var hash = {};
-            s().forEach(function(suggestion)
+        return lgrid.read("/topics");
+      },
+      function(data)
+      {
+        data = data() || {};
+        name2topic = data.name2topic || [];
+        lastupdate = data.lastupdate || 0;
+
+        if (Date.now() - lastupdate > refreshTimeout)
+        {
+          return Co.Routine(this,
+            function()
             {
-              var name = suggestion.name;
-              suggestion.users.forEach(function(user)
+              return Co.Forever(this,
+                function()
+                {
+                  return PrimaryFetcher ? Co.Break() : Co.Sleep(10);
+                }
+              );
+            },
+            function()
+            {
+              return PrimaryFetcher.suggestions();
+            },
+            function(r)
+            {
+              return Co.Foreach(this, r(),
+                function(suggestion)
+                {
+                  return PrimaryFetcher.suggestions(suggestion().slug);
+                }
+              );
+            },
+            function(s)
+            {
+              var hash = {};
+              s().forEach(function(suggestion)
               {
-                var screenname = "@" + user.screen_name.toLowerCase();
-                (hash[screenname] || (hash[screenname] = [])).push({ title: name });
+                var name = suggestion.name;
+                suggestion.users.forEach(function(user)
+                {
+                  var screenname = "@" + user.screen_name.toLowerCase();
+                  (hash[screenname] || (hash[screenname] = [])).push({ title: name });
+                });
               });
-            });
-            name2topic = hash;
-            lastupdate = Date.now();
-            lgrid.write("/topics",
-            {
-              name2topic: name2topic,
-              lastupdate: lastupdate
-            });
-          }
-        );
+              name2topic = hash;
+              lastupdate = Date.now();
+              lgrid.write("/topics",
+              {
+                name2topic: name2topic,
+                lastupdate: lastupdate
+              });
+            }
+          );
+        }
       }
-    }
-  );
+    );
+  }
 })();
