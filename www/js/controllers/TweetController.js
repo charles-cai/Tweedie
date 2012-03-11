@@ -137,7 +137,7 @@ var TweetController = xo.Controller.create(
     );
   },
 
-  onImage: function(_, _, e)
+  onImage: function(m, _, e, models)
   {
     Log.metric("tweet", "image:open");
 
@@ -158,7 +158,7 @@ var TweetController = xo.Controller.create(
       model:
       {
         url: url,
-        tweet: this.models.current_list().viz() === "media" ? m : null
+        tweet: models.current_list().viz() === "media" ? m : null
       },
       controller: this
     });
