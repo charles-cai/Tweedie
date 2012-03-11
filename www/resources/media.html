@@ -1,12 +1,36 @@
-{{#embed_photo_url}}
-  <div class="media-box">
-    {{#_ View}}<div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url('{{embed_photo_url_small}}')"></div>{{/_}}
-  </div>
-{{/embed_photo_url}}
-{{^embed_photo_url}}
-  {{#embed_video_html}}
-    <div class="media-box">
-      <div class="video">{{{embed_video_html}}}</div>
-    </div>
-  {{/embed_video_html}}
-{{/embed_photo_url}}
+{{#retweet}}
+  {{#embed_photo_url}}
+    {{#_ View}}
+      <div class="media-box">
+        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url('{{embed_photo_url_small}}')"></div>
+      </div>
+    {{/_}}
+  {{/embed_photo_url}}
+  {{^embed_photo_url}}
+    {{#embed_video_html}}
+      {{#_ View}}
+        <div class="media-box">
+          <div class="video">{{{embed_video_html}}}</div>
+        </div>
+      {{/_}}
+    {{/embed_video_html}}
+  {{/embed_photo_url}}
+{{/retweet}}
+{{^retweet}}
+  {{#embed_photo_url}}
+    {{#_ View}}
+      <div class="media-box">
+        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url('{{embed_photo_url_small}}')"></div>
+      </div>
+    {{/_}}
+  {{/embed_photo_url}}
+  {{^embed_photo_url}}
+    {{#embed_video_html}}
+      {{#_ View}}
+        <div class="media-box">
+          <div class="video">{{{embed_video_html}}}</div>
+        </div>
+      {{/_}}
+    {{/embed_video_html}}
+  {{/embed_photo_url}}
+{{/retweet}}
