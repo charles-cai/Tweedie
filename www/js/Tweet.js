@@ -123,7 +123,7 @@ var Tweet = Model.create(
               }
               else
               {
-                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '">' + durl(t) + '</span>';
+                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
               }
               break;
             case "url":
@@ -377,7 +377,7 @@ var Tweet = Model.create(
               media.push(
               {
                 type: o.type,
-                media_url: o.medial_url || o.url,
+                media_url: o.media_url || o.url,
                 display_url: o.url,
                 resolved_url: o.url,
                 resolved_display_url: o.url && this.make_display_url(o.url),
