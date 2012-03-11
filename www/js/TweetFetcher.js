@@ -607,7 +607,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/users/show.json?include_entities=true&" + key,
+          url: "https://api.twitter.com/1/users/show.json?include_entities=true&" + key,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -628,7 +628,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
+          url: "https://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
           auth: this._auth,
           proxy: networkProxy
         });
@@ -648,7 +648,7 @@ var TweetFetcher = xo.Class(Events,
         return this._ajaxWithRetry(
         {
           method: "GET",
-          url: "http://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
+          url: "https://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
           auth: this._auth,
           proxy: networkProxy
         });
