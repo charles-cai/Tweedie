@@ -63,12 +63,12 @@ var UrlExpander = Class(Events,
     {
       return {
         url: url + "/media?size=m",
-        medial_url: url + "/media?size=l",
+        media_url: url + "/media?size=l",
         type: "photo"
       };
     }
-    // YouTube
-    else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
+    // YouTube - No YouTube for now because iframes mess up the touch scolling in iOS 5.1 :-(
+    /* else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
     {
       var v = new xo.Url(url).getParameter("v");
       return {
@@ -77,13 +77,23 @@ var UrlExpander = Class(Events,
         html: '<iframe width="350" height="262" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>',
         html_large: '<iframe width="640" height="360" src="http://www.youtube.com/embed/' + v + '?rel=0" frameborder="0" allowfullscreen></iframe>'
       }
+    } */
+    // YouTube - picture only
+    else if (url.indexOf("http://www.youtube.com/watch?v=") === 0)
+    {
+      var v = new xo.Url(url).getParameter("v");
+      return {
+        url: url,
+        type: "photo",
+        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg"
+      }
     }
     // Twitpic
     else if (url.indexOf("http://twitpic.com/") === 0)
     {
       return {
         url: url,
-        medial_url: "http://twitpic.com/show/large/" + new xo.Url(url).pathname,
+        media_url: "http://twitpic.com/show/large/" + new xo.Url(url).pathname,
         type: "photo"
       };
     }
@@ -92,7 +102,7 @@ var UrlExpander = Class(Events,
     {
       return {
         url: url + ":iphone",
-        medial_url: url + ":medium",
+        media_url: url + ":medium",
         type: "photo"
       };
     }
