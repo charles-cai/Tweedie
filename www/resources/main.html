@@ -111,7 +111,7 @@
           {{/tweets}}
         {{/viz_stack}}
         {{#viz_media}}
-          {{#tweets ViewSet.LiveList name:"tweets"}}
+          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}
             {{>media}}
           {{/tweets}}
         {{/viz_media}}
