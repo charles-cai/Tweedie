@@ -158,7 +158,11 @@ var TweetController = xo.Controller.create(
       model:
       {
         url: url,
-        tweet: models.current_list().viz() === "media" ? m : null
+        tweet: models.current_list().viz() === "media" ? m : null,
+        account: function()
+        {
+          return models.account();
+        }
       },
       controller: this
     });
