@@ -203,34 +203,36 @@ var __resources = {
       </div>\
     {{/_}}\
   </div>\
-  <div class="col middle2">\
-    <div class="pane filter">\
-      {{:filterfull}}return !!this.v(\'filter\'){{/filterfull}}\
-      {{#_ View.Input.Drop}}\
-        <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}\
-      {{/_}}\
-    </div>\
-    <div class="pane tweets">\
-      {{#current_list View updateOn:"viz"}}\
-        {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
-        {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\
-        {{:viz_media}}return this.v(\'viz\') === \'media\' ? \'selected\' : \'\'{{/viz_media}}\
-        {{#viz_list}}\
-          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>basic_tweet}}\
-          {{/tweets}}\
-        {{/viz_list}}\
-        {{#viz_stack}}\
-          {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>basic_tweet}}\
-          {{/tweets}}\
-        {{/viz_stack}}\
-        {{#viz_media}}\
-          {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
-            {{>media}}\
-          {{/tweets}}\
-        {{/viz_media}}\
-      {{/current_list}}\
+  <div class="col left">\
+    <div class="pane">\
+      <div class="filter">\
+        {{:filterfull}}return !!this.v(\'filter\'){{/filterfull}}\
+        {{#_ View.Input.Drop}}\
+          <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}\
+        {{/_}}\
+      </div>\
+      <div class="tweets">\
+        {{#current_list View updateOn:"viz"}}\
+          {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
+          {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\
+          {{:viz_media}}return this.v(\'viz\') === \'media\' ? \'selected\' : \'\'{{/viz_media}}\
+          {{#viz_list}}\
+            {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
+              {{>basic_tweet}}\
+            {{/tweets}}\
+          {{/viz_list}}\
+          {{#viz_stack}}\
+            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
+              {{>basic_tweet}}\
+            {{/tweets}}\
+          {{/viz_stack}}\
+          {{#viz_media}}\
+            {{#tweets ViewSet.TextFilter.LiveList name:"tweets" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
+              {{>media}}\
+            {{/tweets}}\
+          {{/viz_media}}\
+        {{/current_list}}\
+      </div>\
     </div>\
   </div>\
 </div>',

@@ -6,7 +6,6 @@ body
   width: 768px;
   height: 1000px;
   font-family: "Helvetica Neue", "Helvetica";
-  xbackground-color: rgb(146,228,232);
   background-color: hsl(183, 65%, 25%);
   overflow: hidden;
   z-index: 1;
@@ -60,56 +59,59 @@ body
   left: 558px;
   width: 202px;
 }
-.col.middle2
+.col.left
 {
   bottom: 4px;
   left: 0;
   width: 554px;
   box-sizing: border-box;
 }
-.pane.filter
+.col.left .filter
 {
-  height: 29px;
+  height: 25px;
+  margin: 2px;
 }
-.pane.filter input
+.col.left .filter input
 {
   display: inline-block;
   box-sizing: border-box;
-  border: 0;
+  border: 1px solid grey;
   width: 100%;
   height: 100%;
   font: inherit;
   vertical-align: top;
+  font-size: 15px;
 }
-.pane.filter .filter-clear
+.col.left .filter .filter-clear
 {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
   width: 26px;
   height: 26px;
   background: url(../img/remove.png) no-repeat top right;
-}
-.pane.filter .filter-clear:active
-{
   opacity: 0.5;
 }
-.pane.filter input.dropzone
+.col.left .filter .filter-clear:active
+{
+  opacity: 0.25;
+}
+.col.left .filter input.dropzone
 {
   background-color: #eeeeee;
 }
-.pane.tweets
+.col.left .tweets
 {
-  height: 960px;
+  height: 965px;
   padding: 3px;
   box-sizing: border-box;
   -webkit-transform: translate3d(0,0,0);
 }
-.pane.tweets > .view
+.col.left .tweets > .view
 {
   height: 950px;
 }
-.col.middle2 .pane.tweets > .view > .collection-view
+.col.left .tweets > .view > .collection-view
 {
   position: relative;
   height: 100%;
@@ -117,7 +119,7 @@ body
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
-.col.middle2 .pane.tweets > .view > .collection-view::-webkit-scrollbar
+.col.left .pane.tweets > .view > .collection-view::-webkit-scrollbar
 {
   width: 0;
 }
@@ -125,7 +127,7 @@ body
 {
   border: 1px solid rgba(0, 0, 0, 0.2);
   -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  -webkit-border-radius: 3px;
+  x-border-radius: 3px;
   margin-bottom: 5px;
   background-color: #fefbf3;
 }
@@ -205,7 +207,7 @@ body
 {
   border: 1px solid transparent;
   margin: 10px 4px 5px 0px;
-  -webkit-border-radius: 3px;
+  border-radius: 3px;
 }
 .create-list input, .list-header .title input, .tweet-dialog-header input
 {
@@ -237,7 +239,7 @@ body
   border: 1px solid transparent;
   padding: 3px;
   height: 18px;
-  -webkit-border-radius: 3px;
+  border-radius: 3px;
 }
 .list:active
 {
@@ -258,7 +260,7 @@ body
   color: rgba(0,0,0,0.6);
   background-color: white;
   padding: 0 5px;
-  -webkit-border-radius: 10px;
+  border-radius: 10px;
   line-height: 18px;
   font-size: 12px;
 }
@@ -319,7 +321,7 @@ body
 {
   padding: 2px 0px;
   border: 1px solid transparent;
-  -webkit-border-radius: 3px;
+  border-radius: 3px;
 }
 .list-footer
 {
@@ -349,7 +351,7 @@ body
   width: 48px;
   height: 48px;
   float: left;
-  -webkit-border-radius: 5px;
+  border-radius: 5px;
 }
 .icon:active
 {
@@ -428,7 +430,7 @@ body
   border: 1px solid rgba(0,0,0,0.5);
   font-size: 9px;
   color: rgba(0,0,0,0.5);
-  -webkit-border-radius: 5px;
+  border-radius: 5px;
   background-color: hsl(149,98%,98%);
 }
 .kill-tag
@@ -481,7 +483,7 @@ body
   border: 1px solid rgba(0,0,0,0.2);
   color: rgba(0,0,0,0.6);
   padding: 0 5px;
-  -webkit-border-radius: 10px;
+  border-radius: 10px;
   line-height: 13px;
   font-size: 10px;
   vertical-align: text-top;
@@ -624,7 +626,7 @@ body
   background-color: white;
   padding: 10px;
   height: 100%;
-  -webkit-border-radius: 5px;
+  border-radius: 5px;
   -webkit-box-shadow: 0 0 10px #444;
 }
 .image-view
@@ -673,7 +675,7 @@ body
   background-color: #f5f5f5;
   border-top: 1px solid #ddd;
   padding: 14px 15px 15px 15px;
-  -webkit-border-radius: 0 0 6px 6px;
+  border-radius: 0 0 6px 6px;
   -webkit-box-shadow: insert 0 1px 0 #ffffff;
 }
 .tweet-dialog .tweet-text, .tweet-dialog .tweet-text-edit
@@ -713,7 +715,7 @@ body
   display: inline-block;
   background-color: white;
   border: 1px solid rgba(0,0,0,0.5);
-  -webkit-border-radius: 3px;
+  border-radius: 3px;
   font-size: 10px;
   padding: 2px;
 }
@@ -740,7 +742,7 @@ body
   font-size: 13px;
   border: 1px solid #ccc;
   border-bottom-color: #bbb;
-  -webkit-border-radius: 4px;
+  border-radius: 4px;
   -webkit-transition: 0.1s linear all;
 }
 .button.primary
@@ -935,20 +937,20 @@ body
 {
   padding: 10px;
   background-color: white;
-  -webkit-border-radius: 5px;
+  border-radius: 5px;
   -webkit-box-shadow: 0 0 10px #444;
 }
 .tweet-profile .background
 {
   padding: 50px 0 0 75px;
-  -webkit-border-radius: 5px;
+  border-radius: 5px;
 }
 .tweet-profile .inner
 {
   min-height: 165px;
   background-color: rgba(255,255,255,0.9);
   -webkit-box-shadow: none;
-  -webkit-border-radius: 0;
+  border-radius: 0;
   border-top-left-radius: 5px;
 }
 .tweet-profile .left
@@ -977,7 +979,7 @@ body
 {
   width: 100%;
   border: solid 1px #ddd;
-  -webkit-border-radius: 4px;
+  border-radius: 4px;
   background-color: #f4f4f4;
   margin-top: 2px;
 }
@@ -1027,7 +1029,7 @@ body
 .error-view .errors
 {
   border: solid 1px #ddd;
-  -webkit-border-radius: 4px;
+  border-radius: 4px;
   background-color: #f4f4f4;
   margin-top: 2px;
 }
@@ -1059,7 +1061,7 @@ body
   font-weight: bold;
   background-color: #b94a48;
   color: white;
-  -webkit-border-radius: 3px;
+  border-radius: 3px;
   font-size: 10px;
 }
 .error-view .errors .error .error-text
