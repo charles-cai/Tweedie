@@ -105,6 +105,17 @@ var Mixin = exports.Mixin = function(/* mixins ... */)
   }
   return prototype;
 };
+
+var Identity = exports.Identity = function(obj, fn)
+{
+  var id = obj.__xoid;
+  if (!id)
+  {
+    id = obj.__xoid = fn ? fn() : "i" + Identity._nextId++;
+  }
+  return id;
+}
+Identity._nextId = 1;
 var Events = exports.Events =
 {
   addEventListener: function(events, fn, context)
@@ -1039,6 +1050,105 @@ var Co = exports.Co =
     );
   }
 };
+var LRU = exports.LRU = Class(Events,
+{
+  constructor: function(size)
+  {
+    this._size = size;
+    this._hash = {};
+    this._queue = [];
+  },
+
+  get: function(key, fn, ctx)
+  {
+    var item = this._hash[key];
+    if (!item)
+    {
+      if (fn)
+      {
+        item = fn.call(ctx, key);
+        if (item !== undefined)
+        {
+          this._hash[key] = item;
+          this._queue.unshift(key);
+          if (this._queue.length > this._size)
+          {
+            var ekey = this._queue.slice(-1);
+            var eobj = this._hash[ekey];
+            delete this._hash[ekey];
+            this.emit("evict", ekey, eobj);
+            this._queue.length = this._size;
+          }
+        }
+      }
+    }
+    else
+    {
+      var idx = this._queue.indexOf(key);
+      if (idx !== 0)
+      {
+        this._queue.splice(idx, 1);
+        this._queue.unshift(key);
+      }
+    }
+    return item;
+  },
+
+  add: function(key, item)
+  {
+    this._hash[key] = item;
+    var idx = this._queue.indexOf(key);
+    if (idx !== -1)
+    {
+      this._queue.splice(idx, 1);
+      this._queue.unshift(key);
+    }
+    else if (idx !== 0)
+    {
+      this._queue.unshift(key);
+      if (this._queue.length > this._size)
+      {
+        var ekey = this._queue.slice(-1);
+        var eobj = this._hash[ekey];
+        delete this._hash[ekey];
+        this.emit("evict", ekey, eobj);
+        this._queue.length = this._size;
+      }
+    }
+  },
+
+  remove: function(key)
+  {
+    var item = this._hash[key];
+    if (item)
+    {
+      delete this._hash[key];
+      this._queue.splice(this._queue.indexOf(key));
+      return item;
+    }
+    else
+    {
+      return null;
+    }
+  },
+
+  keys: function()
+  {
+    return Object.keys(this._hash);
+  }
+});
+var Uuid = exports.Uuid =
+{
+  create: function()
+  {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
+    {
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+  }
+};
 function _ModelProperty(prop)
 {
   return Model.makeProperty(prop);
@@ -1149,11 +1259,10 @@ var Model = exports.Model = Class(Events,
   
   identity: function(model)
   {
-    if (!model._id)
+    return Identity(model, function()
     {
-      model._id = "m" + this._nextId++;
-    }
-    return model._id
+      return "m" + Model._nextId++;
+    });
   },
 
   makeProperty: function(prop)
@@ -1776,11 +1885,10 @@ var View = exports.View = Class(Model,
 
   buildIdentity: function(renderer, model)
   {
-    if (!renderer._rendererId)
+    return Identity(renderer, function()
     {
-      renderer._rendererId = "v" + this._nextId++;
-    }
-    return renderer._rendererId + "-" + Model.identity(model);
+      return "v" + View._nextId++;
+    }) + "-" + Model.identity(model);
   }
 });
 var ViewSet = exports.ViewSet = Class(View,
@@ -2751,7 +2859,7 @@ var RootView = exports.RootView = Class(View,
   {
     var self = this;
     self.$controllers = args.controllers ? args.controllers : args.controller ? [ args.controller ] : [];
-    self.$template = args.template && new this.ViewTemplate(args.template, args.partials);
+    self.$template = args.template && this.ViewTemplate.get(args.template, args.partials);
     args.renderer = args.renderer || function(model)
     {
       return self.$template.r(model);
@@ -2911,6 +3019,17 @@ var RootView = exports.RootView = Class(View,
           return "";
         }
       }
+    }
+  }).statics(
+  {
+    _cache: new LRU(128),
+
+    get: function(template, partials)
+    {
+      return this._cache.get(Identity(template) + Identity(partials), function(id)
+      {
+        return new this(template, partials);
+      }, this);
     }
   })
 }).statics(
@@ -3772,6 +3891,16 @@ var Controller = exports.Controller = Class(
 {
   constructor: function()
   {
+  },
+
+  metrics:
+  {
+    category: "unknown"
+  },
+
+  metric: function(action, value)
+  {
+    Log.metric(this.metrics.category, action, value);
   }
 }).statics(
 {
@@ -5005,103 +5134,4 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
   }
 
 });
-var LRU = exports.LRU = Class(Events,
-{
-  constructor: function(size)
-  {
-    this._size = size;
-    this._hash = {};
-    this._queue = [];
-  },
-
-  get: function(key, fn, ctx)
-  {
-    var item = this._hash[key];
-    if (!item)
-    {
-      if (fn)
-      {
-        item = fn.call(ctx, key);
-        if (item !== undefined)
-        {
-          this._hash[key] = item;
-          this._queue.unshift(key);
-          if (this._queue.length > this._size)
-          {
-            var ekey = this._queue.slice(-1);
-            var eobj = this._hash[ekey];
-            delete this._hash[ekey];
-            this.emit("evict", ekey, eobj);
-            this._queue.length = this._size;
-          }
-        }
-      }
-    }
-    else
-    {
-      var idx = this._queue.indexOf(key);
-      if (idx !== 0)
-      {
-        this._queue.splice(idx, 1);
-        this._queue.unshift(key);
-      }
-    }
-    return item;
-  },
-
-  add: function(key, item)
-  {
-    this._hash[key] = item;
-    var idx = this._queue.indexOf(key);
-    if (idx !== -1)
-    {
-      this._queue.splice(idx, 1);
-      this._queue.unshift(key);
-    }
-    else if (idx !== 0)
-    {
-      this._queue.unshift(key);
-      if (this._queue.length > this._size)
-      {
-        var ekey = this._queue.slice(-1);
-        var eobj = this._hash[ekey];
-        delete this._hash[ekey];
-        this.emit("evict", ekey, eobj);
-        this._queue.length = this._size;
-      }
-    }
-  },
-
-  remove: function(key)
-  {
-    var item = this._hash[key];
-    if (item)
-    {
-      delete this._hash[key];
-      this._queue.splice(this._queue.indexOf(key));
-      return item;
-    }
-    else
-    {
-      return null;
-    }
-  },
-
-  keys: function()
-  {
-    return Object.keys(this._hash);
-  }
-});
-var Uuid = exports.Uuid =
-{
-  create: function()
-  {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
-    {
-        var r = Math.random() * 16 | 0;
-        var v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-  }
-};
 })();

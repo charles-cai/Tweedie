@@ -10,6 +10,11 @@ var ListController = xo.Controller.create(
     });
   },
 
+  metrics:
+  {
+    category: "lists"
+  },
+
   onSelectList: function(m, v, _, models)
   {
     if (models.current_list() === m)
@@ -39,24 +44,24 @@ var ListController = xo.Controller.create(
     var query = m.asSearch();
     if (query)
     {
-      Log.metric("lists", "select:search");
+      this.metric("select:search");
       models.account().search(query);
     }
     else
     {
-      Log.metric("lists", "select:list");
+      this.metric("select:list");
     }
   },
 
   onDropToList: function(m, v, _, models)
   {
-    Log.metric("tweet", "list:include:add")
+    this.metric("include:add_to_other")
     models.account().tweetLists.addIncludeTag(m, v.dropped());
   },
 
   onDropToNewList: function(m, v, _, models)
   {
-    Log.metric("tweet", "list:new:drop");
+    this.metric("new:drop");
     var listName = v.dropped().title;
     switch (v.dropped().type)
     {
@@ -76,7 +81,7 @@ var ListController = xo.Controller.create(
 
   onNewList: function(m, v, e, models)
   {
-    Log.metric("global", "list:new:type");
+    this.metric("new:type");
     var listName = e.target.value;
     if (listName)
     {
@@ -87,13 +92,13 @@ var ListController = xo.Controller.create(
 
   onEditList: function(_, v, _, models)
   {
-    Log.metric("list", "edit");
+    this.metric("edit");
     this._editList(v, models);
   },
 
   onRemoveList: function(_, _, _, models)
   {
-    Log.metric("list", "remove");
+    this.metric("remove");
     models.account().tweetLists.removeList(models.current_list());
     this._editList(null, null);
     models.current_list(models.account().tweetLists.lists.models[0]);
@@ -103,13 +108,13 @@ var ListController = xo.Controller.create(
 
   onDropInclude: function(_, v, _, models)
   {
-    Log.metric("list", "include:add");
+    this.metric("include:add");
     models.account().tweetLists.addIncludeTag(models.current_list(), v.dropped());
   },
 
   onDropExclude: function(_, v, _, models)
   {
-    Log.metric("list", "exclude:add");
+    this.metric("exclude:add");
     models.account().tweetLists.addExcludeTag(models.current_list(), v.dropped());
   },
 
@@ -117,7 +122,7 @@ var ListController = xo.Controller.create(
   {
     if (this._editView && this._editView.property("editMode"))
     {
-      Log.metric("list", "include:remove");
+      this.metric("include:remove");
       models.account().tweetLists.removeIncludeTag(models.current_list(), m);
     }
   },
@@ -126,14 +131,14 @@ var ListController = xo.Controller.create(
   {
     if (this._editView && this._editView.property("editMode"))
     {
-      Log.metric("list", "exclude:remove");
+      this.metric("exclude:remove");
       models.account().tweetLists.removeExcludeTag(models.current_list(), m);
     }
   },
 
   onChangeViz: function(_, _, e, models)
   {
-    Log.metric("list", "viz:change");
+    this.metric("viz:change");
     models.account().tweetLists.changeViz(models.current_list(), e.target.value);
   },
 

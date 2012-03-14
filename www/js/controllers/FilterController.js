@@ -1,14 +1,18 @@
 var FilterController = xo.Controller.create(
 {
+  metrics:
+  {
+    category: "filter"
+  },
   onFilter: function(_, _, e)
   {
-    Log.metric("global", "filter:type");
+    this.metric("type");
     this._filterInput = e.target;
     RootView.getViewByName("tweets").filterText(this._filterInput.value.toLowerCase());
   },
   onDropFilter: function(_, v, e, models)
   {
-    Log.metric("global", "filter:drop");
+    this.metric("drop");
     this._filterInput = e.target;
     var key = v.dropped().key;
     models.filter(key);
@@ -17,7 +21,7 @@ var FilterController = xo.Controller.create(
   },
   onFilterClear: function(_, _, _, models)
   {
-    Log.metric("global", "filter:clear");
+    this.metric("clear");
     this._filterInput && (this._filterInput.value = "");
     models.filter("");
     RootView.getViewByName("tweets").filterText("");

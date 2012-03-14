@@ -6,9 +6,14 @@ var TweetController = xo.Controller.create(
     this.lgrid = grid.get();
   },
 
+  metrics:
+  {
+    category: "tweet"
+  },
+
   onUrl: function(m, v, e)
   {
-    Log.metric("tweet", "url:open");
+    this.metric("url:open");
     var url = e.target.dataset.href;
 
     Co.Routine(this,
@@ -34,8 +39,12 @@ var TweetController = xo.Controller.create(
             pagenr: 0,
             translate: ""
           },
-          controller:
+          controller: new (xo.Controller.create(
           {
+            metrics:
+            {
+              category: "readability"
+            },
             onForward: function()
             {
               Co.Routine(this,
@@ -49,7 +58,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   mv.pagenr(pagenr);
-                  Log.metric("readable", "page:forward", pagenr);
+                  this.metric("page:forward", pagenr);
                 }
               );
             },
@@ -66,7 +75,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   mv.pagenr(pagenr);
-                  Log.metric("readable", "page:backward", pagenr);
+                  this.metric("page:backward", pagenr);
                 }
               );
             },
@@ -78,14 +87,14 @@ var TweetController = xo.Controller.create(
                 mv.close();
               };
               browser.showWebPage(url);
-              Log.metric("readable", "browser:open");
+              this.metric("browser:open");
             },
             onClose: function()
             {
-              Log.metric("readable", "close");
+              this.metric("close");
               mv.close();
             }
-          }
+          }))
         });
         mv.addListener(mv.node(), "click", function(e)
         {
@@ -139,7 +148,7 @@ var TweetController = xo.Controller.create(
 
   onImage: function(m, _, e, models)
   {
-    Log.metric("tweet", "image:open");
+    this.metric("image:open");
 
     var url = e.target.dataset.href;
     var furl = e.target.dataset.fullHref || url;
@@ -170,7 +179,7 @@ var TweetController = xo.Controller.create(
 
   onVideo: function(_, _, e)
   {
-    Log.metric("tweet", "video:open");
+    this.metric("video:open");
     new ModalView(
     {
       node: document.getElementById("root-dialog"),
@@ -185,7 +194,7 @@ var TweetController = xo.Controller.create(
 
   onToggleFavorite: function(m, _, _, models)
   {
-    Log.metric("tweet", m.favorited() ? "unfav" : "fav");
+    this.metric(m.favorited() ? "unfav" : "fav");
     if (m.favorited())
     {
       m.favorited(false);
@@ -200,25 +209,25 @@ var TweetController = xo.Controller.create(
 
   onSendRetweet: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "retweet:compose");
+    this.metric("retweet:compose");
     new TweetBox().open(models.account(), "retweet", tweet);
   },
 
   onSendReply: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "reply:compose");
+    this.metric("reply:compose");
     new TweetBox().open(models.account(), "reply", tweet);
   },
 
   onSendDM: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "dm:compose");
+    this.metric("dm:compose");
     new TweetBox().open(models.account(), "dm", tweet);
   },
 
   onMention: function(_, _, e, models)
   {
-    Log.metric("tweet", "mention:open");
+    this.metric("mention:open");
     var screenName = e.target.dataset.name.slice(1).toLowerCase();
     Co.Routine(this,
       function()
@@ -234,7 +243,7 @@ var TweetController = xo.Controller.create(
 
   onProfilePic: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "pic:open");
+    this.metric("profile_pic:open");
     Co.Routine(this,
       function()
       {
@@ -257,7 +266,7 @@ var TweetController = xo.Controller.create(
     var open = v.property("tweet_open");
     if (open)
     {
-      Log.metric("tweet", "nested:open");
+      this.metric("nested:open");
       Co.Routine(this,
         function()
         {
@@ -272,7 +281,7 @@ var TweetController = xo.Controller.create(
     }
     else
     {
-      Log.metric("tweet", "nested:close");
+      this.metric("nested:close");
       Co.Routine(this,
         function()
         {
@@ -296,19 +305,25 @@ var TweetController = xo.Controller.create(
       template: __resources.tweet_profile,
       partials: __resources,
       model: profile,
-      controller:
+      controller: new (xo.Controller.create(
       {
+        metrics:
+        {
+          category: "profile_dialog"
+        },
         onFollow: function()
         {
+          this.metric("follow");
           profile.followed_by(true);
-          models().account.follow(profile);
+          models.account().follow(profile);
         },
         onUnfollow: function()
         {
+          this.metric("unfollow");
           profile.followed_by(false);
           models.account().unfollow(profile);
         }
-      }
+      }))
     });
   }
 });

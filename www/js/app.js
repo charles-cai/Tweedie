@@ -57,7 +57,8 @@ function main()
       new TweetController(),
       new ListController(),
       new FilterController(),
-      new GlobalController()
+      new GlobalController(),
+      new AccountController()
     ]
   });
   
