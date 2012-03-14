@@ -4319,6 +4319,17 @@ var Mixin = exports.Mixin = function(/* mixins ... */)
   }
   return prototype;
 };
+
+var Identity = exports.Identity = function(obj, fn)
+{
+  var id = obj.__xoid;
+  if (!id)
+  {
+    id = obj.__xoid = fn ? fn() : "i" + Identity._nextId++;
+  }
+  return id;
+}
+Identity._nextId = 1;
 var Events = exports.Events =
 {
   addEventListener: function(events, fn, context)
@@ -5253,6 +5264,105 @@ var Co = exports.Co =
     );
   }
 };
+var LRU = exports.LRU = Class(Events,
+{
+  constructor: function(size)
+  {
+    this._size = size;
+    this._hash = {};
+    this._queue = [];
+  },
+
+  get: function(key, fn, ctx)
+  {
+    var item = this._hash[key];
+    if (!item)
+    {
+      if (fn)
+      {
+        item = fn.call(ctx, key);
+        if (item !== undefined)
+        {
+          this._hash[key] = item;
+          this._queue.unshift(key);
+          if (this._queue.length > this._size)
+          {
+            var ekey = this._queue.slice(-1);
+            var eobj = this._hash[ekey];
+            delete this._hash[ekey];
+            this.emit("evict", ekey, eobj);
+            this._queue.length = this._size;
+          }
+        }
+      }
+    }
+    else
+    {
+      var idx = this._queue.indexOf(key);
+      if (idx !== 0)
+      {
+        this._queue.splice(idx, 1);
+        this._queue.unshift(key);
+      }
+    }
+    return item;
+  },
+
+  add: function(key, item)
+  {
+    this._hash[key] = item;
+    var idx = this._queue.indexOf(key);
+    if (idx !== -1)
+    {
+      this._queue.splice(idx, 1);
+      this._queue.unshift(key);
+    }
+    else if (idx !== 0)
+    {
+      this._queue.unshift(key);
+      if (this._queue.length > this._size)
+      {
+        var ekey = this._queue.slice(-1);
+        var eobj = this._hash[ekey];
+        delete this._hash[ekey];
+        this.emit("evict", ekey, eobj);
+        this._queue.length = this._size;
+      }
+    }
+  },
+
+  remove: function(key)
+  {
+    var item = this._hash[key];
+    if (item)
+    {
+      delete this._hash[key];
+      this._queue.splice(this._queue.indexOf(key));
+      return item;
+    }
+    else
+    {
+      return null;
+    }
+  },
+
+  keys: function()
+  {
+    return Object.keys(this._hash);
+  }
+});
+var Uuid = exports.Uuid =
+{
+  create: function()
+  {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
+    {
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+  }
+};
 function _ModelProperty(prop)
 {
   return Model.makeProperty(prop);
@@ -5363,11 +5473,10 @@ var Model = exports.Model = Class(Events,
   
   identity: function(model)
   {
-    if (!model._id)
+    return Identity(model, function()
     {
-      model._id = "m" + this._nextId++;
-    }
-    return model._id
+      return "m" + Model._nextId++;
+    });
   },
 
   makeProperty: function(prop)
@@ -5990,11 +6099,10 @@ var View = exports.View = Class(Model,
 
   buildIdentity: function(renderer, model)
   {
-    if (!renderer._rendererId)
+    return Identity(renderer, function()
     {
-      renderer._rendererId = "v" + this._nextId++;
-    }
-    return renderer._rendererId + "-" + Model.identity(model);
+      return "v" + View._nextId++;
+    }) + "-" + Model.identity(model);
   }
 });
 var ViewSet = exports.ViewSet = Class(View,
@@ -6965,7 +7073,7 @@ var RootView = exports.RootView = Class(View,
   {
     var self = this;
     self.$controllers = args.controllers ? args.controllers : args.controller ? [ args.controller ] : [];
-    self.$template = args.template && new this.ViewTemplate(args.template, args.partials);
+    self.$template = args.template && this.ViewTemplate.get(args.template, args.partials);
     args.renderer = args.renderer || function(model)
     {
       return self.$template.r(model);
@@ -7125,6 +7233,17 @@ var RootView = exports.RootView = Class(View,
           return "";
         }
       }
+    }
+  }).statics(
+  {
+    _cache: new LRU(128),
+
+    get: function(template, partials)
+    {
+      return this._cache.get(Identity(template) + Identity(partials), function(id)
+      {
+        return new this(template, partials);
+      }, this);
     }
   })
 }).statics(
@@ -7986,6 +8105,16 @@ var Controller = exports.Controller = Class(
 {
   constructor: function()
   {
+  },
+
+  metrics:
+  {
+    category: "unknown"
+  },
+
+  metric: function(action, value)
+  {
+    Log.metric(this.metrics.category, action, value);
   }
 }).statics(
 {
@@ -9219,105 +9348,6 @@ var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProv
   }
 
 });
-var LRU = exports.LRU = Class(Events,
-{
-  constructor: function(size)
-  {
-    this._size = size;
-    this._hash = {};
-    this._queue = [];
-  },
-
-  get: function(key, fn, ctx)
-  {
-    var item = this._hash[key];
-    if (!item)
-    {
-      if (fn)
-      {
-        item = fn.call(ctx, key);
-        if (item !== undefined)
-        {
-          this._hash[key] = item;
-          this._queue.unshift(key);
-          if (this._queue.length > this._size)
-          {
-            var ekey = this._queue.slice(-1);
-            var eobj = this._hash[ekey];
-            delete this._hash[ekey];
-            this.emit("evict", ekey, eobj);
-            this._queue.length = this._size;
-          }
-        }
-      }
-    }
-    else
-    {
-      var idx = this._queue.indexOf(key);
-      if (idx !== 0)
-      {
-        this._queue.splice(idx, 1);
-        this._queue.unshift(key);
-      }
-    }
-    return item;
-  },
-
-  add: function(key, item)
-  {
-    this._hash[key] = item;
-    var idx = this._queue.indexOf(key);
-    if (idx !== -1)
-    {
-      this._queue.splice(idx, 1);
-      this._queue.unshift(key);
-    }
-    else if (idx !== 0)
-    {
-      this._queue.unshift(key);
-      if (this._queue.length > this._size)
-      {
-        var ekey = this._queue.slice(-1);
-        var eobj = this._hash[ekey];
-        delete this._hash[ekey];
-        this.emit("evict", ekey, eobj);
-        this._queue.length = this._size;
-      }
-    }
-  },
-
-  remove: function(key)
-  {
-    var item = this._hash[key];
-    if (item)
-    {
-      delete this._hash[key];
-      this._queue.splice(this._queue.indexOf(key));
-      return item;
-    }
-    else
-    {
-      return null;
-    }
-  },
-
-  keys: function()
-  {
-    return Object.keys(this._hash);
-  }
-});
-var Uuid = exports.Uuid =
-{
-  create: function()
-  {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c)
-    {
-        var r = Math.random() * 16 | 0;
-        var v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-  }
-};
 })();
 var KEYS =
 {
@@ -9325,7 +9355,7 @@ var KEYS =
   {
     oauth_consumer_key: "wFdo3SPtTYOAHgjoizKpug",
     oauth_consumer_secret: "DtWtTnewJLINEmnshVG47lyivxlyeDD68h2w6LqotY",
-    callback: xo.Environment.isTouch() ? "http://aanon4.github.com/callback/" : location.origin + "/callback"
+    callback: xo.Environment.isTouch() ? "http://aanon4.github.com/callback/" : location.origin + "/callback",
   },
   twitterResolve:
   {
@@ -12919,9 +12949,14 @@ var TweetController = xo.Controller.create(
     this.lgrid = grid.get();
   },
 
+  metrics:
+  {
+    category: "tweet"
+  },
+
   onUrl: function(m, v, e)
   {
-    Log.metric("tweet", "url:open");
+    this.metric("url:open");
     var url = e.target.dataset.href;
 
     Co.Routine(this,
@@ -12947,8 +12982,12 @@ var TweetController = xo.Controller.create(
             pagenr: 0,
             translate: ""
           },
-          controller:
+          controller: new (xo.Controller.create(
           {
+            metrics:
+            {
+              category: "readability"
+            },
             onForward: function()
             {
               Co.Routine(this,
@@ -12962,7 +13001,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   mv.pagenr(pagenr);
-                  Log.metric("readable", "page:forward", pagenr);
+                  this.metric("page:forward", pagenr);
                 }
               );
             },
@@ -12979,7 +13018,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   mv.pagenr(pagenr);
-                  Log.metric("readable", "page:backward", pagenr);
+                  this.metric("page:backward", pagenr);
                 }
               );
             },
@@ -12991,14 +13030,14 @@ var TweetController = xo.Controller.create(
                 mv.close();
               };
               browser.showWebPage(url);
-              Log.metric("readable", "browser:open");
+              this.metric("browser:open");
             },
             onClose: function()
             {
-              Log.metric("readable", "close");
+              this.metric("close");
               mv.close();
             }
-          }
+          }))
         });
         mv.addListener(mv.node(), "click", function(e)
         {
@@ -13052,7 +13091,7 @@ var TweetController = xo.Controller.create(
 
   onImage: function(m, _, e, models)
   {
-    Log.metric("tweet", "image:open");
+    this.metric("image:open");
 
     var url = e.target.dataset.href;
     var furl = e.target.dataset.fullHref || url;
@@ -13083,7 +13122,7 @@ var TweetController = xo.Controller.create(
 
   onVideo: function(_, _, e)
   {
-    Log.metric("tweet", "video:open");
+    this.metric("video:open");
     new ModalView(
     {
       node: document.getElementById("root-dialog"),
@@ -13098,7 +13137,7 @@ var TweetController = xo.Controller.create(
 
   onToggleFavorite: function(m, _, _, models)
   {
-    Log.metric("tweet", m.favorited() ? "unfav" : "fav");
+    this.metric(m.favorited() ? "unfav" : "fav");
     if (m.favorited())
     {
       m.favorited(false);
@@ -13113,25 +13152,25 @@ var TweetController = xo.Controller.create(
 
   onSendRetweet: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "retweet:compose");
+    this.metric("retweet:compose");
     new TweetBox().open(models.account(), "retweet", tweet);
   },
 
   onSendReply: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "reply:compose");
+    this.metric("reply:compose");
     new TweetBox().open(models.account(), "reply", tweet);
   },
 
   onSendDM: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "dm:compose");
+    this.metric("dm:compose");
     new TweetBox().open(models.account(), "dm", tweet);
   },
 
   onMention: function(_, _, e, models)
   {
-    Log.metric("tweet", "mention:open");
+    this.metric("mention:open");
     var screenName = e.target.dataset.name.slice(1).toLowerCase();
     Co.Routine(this,
       function()
@@ -13147,7 +13186,7 @@ var TweetController = xo.Controller.create(
 
   onProfilePic: function(tweet, _, _, models)
   {
-    Log.metric("tweet", "pic:open");
+    this.metric("profile_pic:open");
     Co.Routine(this,
       function()
       {
@@ -13170,7 +13209,7 @@ var TweetController = xo.Controller.create(
     var open = v.property("tweet_open");
     if (open)
     {
-      Log.metric("tweet", "nested:open");
+      this.metric("nested:open");
       Co.Routine(this,
         function()
         {
@@ -13185,7 +13224,7 @@ var TweetController = xo.Controller.create(
     }
     else
     {
-      Log.metric("tweet", "nested:close");
+      this.metric("nested:close");
       Co.Routine(this,
         function()
         {
@@ -13209,19 +13248,25 @@ var TweetController = xo.Controller.create(
       template: __resources.tweet_profile,
       partials: __resources,
       model: profile,
-      controller:
+      controller: new (xo.Controller.create(
       {
+        metrics:
+        {
+          category: "profile_dialog"
+        },
         onFollow: function()
         {
+          this.metric("follow");
           profile.followed_by(true);
-          models().account.follow(profile);
+          models.account().follow(profile);
         },
         onUnfollow: function()
         {
+          this.metric("unfollow");
           profile.followed_by(false);
           models.account().unfollow(profile);
         }
-      }
+      }))
     });
   }
 });
@@ -13235,6 +13280,11 @@ var ListController = xo.Controller.create(
     {
       self._editList(null, null);
     });
+  },
+
+  metrics:
+  {
+    category: "lists"
   },
 
   onSelectList: function(m, v, _, models)
@@ -13266,24 +13316,24 @@ var ListController = xo.Controller.create(
     var query = m.asSearch();
     if (query)
     {
-      Log.metric("lists", "select:search");
+      this.metric("select:search");
       models.account().search(query);
     }
     else
     {
-      Log.metric("lists", "select:list");
+      this.metric("select:list");
     }
   },
 
   onDropToList: function(m, v, _, models)
   {
-    Log.metric("tweet", "list:include:add")
+    this.metric("include:add_to_other")
     models.account().tweetLists.addIncludeTag(m, v.dropped());
   },
 
   onDropToNewList: function(m, v, _, models)
   {
-    Log.metric("tweet", "list:new:drop");
+    this.metric("new:drop");
     var listName = v.dropped().title;
     switch (v.dropped().type)
     {
@@ -13303,7 +13353,7 @@ var ListController = xo.Controller.create(
 
   onNewList: function(m, v, e, models)
   {
-    Log.metric("global", "list:new:type");
+    this.metric("new:type");
     var listName = e.target.value;
     if (listName)
     {
@@ -13314,13 +13364,13 @@ var ListController = xo.Controller.create(
 
   onEditList: function(_, v, _, models)
   {
-    Log.metric("list", "edit");
+    this.metric("edit");
     this._editList(v, models);
   },
 
   onRemoveList: function(_, _, _, models)
   {
-    Log.metric("list", "remove");
+    this.metric("remove");
     models.account().tweetLists.removeList(models.current_list());
     this._editList(null, null);
     models.current_list(models.account().tweetLists.lists.models[0]);
@@ -13330,13 +13380,13 @@ var ListController = xo.Controller.create(
 
   onDropInclude: function(_, v, _, models)
   {
-    Log.metric("list", "include:add");
+    this.metric("include:add");
     models.account().tweetLists.addIncludeTag(models.current_list(), v.dropped());
   },
 
   onDropExclude: function(_, v, _, models)
   {
-    Log.metric("list", "exclude:add");
+    this.metric("exclude:add");
     models.account().tweetLists.addExcludeTag(models.current_list(), v.dropped());
   },
 
@@ -13344,7 +13394,7 @@ var ListController = xo.Controller.create(
   {
     if (this._editView && this._editView.property("editMode"))
     {
-      Log.metric("list", "include:remove");
+      this.metric("include:remove");
       models.account().tweetLists.removeIncludeTag(models.current_list(), m);
     }
   },
@@ -13353,14 +13403,14 @@ var ListController = xo.Controller.create(
   {
     if (this._editView && this._editView.property("editMode"))
     {
-      Log.metric("list", "exclude:remove");
+      this.metric("exclude:remove");
       models.account().tweetLists.removeExcludeTag(models.current_list(), m);
     }
   },
 
   onChangeViz: function(_, _, e, models)
   {
-    Log.metric("list", "viz:change");
+    this.metric("viz:change");
     models.account().tweetLists.changeViz(models.current_list(), e.target.value);
   },
 
@@ -13384,15 +13434,19 @@ var ListController = xo.Controller.create(
 });
 var FilterController = xo.Controller.create(
 {
+  metrics:
+  {
+    category: "filter"
+  },
   onFilter: function(_, _, e)
   {
-    Log.metric("global", "filter:type");
+    this.metric("type");
     this._filterInput = e.target;
     RootView.getViewByName("tweets").filterText(this._filterInput.value.toLowerCase());
   },
   onDropFilter: function(_, v, e, models)
   {
-    Log.metric("global", "filter:drop");
+    this.metric("drop");
     this._filterInput = e.target;
     var key = v.dropped().key;
     models.filter(key);
@@ -13401,7 +13455,7 @@ var FilterController = xo.Controller.create(
   },
   onFilterClear: function(_, _, _, models)
   {
-    Log.metric("global", "filter:clear");
+    this.metric("clear");
     this._filterInput && (this._filterInput.value = "");
     models.filter("");
     RootView.getViewByName("tweets").filterText("");
@@ -13409,27 +13463,39 @@ var FilterController = xo.Controller.create(
 });
 var GlobalController = xo.Controller.create(
 {
-  onToggleShow: function(_, _, _, _, root)
+  metrics:
   {
-    Log.metric("lists", root.open() ? "close" : "open");
-    root.open(!root.open());
+    category: "global"
   },
 
   onComposeTweet: function(_, _, _, models)
   {
-    Log.metric("global", "tweet:compose");
+    this.metric("tweet:compose");
     new TweetBox().open(models.account(), "tweet");
   },
 
   onComposeDM: function(_, _, _, models)
   {
-    Log.metric("global", "dm:compose");
+    this.metric("dm:compose");
     new TweetBox().open(models.account(), "dm");
+  }
+});
+var AccountController = xo.Controller.create(
+{
+  metrics:
+  {
+    category: "account"
+  },
+
+  onToggleShow: function(_, _, _, _, root)
+  {
+    this.metric(root.open() ? "hide" : "show");
+    root.open(!root.open());
   },
 
   onOpenErrors: function(_, _, _, models)
   {
-    Log.metric("account", "errors:open");
+    this.metric("errors:open");
     new ModalView(
     {
       node: document.getElementById("root-dialog"),
@@ -13448,8 +13514,7 @@ var GlobalController = xo.Controller.create(
       }
     });
   },
-});
-var __resources = {
+});var __resources = {
 'basic_tweet': '{{#_ View}}\
 <div class="tweet"{{#has_children}} data-action-click="OpenTweet"{{/has_children}}>\
   {{#retweet}}\
@@ -13887,7 +13952,8 @@ function main()
       new TweetController(),
       new ListController(),
       new FilterController(),
-      new GlobalController()
+      new GlobalController(),
+      new AccountController()
     ]
   });
   

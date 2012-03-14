@@ -119,7 +119,7 @@ body
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
-.col.left .pane.tweets > .view > .collection-view::-webkit-scrollbar
+.col.left .pane .tweets > .view > .collection-view::-webkit-scrollbar
 {
   width: 0;
 }
