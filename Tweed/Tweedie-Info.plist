@@ -33,7 +33,7 @@
 		</dict>
 	</dict>
 	<key>CFBundleIdentifier</key>
-	<string>xojs.org.Tweed</string>
+	<string>org.xojs.tweed</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
