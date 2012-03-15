@@ -61,6 +61,7 @@ var Errors = Model.create(
     {
       this._errors.splice(idx, 1);
       this.emit("update");
+      this._save();
       return true;
     }
     else
