@@ -72,7 +72,7 @@ var ListController = xo.Controller.create(
       default:
         break;
     }
-    var list = models.account().tweetLists.createList(listName);
+    var list = models.account().tweetLists.createList(listName, false);
     if (list && !list.isSearch())
     {
       models.account().tweetLists.addIncludeTag(list, v.dropped());

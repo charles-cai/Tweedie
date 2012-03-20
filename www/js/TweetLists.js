@@ -46,10 +46,10 @@ var TweetLists = Class(
     });
   },
 
-  createList: function(name)
+  createList: function(name, refilter)
   {
     var list = new FilteredTweetsModel({ account: this._account, title: name, uuid: xo.Uuid.create(), canEdit: true, canRemove: true });
-    if (!list.isSearch())
+    if (!list.isSearch() && refilter)
     {
       this._refilter(list);
     }
