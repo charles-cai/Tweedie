@@ -229,6 +229,11 @@ var Environment = exports.Environment =
   isPhoneGap: function()
   {
     return navigator.userAgent.indexOf("OS 5_") !== -1;
+  },
+
+  isRetina: function()
+  {
+    return window.devicePixelRatio > 1 ? true : false;
   }
 };
 var Log = exports.Log = Mixin({}, Events,
@@ -1545,17 +1550,36 @@ var IndexedModelSet = exports.IndexedModelSet = Class(ModelSet,
       var index = this._index;
       if (Array.isArray(model))
       {
+        var models = [];
         model.forEach(function(m)
         {
-          index[m[key]()] = m;
+          var k = m[key]();
+          if (!(k in index))
+          {
+            index[k] = m;
+            models.push(m);
+          }
         });
+        return models.length ? __super(idx, models) : 0;
       }
       else
       {
-        index[model[key]()] = model;
+        var k = model[key]();
+        if (k in index)
+        {
+          return 0;
+        }
+        else
+        {
+          index[k] = model;
+          return __super(idx, model);
+        }
       }
     }
-    return __super(idx, model);
+    else
+    {
+      return __super(idx, model);
+    }
   },
 
   remove: function(__super, model)

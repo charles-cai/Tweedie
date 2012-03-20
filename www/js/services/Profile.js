@@ -11,7 +11,14 @@
     verified: Model.ROProperty,
 
     profile_background_tile: Model.ROProperty,
-    profile_image_url: Model.ROProperty,
+    profile_image_url: function()
+    {
+      if (!this._profile_image_url)
+      {
+        this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
+      }
+      return this._profile_image_url;
+    },
     profile_background_image_url: Model.ROProperty,
     profile_background_color: Model.ROProperty,
     profile_banner_url: Model.ROProperty,

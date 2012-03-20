@@ -4443,6 +4443,11 @@ var Environment = exports.Environment =
   isPhoneGap: function()
   {
     return navigator.userAgent.indexOf("OS 5_") !== -1;
+  },
+
+  isRetina: function()
+  {
+    return window.devicePixelRatio > 1 ? true : false;
   }
 };
 var Log = exports.Log = Mixin({}, Events,
@@ -5759,17 +5764,36 @@ var IndexedModelSet = exports.IndexedModelSet = Class(ModelSet,
       var index = this._index;
       if (Array.isArray(model))
       {
+        var models = [];
         model.forEach(function(m)
         {
-          index[m[key]()] = m;
+          var k = m[key]();
+          if (!(k in index))
+          {
+            index[k] = m;
+            models.push(m);
+          }
         });
+        return models.length ? __super(idx, models) : 0;
       }
       else
       {
-        index[model[key]()] = model;
+        var k = model[key]();
+        if (k in index)
+        {
+          return 0;
+        }
+        else
+        {
+          index[k] = model;
+          return __super(idx, model);
+        }
       }
     }
-    return __super(idx, model);
+    else
+    {
+      return __super(idx, model);
+    }
   },
 
   remove: function(__super, model)
@@ -9514,11 +9538,12 @@ var Tweet = Model.create(
       id_str: values.id_str,
       entities: values.entities,
       text: values.text,
-      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str },
-      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str },
-      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str },
+      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
+      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str, lang: values.sender.lang },
+      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str, lang: values.recipient.lang },
       from_user_name: values.from_user_name,
       from_user: values.from_user,
+      iso_language_code: values.iso_language_code,
       profile_image_url: values.profile_image_url,
       created_at: values.created_at,
       favorited: values.favorited,
@@ -9704,18 +9729,7 @@ var Tweet = Model.create(
   {
     if (!this._profile_image_url)
     {
-      if (this._values.user)
-      {
-        this._profile_image_url = this._values.user.profile_image_url;
-      }
-      else if (this._values.sender)
-      {
-        this._profile_image_url = this._values.sender.profile_image_url;
-      }
-      else
-      {
-        this._profile_image_url = this._values.profile_image_url;
-      }
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
     }
     return this._profile_image_url;
   },
@@ -9980,6 +9994,7 @@ var Tweet = Model.create(
           case "hashtag":
           case "hostname":
           case "topic":
+          case "lang":
             keys += key.key + " ";
           default:
             break;
@@ -10127,6 +10142,17 @@ var Tweet = Model.create(
         used[Tweet.FavoriteTag.hashkey] = true;
         tags.push(Tweet.FavoriteTag);
       }
+      var u = this._values.user || this._values.sender;
+      if (u && u.lang && u.lang !== Tweet.language)
+      {
+        used["lang:" + u.lang] = true;
+        tags.push({ title: u.lang, type: "lang", key: u.lang });
+      }
+      else if (this._values.iso_language_code && this._values.iso_language_code !== Tweet.language)
+      {
+        used["lang:" + this._values.iso_language_code] = true;
+        tags.push({ title: this._values.iso_language_code, type: "lang", key: this._values.iso_language_code });
+      }
       if (this._values.recipient)
       {
         used[Tweet.DMTag.hashkey] = true;
@@ -10166,6 +10192,8 @@ var Tweet = Model.create(
   }
 }).statics(
 {
+  language: navigator.language.split("-")[0],
+
   tweetTime: function(created_at, type)
   {
     type && (type.relative = true);
@@ -10588,10 +10616,10 @@ var TweetLists = Class(
     });
   },
 
-  createList: function(name)
+  createList: function(name, refilter)
   {
     var list = new FilteredTweetsModel({ account: this._account, title: name, uuid: xo.Uuid.create(), canEdit: true, canRemove: true });
-    if (!list.isSearch())
+    if (!list.isSearch() && refilter)
     {
       this._refilter(list);
     }
@@ -12806,7 +12834,14 @@ new xo.LocalStorageGridProvider(
     verified: Model.ROProperty,
 
     profile_background_tile: Model.ROProperty,
-    profile_image_url: Model.ROProperty,
+    profile_image_url: function()
+    {
+      if (!this._profile_image_url)
+      {
+        this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
+      }
+      return this._profile_image_url;
+    },
     profile_background_image_url: Model.ROProperty,
     profile_background_color: Model.ROProperty,
     profile_banner_url: Model.ROProperty,
@@ -13345,7 +13380,7 @@ var ListController = xo.Controller.create(
       default:
         break;
     }
-    var list = models.account().tweetLists.createList(listName);
+    var list = models.account().tweetLists.createList(listName, false);
     if (list && !list.isSearch())
     {
       models.account().tweetLists.addIncludeTag(list, v.dropped());

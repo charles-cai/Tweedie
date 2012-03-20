@@ -24,11 +24,12 @@ var Tweet = Model.create(
       id_str: values.id_str,
       entities: values.entities,
       text: values.text,
-      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str },
-      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str },
-      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str },
+      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
+      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str, lang: values.sender.lang },
+      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str, lang: values.recipient.lang },
       from_user_name: values.from_user_name,
       from_user: values.from_user,
+      iso_language_code: values.iso_language_code,
       profile_image_url: values.profile_image_url,
       created_at: values.created_at,
       favorited: values.favorited,
@@ -214,18 +215,7 @@ var Tweet = Model.create(
   {
     if (!this._profile_image_url)
     {
-      if (this._values.user)
-      {
-        this._profile_image_url = this._values.user.profile_image_url;
-      }
-      else if (this._values.sender)
-      {
-        this._profile_image_url = this._values.sender.profile_image_url;
-      }
-      else
-      {
-        this._profile_image_url = this._values.profile_image_url;
-      }
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
     }
     return this._profile_image_url;
   },
@@ -490,6 +480,7 @@ var Tweet = Model.create(
           case "hashtag":
           case "hostname":
           case "topic":
+          case "lang":
             keys += key.key + " ";
           default:
             break;
@@ -637,6 +628,17 @@ var Tweet = Model.create(
         used[Tweet.FavoriteTag.hashkey] = true;
         tags.push(Tweet.FavoriteTag);
       }
+      var u = this._values.user || this._values.sender;
+      if (u && u.lang && u.lang !== Tweet.language)
+      {
+        used["lang:" + u.lang] = true;
+        tags.push({ title: u.lang, type: "lang", key: u.lang });
+      }
+      else if (this._values.iso_language_code && this._values.iso_language_code !== Tweet.language)
+      {
+        used["lang:" + this._values.iso_language_code] = true;
+        tags.push({ title: this._values.iso_language_code, type: "lang", key: this._values.iso_language_code });
+      }
       if (this._values.recipient)
       {
         used[Tweet.DMTag.hashkey] = true;
@@ -676,6 +678,8 @@ var Tweet = Model.create(
   }
 }).statics(
 {
+  language: navigator.language.split("-")[0],
+
   tweetTime: function(created_at, type)
   {
     type && (type.relative = true);
