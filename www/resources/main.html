@@ -13,7 +13,7 @@
     {{/is_dm_list}}
     <div class="pane lists">
       <div class="lists-header">
-        <div class="lists-gear" data-action-click="OpenPreferences"></div>
+        <div class="lists-gear" data-action-click="OpenPreferences">@</div>
         <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>
         {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}
         {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}

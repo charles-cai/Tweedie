@@ -215,7 +215,7 @@ var Tweet = Model.create(
   {
     if (!this._profile_image_url)
     {
-      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
     }
     return this._profile_image_url;
   },
@@ -679,6 +679,8 @@ var Tweet = Model.create(
 }).statics(
 {
   language: navigator.language.split("-")[0],
+
+  profileImgExt: Environment.isRetina() ? ".png?size=bigger" : ".png",
 
   tweetTime: function(created_at, type)
   {

@@ -9729,7 +9729,7 @@ var Tweet = Model.create(
   {
     if (!this._profile_image_url)
     {
-      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
     }
     return this._profile_image_url;
   },
@@ -10193,6 +10193,8 @@ var Tweet = Model.create(
 }).statics(
 {
   language: navigator.language.split("-")[0],
+
+  profileImgExt: Environment.isRetina() ? ".png?size=bigger" : ".png",
 
   tweetTime: function(created_at, type)
   {
@@ -12825,77 +12827,106 @@ new xo.LocalStorageGridProvider(
 {
   var Profile = Model.create(
   {
-    id: Model.ROProperty("id_str"),
-    screen_name: Model.ROProperty,
-    name: Model.ROProperty,
-    description: Model.ROProperty,
-    location: Model.ROProperty,
-    url: Model.ROProperty,
-    verified: Model.ROProperty,
+    id: Model.Property("id_str"),
+    screen_name: Model.Property,
+    name: Model.Property,
+    description: Model.Property,
+    location: Model.Property,
+    url: Model.Property,
+    verified: Model.Property,
 
-    profile_background_tile: Model.ROProperty,
+    profile_background_tile: Model.Property,
     profile_image_url: function()
     {
       if (!this._profile_image_url)
       {
-        this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + (Environment.isRetina() ? ".png?size=bigger" : ".png");
+        this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
       }
       return this._profile_image_url;
     },
-    profile_background_image_url: Model.ROProperty,
-    profile_background_color: Model.ROProperty,
-    profile_banner_url: Model.ROProperty,
+    profile_background_image_url: Model.Property,
+    profile_background_color: Model.Property,
+    profile_banner_url: Model.Property,
 
-    followers_count: Model.ROProperty,
-    friends_count: Model.ROProperty,
-    tweet_count: Model.ROProperty("statuses_count"),
-    followed_by: Model.Property("relationship.target.followed_by")
+    followers_count: Model.Property,
+    friends_count: Model.Property,
+    tweet_count: Model.Property("statuses_count"),
+    followed_by: Model.Property("relationship.target.followed_by"),
+
+    constructor: function(__super, screenName)
+    {
+      __super(
+      {
+        id_str: 0,
+        screen_name: screenName,
+        name: "",
+        description: "",
+        location: "",
+        url: "",
+        verified: false,
+        followers_count: "",
+        friends_count: "",
+        statuses_count: "",
+        relationship:
+        {
+          target:
+          {
+            followed_by: false
+          }
+        }
+      });
+    }
   });
 
   var lgrid = grid.get();
-  var idSelector = /^\/twitter\/profile\/id=(.*)$/;
   var nameSelector = /^\/twitter\/profile\/screenName=(.*)$/;
 
-  function getProfile(name, id)
+  function getProfile(name)
   {
+    var p = new Profile(name);
+    if (name)
+    {
+      lgrid.write("/twitter/profile/screenName=" + name.toLowerCase(), p);
+    }
     Co.Routine(this,
       function()
       {
         return Co.Parallel(this,
           function()
           {
-            return PrimaryFetcher.profile(name, id);
+            return PrimaryFetcher.profile(name);
           },
           function()
           {
-            return PrimaryFetcher.relationship(name, id);
+            return PrimaryFetcher.relationship(name);
           }
         );
       },
-      function(p)
+      function(info)
       {
-        p = p();
-        p[0].relationship = p[1].relationship;
-        p = new Profile(p[0]);
-
-        lgrid.write("/twitter/profile/id=" + p.id(), p);
+        info = info();
+        info[0].relationship = info[1].relationship;
+        info = info[0];
+        p.delayUpdate(function()
+        {
+          [ "screen_name", "name", "description", "location", "url", "verified", "profile_background_tile", "profile_background_image_url", "profile_background_color", "profile_banner_url", "followers_count", "friends_count" ].forEach(function(name)
+          {
+            p[name](info[name]);
+          });
+          p.id(info.id_str);
+          p.tweet_count(info.statuses_count)
+          p.followed_by(info.relationship.target.followed_by);
+        });
         lgrid.write("/twitter/profile/screenName=" + p.screen_name().toLowerCase(), p);
       }
     );
   }
 
-  lgrid.watch(idSelector, function(op, path)
-  {
-    if (op === xo.Grid.READ)
-    {
-      getProfile(null, idSelector.exec(path)[1]);
-    }
-  });
   lgrid.watch(nameSelector, function(op, path)
   {
     if (op === xo.Grid.READ)
     {
-      getProfile(nameSelector.exec(path)[1], null);
+      getProfile(nameSelector.exec(path)[1]);
     }
   });
 })();
@@ -13230,7 +13261,7 @@ var TweetController = xo.Controller.create(
         {
           tweet = tweet.retweet();
         }
-        return this.lgrid.read("/twitter/profile/id=" + tweet.user().id_str);
+        return this.lgrid.read("/twitter/profile/screenName=" + tweet.screen_name().toLowerCase());
       },
       function(p)
       {
@@ -13680,7 +13711,7 @@ var AccountController = xo.Controller.create(
     {{/is_dm_list}}\
     <div class="pane lists">\
       <div class="lists-header">\
-        <div class="lists-gear" data-action-click="OpenPreferences"></div>\
+        <div class="lists-gear" data-action-click="OpenPreferences">@</div>\
         <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
         {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
         {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\

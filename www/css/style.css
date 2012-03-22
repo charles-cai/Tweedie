@@ -85,12 +85,15 @@ body
 .col.left .filter .filter-clear
 {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 26px;
-  height: 26px;
-  background: url(../img/remove.png) no-repeat top right;
-  opacity: 0.5;
+  top: 0px;
+  right: 0px;
+  margin: 9px 9px 0px 0px;
+  width: 17px;
+  height: 16px;
+  background: url(../img/all.png) no-repeat top right;
+  background-size: 400px 40px;
+  background-position: -30px -11px;
+  opacity: 1;
 }
 .col.left .filter .filter-clear:active
 {
@@ -169,7 +172,7 @@ body
 {
   opacity: 0.5;
 }
-.lists-activity, .lists-error
+.lists-activity
 {
   display: inline-block;
   float: right;
@@ -179,9 +182,7 @@ body
 {
   display: inline-block;
   height: 16px;
-  width: 16px;
-  background-image: url("../img/gear.png");
-  vertical-align: text-top;
+  font-weight: bold;
 }
 .lists-gear:active
 {
@@ -191,13 +192,21 @@ body
 {
   width: 16px;
   height: 16px;
-  background-image: url("../img/spinner.gif");
+  background-image: url("../img/spinner@2x.gif");
+  background-size: 16px 16px;
+}
+.lists-error
+{
+  display: inline-block;
+  float: right;
 }
 .lists-error .show
 {
-  width: 16px;
-  height: 16px;
-  background-image: url("../img/warning-icon.png");
+  width: 24px;
+  height: 22px;
+  background-image: url("../img/all.png");
+  background-size: 400px 40px;
+  background-position: -152px -16px;
 }
 .lists-error .show:active
 {
@@ -498,7 +507,9 @@ body
 {
   display: inline-block;
   height: 20px;
-  background: url("../img/tweet-icons.png") no-repeat left top;
+  width: 26px;
+  background: url("../img/all.png");
+  background-size: 400px 40px;
   opacity: 0.2;
 }
 .actions .action:active
@@ -507,23 +518,19 @@ body
 }
 .actions .action.reply
 {
-  width: 20px;
-  background-position: -71px 0;
+  background-position: -117px -10px;
 }
 .actions .action.retweet
 {
-  width: 28px;
-  background-position: -43px 0;
+  background-position: -93px -12px;
 }
 .actions .action.favorite
 {
-  width: 21px;
-  background-position: -21px 0;
+  background-position: -47px -13px;
 }
 .actions .action.favorite.active
 {
-  width: 21px;
-  background-position: 0 0;
+  background-position: -69px -13px;
 }
 .nested-tweets
 {
@@ -810,18 +817,26 @@ body
 .readability > .inner > .readability-logo
 {
   position: absolute;
-  height: 14px;
-  width: 90px;
+  width: 0;
   bottom: 50px;
-  left: 70px;
-  background-image: url("../img/readability.png");
+  background-image: url("../img/all.png");
+  background-position: 0px 30px;
+  background-size: 400px 40px;
+  font-family: Palamino;
+  font-size: 14px;
+  padding-left: 24px;
+}
+.readability > .inner > .readability-logo:after
+{
+  content: "Readability";
 }
 .readability > .inner > .footer
 {
   text-align: center;
   height: 14px;
   margin: 20px auto 0 auto;
-  background-image: url("../img/pages.png");
+  background-image: url("../img/all.png");
+  background-size: 400px 40px;
 }
 .readability > .inner > .web
 {
