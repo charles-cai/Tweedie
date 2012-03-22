@@ -251,7 +251,7 @@ var TweetController = xo.Controller.create(
         {
           tweet = tweet.retweet();
         }
-        return this.lgrid.read("/twitter/profile/id=" + tweet.user().id_str);
+        return this.lgrid.read("/twitter/profile/screenName=" + tweet.screen_name().toLowerCase());
       },
       function(p)
       {
