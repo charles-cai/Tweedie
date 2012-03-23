@@ -94,7 +94,7 @@ var __resources = {
             <div class="error error-{{op}}">\
               {{#details}}\
                 <div class="error-title"></div>\
-                <div class="error-close" data-action-click="RemoveError">x</div>\
+                <div class="error-close" data-action-click="RemoveError"></div>\
                 {{#text}}<div class="error-text">{{text}}</div>{{/text}}\
               {{/details}}\
             </div>\

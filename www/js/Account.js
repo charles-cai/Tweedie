@@ -44,6 +44,18 @@ var Account = Class(Events,
         this._fetcher.on("login", function(evt, info)
         {
           this.errors.open();
+          this._fetcher.on("fetchStatus", function(evt, okay)
+          {
+            var fetch = this.errors.find("fetch");
+            if (okay && fetch.length)
+            {
+              this.errors.remove(fetch[0]);
+            }
+            else if (!okay && !fetch.length)
+            {
+              this.errors.add("fetch");
+            }
+          }, this);
           if (!this.userInfo || info.screen_name !== this.userInfo.screen_name || info.user_id !== this.userInfo.user_id)
           {
             this.userInfo = info;
@@ -85,11 +97,6 @@ var Account = Class(Events,
         var self = this;
         function retry()
         {
-          var fetch = self.errors.find("fetch");
-          if (fetch.length)
-          {
-            self.errors.remove(fetch[0]);
-          }
           self.fetch();
         }
         document.addEventListener("online", retry);
@@ -116,6 +123,11 @@ var Account = Class(Events,
     return Co.Routine(this,
       function()
       {
+        var fetch = this.errors.find("fetch");
+        if (fetch.length)
+        {
+          this.errors.remove(fetch[0]);
+        }
         return this._fetcher.fetchTweets();
       },
       function(r)

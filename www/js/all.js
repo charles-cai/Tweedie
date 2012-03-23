@@ -11069,6 +11069,7 @@ var TweetFetcher = xo.Class(Events,
     var favId = "1";
     var dmSendId = "1";
     var dmRecvId = "1";
+    var failed;
     Co.Forever(this,
       function()
       {
@@ -11077,6 +11078,7 @@ var TweetFetcher = xo.Class(Events,
           return Co.Break();
         }
 
+        failed = false;
         tweets = [];
 
         var lists = this._account.tweetLists;
@@ -11110,11 +11112,20 @@ var TweetFetcher = xo.Class(Events,
           }
         );
       },
-      function()
+      function(r)
       {
-        if (tweets.length)
+        try
         {
-          tweetId = tweets[0].id_str;
+          r();
+          if (tweets.length)
+          {
+            tweetId = tweets[0].id_str;
+          }
+        }
+        catch (e)
+        {
+          failed = true;
+          Log.exception("Tweet fetch failed", e);
         }
 
         return this._ajaxWithRetry(
@@ -11138,6 +11149,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("Fav fetch failed", e);
         }
 
@@ -11162,6 +11174,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("Mentions fetch failed", e);
         }
 
@@ -11207,6 +11220,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("DM fetch failed", e);
         }
 
@@ -11217,12 +11231,13 @@ var TweetFetcher = xo.Class(Events,
         this.emit("tweets", tweets);
         Log.timeEnd("TweetLoad");
 
+        this.emit("fetchStatus", !failed);
+
         if (!running)
         {
           running = true;
           this._loop.run();
         }
-
         return Co.Sleep(120);
       }
     );
@@ -11686,7 +11701,7 @@ var TweetFetcher = xo.Class(Events,
           }
           else
           {
-            Co.Sleep(retry);
+            Co.Sleep(retry * 0.25);
             retry <<= 1;
           }
         }
@@ -11798,6 +11813,18 @@ var Account = Class(Events,
         this._fetcher.on("login", function(evt, info)
         {
           this.errors.open();
+          this._fetcher.on("fetchStatus", function(evt, okay)
+          {
+            var fetch = this.errors.find("fetch");
+            if (okay && fetch.length)
+            {
+              this.errors.remove(fetch[0]);
+            }
+            else if (!okay && !fetch.length)
+            {
+              this.errors.add("fetch");
+            }
+          }, this);
           if (!this.userInfo || info.screen_name !== this.userInfo.screen_name || info.user_id !== this.userInfo.user_id)
           {
             this.userInfo = info;
@@ -11839,11 +11866,6 @@ var Account = Class(Events,
         var self = this;
         function retry()
         {
-          var fetch = self.errors.find("fetch");
-          if (fetch.length)
-          {
-            self.errors.remove(fetch[0]);
-          }
           self.fetch();
         }
         document.addEventListener("online", retry);
@@ -11870,6 +11892,11 @@ var Account = Class(Events,
     return Co.Routine(this,
       function()
       {
+        var fetch = this.errors.find("fetch");
+        if (fetch.length)
+        {
+          this.errors.remove(fetch[0]);
+        }
         return this._fetcher.fetchTweets();
       },
       function(r)
@@ -12118,7 +12145,9 @@ var Errors = Model.create(
 
   add: function(op, details)
   {
+    console.log("ADD");
     this._add(op, details);
+    console.log("_RUNQ");
     this._runq();
   },
 
@@ -12234,10 +12263,17 @@ var Errors = Model.create(
 
   _save: function()
   {
-    this._lgrid.write("/errors", this._errors.map(function(error)
+    try
     {
-      return { op: error.op, details: error.details ? error.details.serialize() : null };
-    }));
+      this._lgrid.write("/errors", this._errors.map(function(error)
+      {
+        return { op: error.op, details: error.details ? error.details.serialize() : null };
+      }));
+    }
+    catch (e)
+    {
+      Log.exception("Error save failed", e);
+    }
   },
 
   _restore: function()
@@ -12417,44 +12453,51 @@ var Composite =
       },
       function(imgs)
       {
-        imgs = imgs();
-        var canvas = document.createElement("canvas");
-        canvas.width = csize;
-        canvas.height = csize;
-        var diff = csize - isize;
-        var ctx = canvas.getContext("2d");
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(corner, 0);
-        ctx.lineTo(isize - corner, 0);
-        ctx.arcTo(isize, 0, isize, corner, corner);
-        ctx.lineTo(isize, isize - corner);
-        ctx.arcTo(isize, isize, isize - corner, isize, corner);
-        ctx.lineTo(corner, isize);
-        ctx.arcTo(0, isize, 0, isize - corner, corner);
-        ctx.lineTo(0, corner);
-        ctx.arcTo(0, 0, corner, 0, corner);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(imgs[0], 0, 0, isize, isize);
-        ctx.restore();
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(diff + corner, diff);
-        ctx.lineTo(diff + isize - corner, diff);
-        ctx.arcTo(diff + isize, diff, diff + isize, diff + corner, corner);
-        ctx.lineTo(diff + isize, diff + isize - corner);
-        ctx.arcTo(diff + isize, diff + isize, diff + isize - corner, diff + isize, corner);
-        ctx.lineTo(diff + corner, diff + isize);
-        ctx.arcTo(diff, diff + isize, diff, diff + isize - corner, corner);
-        ctx.lineTo(diff, diff + corner);
-        ctx.arcTo(diff, diff, diff + corner, diff, corner);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(imgs[1], diff, diff, isize, isize);
-        ctx.restore();
-        this._cache[key] = canvas.toDataURL("image/png");
-        return this._cache[key];
+        try
+        {
+          imgs = imgs();
+          var canvas = document.createElement("canvas");
+          canvas.width = csize;
+          canvas.height = csize;
+          var diff = csize - isize;
+          var ctx = canvas.getContext("2d");
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(corner, 0);
+          ctx.lineTo(isize - corner, 0);
+          ctx.arcTo(isize, 0, isize, corner, corner);
+          ctx.lineTo(isize, isize - corner);
+          ctx.arcTo(isize, isize, isize - corner, isize, corner);
+          ctx.lineTo(corner, isize);
+          ctx.arcTo(0, isize, 0, isize - corner, corner);
+          ctx.lineTo(0, corner);
+          ctx.arcTo(0, 0, corner, 0, corner);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(imgs[0], 0, 0, isize, isize);
+          ctx.restore();
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(diff + corner, diff);
+          ctx.lineTo(diff + isize - corner, diff);
+          ctx.arcTo(diff + isize, diff, diff + isize, diff + corner, corner);
+          ctx.lineTo(diff + isize, diff + isize - corner);
+          ctx.arcTo(diff + isize, diff + isize, diff + isize - corner, diff + isize, corner);
+          ctx.lineTo(diff + corner, diff + isize);
+          ctx.arcTo(diff, diff + isize, diff, diff + isize - corner, corner);
+          ctx.lineTo(diff, diff + corner);
+          ctx.arcTo(diff, diff, diff + corner, diff, corner);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(imgs[1], diff, diff, isize, isize);
+          ctx.restore();
+          this._cache[key] = canvas.toDataURL("image/png");
+          return this._cache[key];
+        }
+        catch (_)
+        {
+          return "";
+        }
       }
     );
   },
@@ -13677,7 +13720,7 @@ var AccountController = xo.Controller.create(
             <div class="error error-{{op}}">\
               {{#details}}\
                 <div class="error-title"></div>\
-                <div class="error-close" data-action-click="RemoveError">x</div>\
+                <div class="error-close" data-action-click="RemoveError"></div>\
                 {{#text}}<div class="error-text">{{text}}</div>{{/text}}\
               {{/details}}\
             </div>\

@@ -202,11 +202,11 @@ body
 }
 .lists-error .show
 {
-  width: 24px;
+  width: 32px;
   height: 22px;
   background-image: url("../img/all.png");
   background-size: 400px 40px;
-  background-position: -152px -16px;
+  background-position: -148px -16px;
 }
 .lists-error .show:active
 {
@@ -1052,12 +1052,13 @@ body
 {
   display: inline-block;
   float: right;
-  margin: -4px 5px 0 0;
-  color: black;
-  font-size: 20px;
-  font-weight: bold;
-  text-shadow: 0 1px 0 white;
+  margin: 5px 5px 0 0;
   opacity: 0.2;
+  width: 17px;
+  height: 16px;
+  background: url(../img/all.png) no-repeat top right;
+  background-size: 400px 40px;
+  background-position: -30px -11px;
 }
 .error-view .errors .error .error-close:active
 {

@@ -68,6 +68,7 @@ var TweetFetcher = xo.Class(Events,
     var favId = "1";
     var dmSendId = "1";
     var dmRecvId = "1";
+    var failed;
     Co.Forever(this,
       function()
       {
@@ -76,6 +77,7 @@ var TweetFetcher = xo.Class(Events,
           return Co.Break();
         }
 
+        failed = false;
         tweets = [];
 
         var lists = this._account.tweetLists;
@@ -109,11 +111,20 @@ var TweetFetcher = xo.Class(Events,
           }
         );
       },
-      function()
+      function(r)
       {
-        if (tweets.length)
+        try
         {
-          tweetId = tweets[0].id_str;
+          r();
+          if (tweets.length)
+          {
+            tweetId = tweets[0].id_str;
+          }
+        }
+        catch (e)
+        {
+          failed = true;
+          Log.exception("Tweet fetch failed", e);
         }
 
         return this._ajaxWithRetry(
@@ -137,6 +148,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("Fav fetch failed", e);
         }
 
@@ -161,6 +173,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("Mentions fetch failed", e);
         }
 
@@ -206,6 +219,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
+          failed = true;
           Log.exception("DM fetch failed", e);
         }
 
@@ -216,12 +230,13 @@ var TweetFetcher = xo.Class(Events,
         this.emit("tweets", tweets);
         Log.timeEnd("TweetLoad");
 
+        this.emit("fetchStatus", !failed);
+
         if (!running)
         {
           running = true;
           this._loop.run();
         }
-
         return Co.Sleep(120);
       }
     );
@@ -685,7 +700,7 @@ var TweetFetcher = xo.Class(Events,
           }
           else
           {
-            Co.Sleep(retry);
+            Co.Sleep(retry * 0.25);
             retry <<= 1;
           }
         }

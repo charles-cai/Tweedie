@@ -155,10 +155,17 @@ var Errors = Model.create(
 
   _save: function()
   {
-    this._lgrid.write("/errors", this._errors.map(function(error)
+    try
     {
-      return { op: error.op, details: error.details ? error.details.serialize() : null };
-    }));
+      this._lgrid.write("/errors", this._errors.map(function(error)
+      {
+        return { op: error.op, details: error.details ? error.details.serialize() : null };
+      }));
+    }
+    catch (e)
+    {
+      Log.exception("Error save failed", e);
+    }
   },
 
   _restore: function()
