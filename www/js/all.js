@@ -12145,9 +12145,7 @@ var Errors = Model.create(
 
   add: function(op, details)
   {
-    console.log("ADD");
     this._add(op, details);
-    console.log("_RUNQ");
     this._runq();
   },
 
