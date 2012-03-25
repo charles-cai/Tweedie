@@ -11081,6 +11081,8 @@ var TweetFetcher = xo.Class(Events,
         failed = false;
         tweets = [];
 
+        this.emit("networkActivity", true);
+
         var lists = this._account.tweetLists;
         return Co.Loop(this, 4,
           function(page)
@@ -11223,6 +11225,8 @@ var TweetFetcher = xo.Class(Events,
           failed = true;
           Log.exception("DM fetch failed", e);
         }
+
+        this.emit("networkActivity", false);
 
         Log.time("TweetSort");
         tweets.sort(Tweet.compareRawTweets);
