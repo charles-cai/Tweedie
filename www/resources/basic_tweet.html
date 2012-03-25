@@ -9,11 +9,6 @@
         {{#embed_photo_url}}
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">
         {{/embed_photo_url}}
-        {{^embed_photo_url}}
-          {{#embed_video_html}}
-            <div class="video">{{{embed_video_html}}}</div>
-          {{/embed_video_html}}
-        {{/embed_photo_url}}
       {{/include_media}}
     </div>
   {{/retweet}}
@@ -25,11 +20,6 @@
       {{#include_media}}
         {{#embed_photo_url}}
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">
-        {{/embed_photo_url}}
-        {{^embed_photo_url}}
-          {{#embed_video_html}}
-            <div class="video">{{{embed_video_html}}}</div>
-          {{/embed_video_html}}
         {{/embed_photo_url}}
       {{/include_media}}
     </div>

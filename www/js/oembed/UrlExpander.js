@@ -84,8 +84,8 @@ var UrlExpander = Class(Events,
       var v = new xo.Url(url).getParameter("v");
       return {
         url: url,
-        type: "photo",
-        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg"
+        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg",
+        type: "video"
       }
     }
     // Twitpic

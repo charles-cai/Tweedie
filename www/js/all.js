@@ -9632,14 +9632,7 @@ var Tweet = Model.create(
           switch (t.type)
           {
             case "media":
-              if (t.entity.type === "video")
-              {
-                text += '<span class="media" data-action-click="Video" data-embed="' + escape(t.entity.html) + '">' + durl(t) + '</span>';
-              }
-              else
-              {
-                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
-              }
+              text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
               break;
             case "url":
               text += '<span class="url" data-action-click="Url" data-href="' + t.entity.url + '" title="' + (t.entity.resolved_url || t.entity.url) +'">' + durl(t) + '</span>';
@@ -9797,34 +9790,20 @@ var Tweet = Model.create(
     if (this._embed_photo_url === undefined)
     {
       var media = this._getFirstMediaType("photo");
-      if (media)
+      if (!media)
       {
-        this._embed_photo_url = media.media_url;
+        media = this._getFirstMediaType("video");
       }
-      else
+      if (!media)
       {
         this._embed_photo_url = null;
       }
-    }
-    return this._embed_photo_url;
-  },
-
-  embed_video_html: function()
-  {
-    if (this._embed_video_html === undefined)
-    {
-      var media = this._getFirstMediaType("video");
-      var html = media ? media.html_large || media.html : null;
-      if (html && /^<iframe.*<\/iframe>$/.test(html))
-      {
-        this._embed_video_html = html;
-      }
       else
       {
-        this._embed_video_html = null;
+        this._embed_photo_url = media.media_url;
       }
     }
-    return this._embed_video_html;
+    return this._embed_photo_url;
   },
 
   _getFirstMediaType: function(type)
@@ -12397,8 +12376,8 @@ var UrlExpander = Class(Events,
       var v = new xo.Url(url).getParameter("v");
       return {
         url: url,
-        type: "photo",
-        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg"
+        media_url: "http://img.youtube.com/vi/" + v + "/0.jpg",
+        type: "video"
       }
     }
     // Twitpic
@@ -13638,11 +13617,6 @@ var AccountController = xo.Controller.create(
         {{#embed_photo_url}}\
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
         {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
-        {{/embed_photo_url}}\
       {{/include_media}}\
     </div>\
   {{/retweet}}\
@@ -13654,11 +13628,6 @@ var AccountController = xo.Controller.create(
       {{#include_media}}\
         {{#embed_photo_url}}\
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
-        {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
         {{/embed_photo_url}}\
       {{/include_media}}\
     </div>\
@@ -13872,15 +13841,6 @@ var AccountController = xo.Controller.create(
       </div>\
     {{/_}}\
   {{/embed_photo_url}}\
-  {{^embed_photo_url}}\
-    {{#embed_video_html}}\
-      {{#_ View}}\
-        <div class="media-box">\
-          <div class="video">{{{embed_video_html}}}</div>\
-        </div>\
-      {{/_}}\
-    {{/embed_video_html}}\
-  {{/embed_photo_url}}\
 {{/retweet}}\
 {{^retweet}}\
   {{#embed_photo_url}}\
@@ -13889,15 +13849,6 @@ var AccountController = xo.Controller.create(
         <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
       </div>\
     {{/_}}\
-  {{/embed_photo_url}}\
-  {{^embed_photo_url}}\
-    {{#embed_video_html}}\
-      {{#_ View}}\
-        <div class="media-box">\
-          <div class="video">{{{embed_video_html}}}</div>\
-        </div>\
-      {{/_}}\
-    {{/embed_video_html}}\
   {{/embed_photo_url}}\
 {{/retweet}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}">\

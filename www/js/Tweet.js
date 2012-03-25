@@ -118,14 +118,7 @@ var Tweet = Model.create(
           switch (t.type)
           {
             case "media":
-              if (t.entity.type === "video")
-              {
-                text += '<span class="media" data-action-click="Video" data-embed="' + escape(t.entity.html) + '">' + durl(t) + '</span>';
-              }
-              else
-              {
-                text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
-              }
+              text += '<span class="media" data-action-click="Image" data-href="' + t.entity.media_url + '" data-full-href="' + (t.entity.resolved_url || t.entity.url) + '">' + durl(t) + '</span>';
               break;
             case "url":
               text += '<span class="url" data-action-click="Url" data-href="' + t.entity.url + '" title="' + (t.entity.resolved_url || t.entity.url) +'">' + durl(t) + '</span>';
@@ -260,11 +253,12 @@ var Tweet = Model.create(
       );
     }
   },
-  
+
   embed_photo_url_small: function()
   {
     if (this._embed_photo_url_small === undefined)
     {
+      this._embed_photo_url_small = null;
       var media = this._getFirstMediaType("photo");
       if (media)
       {
@@ -272,16 +266,21 @@ var Tweet = Model.create(
       }
       else
       {
-        this._embed_photo_url_small = null;
+        media = this._getFirstMediaType("video");
+        if (media)
+        {
+          this._embed_photo_url_small = media.media_url;
+        }
       }
     }
     return this._embed_photo_url_small;
   },
-  
+
   embed_photo_url: function()
   {
     if (this._embed_photo_url === undefined)
     {
+      this._embed_photo_url = null;
       var media = this._getFirstMediaType("photo");
       if (media)
       {
@@ -289,28 +288,14 @@ var Tweet = Model.create(
       }
       else
       {
-        this._embed_photo_url = null;
+        media = this._getFirstMediaType("video");
+        if (media)
+        {
+          this._embed_photo_url = media.media_url;
+        }
       }
     }
     return this._embed_photo_url;
-  },
-
-  embed_video_html: function()
-  {
-    if (this._embed_video_html === undefined)
-    {
-      var media = this._getFirstMediaType("video");
-      var html = media ? media.html_large || media.html : null;
-      if (html && /^<iframe.*<\/iframe>$/.test(html))
-      {
-        this._embed_video_html = html;
-      }
-      else
-      {
-        this._embed_video_html = null;
-      }
-    }
-    return this._embed_video_html;
   },
 
   _getFirstMediaType: function(type)

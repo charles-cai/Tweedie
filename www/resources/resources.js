@@ -10,11 +10,6 @@ var __resources = {
         {{#embed_photo_url}}\
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
         {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
-        {{/embed_photo_url}}\
       {{/include_media}}\
     </div>\
   {{/retweet}}\
@@ -26,11 +21,6 @@ var __resources = {
       {{#include_media}}\
         {{#embed_photo_url}}\
           <img class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" src="{{embed_photo_url_small}}">\
-        {{/embed_photo_url}}\
-        {{^embed_photo_url}}\
-          {{#embed_video_html}}\
-            <div class="video">{{{embed_video_html}}}</div>\
-          {{/embed_video_html}}\
         {{/embed_photo_url}}\
       {{/include_media}}\
     </div>\
@@ -244,15 +234,6 @@ var __resources = {
       </div>\
     {{/_}}\
   {{/embed_photo_url}}\
-  {{^embed_photo_url}}\
-    {{#embed_video_html}}\
-      {{#_ View}}\
-        <div class="media-box">\
-          <div class="video">{{{embed_video_html}}}</div>\
-        </div>\
-      {{/_}}\
-    {{/embed_video_html}}\
-  {{/embed_photo_url}}\
 {{/retweet}}\
 {{^retweet}}\
   {{#embed_photo_url}}\
@@ -261,15 +242,6 @@ var __resources = {
         <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
       </div>\
     {{/_}}\
-  {{/embed_photo_url}}\
-  {{^embed_photo_url}}\
-    {{#embed_video_html}}\
-      {{#_ View}}\
-        <div class="media-box">\
-          <div class="video">{{{embed_video_html}}}</div>\
-        </div>\
-      {{/_}}\
-    {{/embed_video_html}}\
   {{/embed_photo_url}}\
 {{/retweet}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
