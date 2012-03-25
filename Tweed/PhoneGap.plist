@@ -11,7 +11,7 @@
 	<key>AutoHideSplashScreen</key>
 	<false/>
 	<key>ShowSplashScreenSpinner</key>
-	<false/>
+	<true/>
 	<key>MediaPlaybackRequiresUserAction</key>
 	<true/>
 	<key>AllowInlineMediaPlayback</key>
