@@ -99,8 +99,10 @@ var __resources = {
 </div>',
 'imageview': '<div class="dialog image-view">\
   <div class="inner" data-action-click="Ignore">\
-    <img src="{{url}}">\
-    {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
+    <div class="img-wrapper">\
+      <img class="img" src="{{url}}">\
+      {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
+    </div>\
   </div>\
 </div>',
 'main': '<div class="main">\

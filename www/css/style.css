@@ -2,9 +2,11 @@ body
 {
   position: absolute;
   top: 0;
+  bottom: 0;
   margin: 0;
-  width: 768px;
-  height: 1000px;
+  padding: 0;
+  width: 100%;
+  min-width: 693px;
   font-family: "Helvetica Neue", "Helvetica";
   background-color: hsl(183, 65%, 25%);
   overflow: hidden;
@@ -34,13 +36,17 @@ body
 #root
 {
   position: absolute;
+  width: 100%;
   height: 100%;
-  margin: 4px;
+  border: transparent solid 4px;
   box-sizing: border-box;
+  z-index: 1;
 }
 #root-dialog
 {
-  -webkit-transform: translate3d(0,0,1px);
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
 .main
 {
@@ -56,19 +62,28 @@ body
 }
 .col.right
 {
-  left: 558px;
-  width: 202px;
+  right: 0;
+  width: 210px;
+  z-index: 1;
 }
 .col.left
 {
-  bottom: 4px;
+  bottom: 0;
   left: 0;
-  width: 554px;
+  width: 100%;
+  padding-right: 214px;
+  box-sizing: border-box;
+}
+.col.left .pane
+{
+  position: relative;
+  height: 100%;
+  min-width: 470px;
   box-sizing: border-box;
 }
 .col.left .filter
 {
-  height: 25px;
+  height: 29px;
   margin: 2px;
 }
 .col.left .filter input
@@ -105,14 +120,20 @@ body
 }
 .col.left .tweets
 {
-  height: 965px;
-  padding: 3px;
+  position: absolute;
+  top: 33px;
+  bottom: 1px;
+  left: 1px;
+  right: 1px;
   box-sizing: border-box;
   -webkit-transform: translate3d(0,0,0);
 }
 .col.left .tweets > .view
 {
-  height: 950px;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 0;
 }
 .col.left .tweets > .view > .collection-view
 {
@@ -560,18 +581,6 @@ body
   font-size: 10px;
 }
 
-.image-view .tweet
-{
-  text-align: left;
-  line-height: normal;
-  border-bottom: none;
-  background-color: white;
-}
-.image-view .tweet .body
-{
-  padding-bottom: 24px;
-}
-
 .basic-tweet
 {
   min-width: 400px;
@@ -589,7 +598,8 @@ body
 
 .media-box
 {
-  width: 273px;
+  x-width: 273px;
+  width: 265px;
   height: 205px;
   float: left;
   padding: 5px;
@@ -622,11 +632,11 @@ body
   background-color: rgba(0, 0, 0, 0.5);
   padding: 60px;
   top: 0px;
-  height: 1004px;
+  bottom: 0px;
   left: 0px;
   right: 0px;
   z-index: 10;
-  box-sizing: border-box;
+  x-box-sizing: border-box;
 }
 .dialog .inner
 {
@@ -638,24 +648,49 @@ body
 }
 .image-view
 {
-  line-height: 880px;
-  text-align: center;
+  display: -webkit-box;
+  -webkit-box-pack: center;
+  -webkit-box-align: center;
+  -webkit-box-orient: vertical;
 }
 .image-view .inner
 {
-  display: inline-block;
-  vertical-align: middle;
+  display: -webkit-box;
+  -webkit-box-pack: center;
+  -webkit-box-align: center;
+  -webkit-box-orient: vertical;
   height: auto;
-  max-height: 100%;
-  min-width: 100px;
-  min-height: 100px;
+  padding: 0;
+  background-color: transparent;
+  -webkit-box-shadow: none;
 }
-.image-view .inner img, .image-view .inner iframe
+.image-view .inner .img-wrapper
 {
-  display: block;
+  position: relative;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: white;
+  -webkit-box-shadow: 0 0 10px #444;
+}
+.image-view .inner .img
+{
   max-width: 100%;
-  max-height: 750px;
-  margin: auto;
+  max-height: 100%;
+}
+.image-view .tweet
+{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: left;
+  line-height: normal;
+  border-bottom: none;
+  background-color: white;
+}
+.image-view .tweet .body
+{
+  padding-bottom: 24px;
 }
 
 .tweet-dialog .inner
@@ -805,7 +840,9 @@ body
   font-size: 14px;
   -webkit-column-count: 2;
   -webkit-column-gap: 10px;
-  height: 788px;
+  height: 100%;
+  padding-bottom: 80px;
+  box-sizing: border-box;
   -webkit-transform: translate3d(0,0,1px);
   -webkit-transition: -webkit-transform 0.2s ease;
 }
@@ -832,6 +869,8 @@ body
 }
 .readability > .inner > .footer
 {
+  position: relative;
+  bottom: 75px;
   text-align: center;
   height: 14px;
   margin: 20px auto 0 auto;
@@ -843,6 +882,7 @@ body
   position: absolute;
   bottom: 50px;
   right: 70px;
+  -webkit-transform: translate3d(0, 0, 1px);
 }
 .pages0, .pages1
 {

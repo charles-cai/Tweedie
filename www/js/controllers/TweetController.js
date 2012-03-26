@@ -25,6 +25,12 @@ var TweetController = xo.Controller.create(
       {
         readModel = readModel();
 
+        function doUpdate()
+        {
+          readModel.emit("update");
+        }
+        document.addEventListener("orientationchange", doUpdate);
+
         var pagenr = 0;
         var maxpagenr = 0;
         var mv = new ModalView(
@@ -51,7 +57,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   var r = document.querySelector("#readability-scroller .text");
-                  pagenr = Math.min(maxpagenr - 1, pagenr + 1);
+                  pagenr = Math.min(maxpagenr - 1, mv.pagenr() + 1);
                   mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
                   Co.Sleep(0.2);
                 },
@@ -68,7 +74,7 @@ var TweetController = xo.Controller.create(
                 function()
                 {
                   var r = document.querySelector("#readability-scroller .text");
-                  pagenr = Math.max(0, pagenr - 1);
+                  pagenr = Math.max(0, mv.pagenr() - 1);
                   mv.translate("-webkit-transform: translate3d(-" + pagenr * (r.offsetWidth + parseInt(getComputedStyle(r).WebkitColumnGap)) + "px,0,1px)");
                   Co.Sleep(0.2);
                 },
@@ -92,7 +98,7 @@ var TweetController = xo.Controller.create(
             onClose: function()
             {
               this.metric("close");
-              mv.close();
+              document.removeEventListener("orientationchange", doUpdate);
             }
           }))
         });
@@ -133,6 +139,7 @@ var TweetController = xo.Controller.create(
                 }
               }
               recalc();
+              mv.translate("-webkit-transform: translate3d(0,0,1px)");
               mv.pagenr(0);
             }
           );
@@ -140,7 +147,7 @@ var TweetController = xo.Controller.create(
         // Force layout if we have text already (cached)
         if (readModel.text())
         {
-          readModel.emit("update");
+          doUpdate();
         }
       }
     );
