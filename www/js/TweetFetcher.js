@@ -291,18 +291,21 @@ var TweetFetcher = xo.Class(Events,
               {
                 if (line.event)
                 {
-                  switch (line.event)
+                  if (line.source.screen_name === self._account.userInfo.screen_name)
                   {
-                    case "favorite": // event, created_at, source, target, target_object
-                      favs.unshift(line.target_object);
-                      break;
-                    case "unfavorite":
-                      unfavs.unshift(line.target_object);
-                      break;
-                    case "follow":
-                    case "unfollow":
-                    default:
-                      break;
+                    switch (line.event)
+                    {
+                      case "favorite": // event, created_at, source, target, target_object
+                        favs.unshift(line.target_object);
+                        break;
+                      case "unfavorite":
+                        unfavs.unshift(line.target_object);
+                        break;
+                      case "follow":
+                      case "unfollow":
+                      default:
+                        break;
+                    }
                   }
                 }
                 else if (line.friends)
