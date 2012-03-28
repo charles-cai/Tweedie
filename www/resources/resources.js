@@ -205,7 +205,7 @@ var __resources = {
           <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}\
         {{/_}}\
       </div>\
-      <div class="tweets">\
+      <div class="tweets" data-action-scroll-insert-above="InsertAtTop">\
         {{#current_list View updateOn:"viz"}}\
           {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
           {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\

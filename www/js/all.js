@@ -11323,18 +11323,21 @@ var TweetFetcher = xo.Class(Events,
               {
                 if (line.event)
                 {
-                  switch (line.event)
+                  if (line.source.screen_name === self._account.userInfo.screen_name)
                   {
-                    case "favorite": // event, created_at, source, target, target_object
-                      favs.unshift(line.target_object);
-                      break;
-                    case "unfavorite":
-                      unfavs.unshift(line.target_object);
-                      break;
-                    case "follow":
-                    case "unfollow":
-                    default:
-                      break;
+                    switch (line.event)
+                    {
+                      case "favorite": // event, created_at, source, target, target_object
+                        favs.unshift(line.target_object);
+                        break;
+                      case "unfavorite":
+                        unfavs.unshift(line.target_object);
+                        break;
+                      case "follow":
+                      case "unfollow":
+                      default:
+                        break;
+                    }
                   }
                 }
                 else if (line.friends)
@@ -13626,6 +13629,13 @@ var GlobalController = xo.Controller.create(
   {
     this.metric("dm:compose");
     new TweetBox().open(models.account(), "dm");
+  },
+
+  onInsertAtTop: function(_, _, _, models)
+  {
+    var m = models.current_list();
+    var last = m.tweets().models[0];
+    m.lastRead(last && last.id());
   }
 });
 var AccountController = xo.Controller.create(
@@ -13869,7 +13879,7 @@ var AccountController = xo.Controller.create(
           <input id="filter" name="filter" class="{{#dropzone}}dropzone{{/dropzone}}" placeholder="Filter..." {{{input_attributes}}} data-action-change="Filter" data-action-drop="DropFilter" {{{drop_attributes}}}>{{#filterfull}}<div class="filter-clear" data-action-click="FilterClear"></div>{{/filterfull}}\
         {{/_}}\
       </div>\
-      <div class="tweets">\
+      <div class="tweets" data-action-scroll-insert-above="InsertAtTop">\
         {{#current_list View updateOn:"viz"}}\
           {{:viz_list}}return this.v(\'viz\') === \'list\' ? \'selected\' : \'\'{{/viz_list}}\
           {{:viz_stack}}return this.v(\'viz\') === \'stack\' ? \'selected\' : \'\'{{/viz_stack}}\
