@@ -80,6 +80,7 @@ var TweetFetcher = xo.Class(Events,
         failed = false;
         tweets = [];
 
+        this.emit("fetchStatus", true);
         this.emit("networkActivity", true);
 
         var lists = this._account.tweetLists;
