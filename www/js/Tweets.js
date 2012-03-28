@@ -234,7 +234,21 @@ var FilteredTweetsModel = Model.create(
     var id = this.lastRead();
     var tweets = this.tweets();
     var model = tweets.findByProperty("id", id);
-    this.unread(model ? Math.max(0, tweets.indexOf(model)) : tweets.length());
+    var i = model ? tweets.indexOf(model) : -1;
+    if (i === -1)
+    {
+      var models = tweets.models;
+      for (i = 0, len = models.length; i < len; i++)
+      {
+        var oid = models[i].id();
+        if (Tweet.compareTweetIds(id, oid) <= 0)
+        {
+          this.lastRead(oid);
+          break;
+        }
+      }
+    }
+    this.unread(i);
   },
 
   remove: function()
