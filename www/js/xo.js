@@ -1832,7 +1832,7 @@ var View = exports.View = Class(Model,
     return this.$renderer(this.$cursor);
   },
 
-  node: function(check)
+  node: function()
   {
     if (!this.$node)
     {
@@ -2895,6 +2895,11 @@ var RootView = exports.RootView = Class(View,
     args.node.__rootview = self;
 
     RenderQ.ids[View.buildIdentity(self.$renderer, self.$model)] = self;
+
+    this.addListener(document, "orientationchange", function()
+    {
+      self.action("orientationchange", { target: self.node().firstChild, orientation: window.orientation });
+    });
 
     if (!args.noOpen)
     {

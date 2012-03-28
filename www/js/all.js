@@ -6046,7 +6046,7 @@ var View = exports.View = Class(Model,
     return this.$renderer(this.$cursor);
   },
 
-  node: function(check)
+  node: function()
   {
     if (!this.$node)
     {
@@ -7109,6 +7109,11 @@ var RootView = exports.RootView = Class(View,
     args.node.__rootview = self;
 
     RenderQ.ids[View.buildIdentity(self.$renderer, self.$model)] = self;
+
+    this.addListener(document, "orientationchange", function()
+    {
+      self.action("orientationchange", { target: self.node().firstChild, orientation: window.orientation });
+    });
 
     if (!args.noOpen)
     {
@@ -9535,7 +9540,7 @@ var Tweet = Model.create(
   _reduce: function(values)
   {
     return {
-      id_str: values.id_str,
+      id_str: values.retweeted_status ? values.retweeted_status.id_str : values.id_str,
       entities: values.entities,
       text: values.text,
       user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
@@ -9773,17 +9778,24 @@ var Tweet = Model.create(
     if (this._embed_photo_url_small === undefined)
     {
       this._embed_photo_url_small = null;
-      var media = this._getFirstMediaType("photo");
-      if (media)
+      if (this.is_retweet())
       {
-        this._embed_photo_url_small = media.media_url + (media.sizes ? ":small" : "");
+        this._embed_photo_url_small = this.retweet().embed_photo_url_small();
       }
       else
       {
-        media = this._getFirstMediaType("video");
+        var media = this._getFirstMediaType("photo");
         if (media)
         {
-          this._embed_photo_url_small = media.media_url;
+          this._embed_photo_url_small = media.media_url + (media.sizes ? ":small" : "");
+        }
+        else
+        {
+          media = this._getFirstMediaType("video");
+          if (media)
+          {
+            this._embed_photo_url_small = media.media_url;
+          }
         }
       }
     }
@@ -9795,17 +9807,24 @@ var Tweet = Model.create(
     if (this._embed_photo_url === undefined)
     {
       this._embed_photo_url = null;
-      var media = this._getFirstMediaType("photo");
-      if (media)
+      if (this.is_retweet())
       {
-        this._embed_photo_url = media.media_url;
+        this._embed_photo_url = this.retweet().embed_photo_url();
       }
       else
       {
-        media = this._getFirstMediaType("video");
+        var media = this._getFirstMediaType("photo");
         if (media)
         {
           this._embed_photo_url = media.media_url;
+        }
+        else
+        {
+          media = this._getFirstMediaType("video");
+          if (media)
+          {
+            this._embed_photo_url = media.media_url;
+          }
         }
       }
     }
@@ -10216,14 +10235,13 @@ var Tweet = Model.create(
     {
       return 0;
     }
-    else if (aid.length < bid.length || aid < bid)
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
     {
       return 1;
     }
-    else
-    {
-      return -1;
-    }
+    return -1;
   },
 
   compareRawTweets: function(a, b)
@@ -10234,14 +10252,28 @@ var Tweet = Model.create(
     {
       return 0;
     }
-    else if (aid.length < bid.length || aid < bid)
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
     {
       return 1;
     }
-    else
+    return -1;
+  },
+
+  compareTweetIds: function(aid, bid)
+  {
+    if (aid === bid)
     {
-      return -1;
+      return 0;
     }
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
+    {
+      return 1;
+    }
+    return -1;
   },
 
   TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
@@ -10490,7 +10522,21 @@ var FilteredTweetsModel = Model.create(
     var id = this.lastRead();
     var tweets = this.tweets();
     var model = tweets.findByProperty("id", id);
-    this.unread(model ? Math.max(0, tweets.indexOf(model)) : tweets.length());
+    var i = model ? tweets.indexOf(model) : -1;
+    if (i === -1)
+    {
+      var models = tweets.models;
+      for (i = 0, len = models.length; i < len; i++)
+      {
+        var oid = models[i].id();
+        if (Tweet.compareTweetIds(id, oid) <= 0)
+        {
+          this.lastRead(oid);
+          break;
+        }
+      }
+    }
+    this.unread(i);
   },
 
   remove: function()
@@ -11066,6 +11112,7 @@ var TweetFetcher = xo.Class(Events,
         failed = false;
         tweets = [];
 
+        this.emit("fetchStatus", true);
         this.emit("networkActivity", true);
 
         var lists = this._account.tweetLists;
@@ -11514,6 +11561,7 @@ var TweetFetcher = xo.Class(Events,
 
   tweet: function(m)
   {
+    throw new Error();
     return this._ajaxWithRetry(
     {
       method: "POST",
@@ -13065,12 +13113,6 @@ var TweetController = xo.Controller.create(
       {
         readModel = readModel();
 
-        function doUpdate()
-        {
-          readModel.emit("update");
-        }
-        document.addEventListener("orientationchange", doUpdate);
-
         var pagenr = 0;
         var maxpagenr = 0;
         var mv = new ModalView(
@@ -13135,10 +13177,13 @@ var TweetController = xo.Controller.create(
               browser.showWebPage(url);
               this.metric("browser:open");
             },
+            onOrientationChange: function()
+            {
+              readModel.emit("update");
+            },
             onClose: function()
             {
               this.metric("close");
-              document.removeEventListener("orientationchange", doUpdate);
             }
           }))
         });
@@ -13187,7 +13232,7 @@ var TweetController = xo.Controller.create(
         // Force layout if we have text already (cached)
         if (readModel.text())
         {
-          doUpdate();
+          readModel.emit("update");
         }
       }
     );
@@ -13719,7 +13764,7 @@ var AccountController = xo.Controller.create(
 </div>',
 'imageview': '<div class="dialog image-view">\
   <div class="inner" data-action-click="Ignore">\
-    <div class="img-wrapper">\
+    <div class="img-wrapper{{#tweet}} with-tweet{{/tweet}}">\
       <img class="img" src="{{url}}">\
       {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
     </div>\
@@ -13738,82 +13783,84 @@ var AccountController = xo.Controller.create(
         Message...\
       </div>\
     {{/is_dm_list}}\
-    <div class="pane lists">\
-      <div class="lists-header">\
-        <div class="lists-gear" data-action-click="OpenPreferences">@</div>\
-        <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
-        {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
-        {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\
-      </div>\
-      <div class="current-lists {{#open}}open{{/open}}">\
-        {{#lists ViewSet}}\
-          {{#_ View.Drop name:m.name()}}\
-            <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>\
-              <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>\
+    <div class="right-list">\
+      <div class="pane lists">\
+        <div class="lists-header">\
+          <div class="lists-gear" data-action-click="OpenPreferences">@</div>\
+          <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
+          {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
+          {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\
+        </div>\
+        <div class="current-lists {{#open}}open{{/open}}">\
+          {{#lists ViewSet}}\
+            {{#_ View.Drop name:m.name()}}\
+              <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>\
+                <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>\
+              </div>\
+            {{/_}}\
+          {{/lists}}\
+          {{#_ View.Drop}}\
+            <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>\
+              <input placeholder="Create list or search..." data-action-change="NewList">\
             </div>\
           {{/_}}\
-        {{/lists}}\
-        {{#_ View.Drop}}\
-          <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>\
-            <input placeholder="Create list or search..." data-action-change="NewList">\
-          </div>\
-        {{/_}}\
+        </div>\
       </div>\
+      {{#_ View}}\
+        <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">\
+          <div class="list-header">\
+            <div class="title">\
+              {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}\
+              {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}\
+            </div>\
+          </div>\
+          <div class="viz">Visual: \
+            {{^editMode}}\
+              {{#current_list}}\
+                <span class="tag">{{viz}}</span>\
+              {{/current_list}}\
+            {{/editMode}}\
+            {{#editMode}}\
+              {{#current_list View}}\
+                <select data-action-change="ChangeViz">\
+                  <option value="list" {{viz_list}}>list</option>\
+                  <option value="stack" {{viz_stack}}>stack</options>\
+                  <option value="media" {{viz_media}}>media</options>\
+                </select>\
+              {{/current_list}}\
+            {{/editMode}}\
+          </div>\
+          {{#current_list}}\
+            {{#_ View.Drop}}\
+              <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>\
+                Include:\
+                {{#includeTags}}\
+                  {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}\
+                {{/includeTags}}\
+              </div>\
+            {{/_}}\
+            {{#_ View.Drop}}\
+              <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>\
+                Exclude:\
+                {{#excludeTags}}\
+                  {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}\
+                {{/excludeTags}}\
+              </div>\
+            {{/_}}\
+          {{/current_list}}\
+          <div class="list-footer">\
+            {{#editMode}}\
+              {{#current_list}}\
+                {{#canRemove}}\
+                  <div class="button danger" data-action-click="RemoveList">Remove</div>\
+                {{/canRemove}}\
+              {{/current_list}}\
+              <div class="clear"></div>\
+            {{/editMode}}\
+          </div>\
+        </div>\
+      {{/_}}\
     </div>\
-    {{#_ View}}\
-      <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">\
-        <div class="list-header">\
-          <div class="title">\
-            {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}\
-            {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}\
-          </div>\
-        </div>\
-        <div class="viz">Visual: \
-          {{^editMode}}\
-            {{#current_list}}\
-              <span class="tag">{{viz}}</span>\
-            {{/current_list}}\
-          {{/editMode}}\
-          {{#editMode}}\
-            {{#current_list View}}\
-              <select data-action-change="ChangeViz">\
-                <option value="list" {{viz_list}}>list</option>\
-                <option value="stack" {{viz_stack}}>stack</options>\
-                <option value="media" {{viz_media}}>media</options>\
-              </select>\
-            {{/current_list}}\
-          {{/editMode}}\
-        </div>\
-        {{#current_list}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>\
-              Include:\
-              {{#includeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/includeTags}}\
-            </div>\
-          {{/_}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>\
-              Exclude:\
-              {{#excludeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/excludeTags}}\
-            </div>\
-          {{/_}}\
-        {{/current_list}}\
-        <div class="list-footer">\
-          {{#editMode}}\
-            {{#current_list}}\
-              {{#canRemove}}\
-                <div class="button danger" data-action-click="RemoveList">Remove</div>\
-              {{/canRemove}}\
-            {{/current_list}}\
-            <div class="clear"></div>\
-          {{/editMode}}\
-        </div>\
-      </div>\
-    {{/_}}\
   </div>\
   <div class="col left">\
     <div class="pane">\
@@ -13848,26 +13895,15 @@ var AccountController = xo.Controller.create(
     </div>\
   </div>\
 </div>',
-'media': '{{#retweet}}\
-  {{#embed_photo_url}}\
-    {{#_ View}}\
-      <div class="media-box">\
-        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
-      </div>\
-    {{/_}}\
-  {{/embed_photo_url}}\
-{{/retweet}}\
-{{^retweet}}\
-  {{#embed_photo_url}}\
-    {{#_ View}}\
-      <div class="media-box">\
-        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
-      </div>\
-    {{/_}}\
-  {{/embed_photo_url}}\
-{{/retweet}}',
-'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
-  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">\
+'media': '{{#embed_photo_url}}\
+  {{#_ View}}\
+    <div class="media-box">\
+      <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+    </div>\
+  {{/_}}\
+{{/embed_photo_url}}',
+'readability': '<div class="dialog readability{{#show}} show{{/show}}" data-action-orientationchange="OrientationChange">\
+  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="Ignore">\
     {{#title}}\
       <div class="title">{{{title}}}</div>\
     {{/title}}\

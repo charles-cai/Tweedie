@@ -25,12 +25,6 @@ var TweetController = xo.Controller.create(
       {
         readModel = readModel();
 
-        function doUpdate()
-        {
-          readModel.emit("update");
-        }
-        document.addEventListener("orientationchange", doUpdate);
-
         var pagenr = 0;
         var maxpagenr = 0;
         var mv = new ModalView(
@@ -95,10 +89,13 @@ var TweetController = xo.Controller.create(
               browser.showWebPage(url);
               this.metric("browser:open");
             },
+            onOrientationChange: function()
+            {
+              readModel.emit("update");
+            },
             onClose: function()
             {
               this.metric("close");
-              document.removeEventListener("orientationchange", doUpdate);
             }
           }))
         });
@@ -147,7 +144,7 @@ var TweetController = xo.Controller.create(
         // Force layout if we have text already (cached)
         if (readModel.text())
         {
-          doUpdate();
+          readModel.emit("update");
         }
       }
     );
