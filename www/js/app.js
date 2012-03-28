@@ -77,7 +77,7 @@ function main()
           delete time.dataset.timestamp;
         }
       }
-      return Co.Sleep(20);
+      return Co.Sleep(10);
     }
   );
   

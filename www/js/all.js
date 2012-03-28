@@ -10322,8 +10322,7 @@ var FilteredTweetsModel = Model.create(
       },
       function()
       {
-        this._updateUnread();
-        this.recalcVelocity(this._tweetLists._getVelocity());
+        this.updateUnreadAndVelocity();
         this.on("update.tweets update.includeTags update.excludeTags update.lastRead update.viz", function()
         {
           this._save();
@@ -10510,6 +10509,12 @@ var FilteredTweetsModel = Model.create(
     {
       return 50;
     }
+  },
+
+  updateUnreadAndVelocity: function()
+  {
+    this._updateUnread();
+    this.recalcVelocity(this._tweetLists._getVelocity());
   },
 
   recalcVelocity: function(o)
@@ -13636,6 +13641,7 @@ var GlobalController = xo.Controller.create(
     var m = models.current_list();
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());
+    m.updateUnreadAndVelocity();
   }
 });
 var AccountController = xo.Controller.create(
@@ -14095,7 +14101,7 @@ function main()
           delete time.dataset.timestamp;
         }
       }
-      return Co.Sleep(20);
+      return Co.Sleep(10);
     }
   );
   

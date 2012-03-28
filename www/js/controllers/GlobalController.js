@@ -22,5 +22,6 @@ var GlobalController = xo.Controller.create(
     var m = models.current_list();
     var last = m.tweets().models[0];
     m.lastRead(last && last.id());
+    m.updateUnreadAndVelocity();
   }
 });
