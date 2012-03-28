@@ -1,6 +1,6 @@
 <div class="dialog image-view">
   <div class="inner" data-action-click="Ignore">
-    <div class="img-wrapper">
+    <div class="img-wrapper{{#tweet}} with-tweet{{/tweet}}">
       <img class="img" src="{{url}}">
       {{#tweet}}{{>basic_tweet}}{{/#tweet}}
     </div>

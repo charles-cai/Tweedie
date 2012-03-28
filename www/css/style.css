@@ -1,3 +1,7 @@
+html, body
+{
+  overflow: hidden;
+}
 body
 {
   position: absolute;
@@ -9,8 +13,6 @@ body
   min-width: 693px;
   font-family: "Helvetica Neue", "Helvetica";
   background-color: hsl(183, 65%, 25%);
-  overflow: hidden;
-  z-index: 1;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
 }
@@ -63,8 +65,19 @@ body
 .col.right
 {
   right: 0;
+  bottom: 0;
   width: 210px;
   z-index: 1;
+}
+.col.right .right-list
+{
+  position: absolute;
+  top: 33px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow: scroll;
+  -webkit-overflow-scrolling: touch;
 }
 .col.left
 {
@@ -672,8 +685,14 @@ body
   background-color: white;
   -webkit-box-shadow: 0 0 10px #444;
 }
+.image-view .inner .img-wrapper.with-tweet
+{
+  min-width: 500px;
+}
 .image-view .inner .img
 {
+  display: block;
+  margin: auto;
   max-width: 100%;
   max-height: 100%;
 }
@@ -687,10 +706,15 @@ body
   line-height: normal;
   border-bottom: none;
   background-color: white;
+  border-radius: 5px;
 }
 .image-view .tweet .body
 {
-  padding-bottom: 24px;
+  padding-bottom: 18px;
+}
+.image-view .tweet .retweetedby
+{
+  margin: -12px 0 12px 0;
 }
 
 .tweet-dialog .inner
@@ -845,6 +869,13 @@ body
   box-sizing: border-box;
   -webkit-transform: translate3d(0,0,1px);
   -webkit-transition: -webkit-transform 0.2s ease;
+}
+@media (orientation:landscape)
+{
+  .readability > .inner > .text
+  {
+    -webkit-column-count: 3 !important;
+  }
 }
 .readability > .inner > .text a
 {
@@ -1073,6 +1104,8 @@ body
   background-color: #f2dede;
   border-color: #eed3d7;
   color: #b94a48;
+  min-height: 200px;
+  height: auto;
 }
 .error-view .summary
 {

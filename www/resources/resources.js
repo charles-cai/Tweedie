@@ -99,7 +99,7 @@ var __resources = {
 </div>',
 'imageview': '<div class="dialog image-view">\
   <div class="inner" data-action-click="Ignore">\
-    <div class="img-wrapper">\
+    <div class="img-wrapper{{#tweet}} with-tweet{{/tweet}}">\
       <img class="img" src="{{url}}">\
       {{#tweet}}{{>basic_tweet}}{{/#tweet}}\
     </div>\
@@ -118,82 +118,84 @@ var __resources = {
         Message...\
       </div>\
     {{/is_dm_list}}\
-    <div class="pane lists">\
-      <div class="lists-header">\
-        <div class="lists-gear" data-action-click="OpenPreferences">@</div>\
-        <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
-        {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
-        {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\
-      </div>\
-      <div class="current-lists {{#open}}open{{/open}}">\
-        {{#lists ViewSet}}\
-          {{#_ View.Drop name:m.name()}}\
-            <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>\
-              <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>\
+    <div class="right-list">\
+      <div class="pane lists">\
+        <div class="lists-header">\
+          <div class="lists-gear" data-action-click="OpenPreferences">@</div>\
+          <div class="lists-title" data-action-click="ToggleShow">{{name}}</div>\
+          {{#_ View name:"activity" className:"lists-activity"}}<div class="{{#activity}}show{{/activity}}"></div>{{/_}}\
+          {{#account}}{{#errors View name:"error" className:"lists-error"}}<div class="{{#error}}show{{/error}}" data-action-click="OpenErrors"></div>{{/errors}}{{/account}}\
+        </div>\
+        <div class="current-lists {{#open}}open{{/open}}">\
+          {{#lists ViewSet}}\
+            {{#_ View.Drop name:m.name()}}\
+              <div class="list{{#selected}} selected{{/selected}}{{#dropzone}} dropzone{{/dropzone}} hotness{{hotness}}" data-action-click="SelectList" data-action-drop="DropToList" {{{drop_attributes}}}>\
+                <div class="title">{{title}}</div><div class="unread unread{{unread}}">{{unread}}</div>\
+              </div>\
+            {{/_}}\
+          {{/lists}}\
+          {{#_ View.Drop}}\
+            <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>\
+              <input placeholder="Create list or search..." data-action-change="NewList">\
             </div>\
           {{/_}}\
-        {{/lists}}\
-        {{#_ View.Drop}}\
-          <div class="create-list{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropToNewList" {{{drop_attributes}}}>\
-            <input placeholder="Create list or search..." data-action-change="NewList">\
-          </div>\
-        {{/_}}\
+        </div>\
       </div>\
+      {{#_ View}}\
+        <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">\
+          <div class="list-header">\
+            <div class="title">\
+              {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}\
+              {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}\
+            </div>\
+          </div>\
+          <div class="viz">Visual: \
+            {{^editMode}}\
+              {{#current_list}}\
+                <span class="tag">{{viz}}</span>\
+              {{/current_list}}\
+            {{/editMode}}\
+            {{#editMode}}\
+              {{#current_list View}}\
+                <select data-action-change="ChangeViz">\
+                  <option value="list" {{viz_list}}>list</option>\
+                  <option value="stack" {{viz_stack}}>stack</options>\
+                  <option value="media" {{viz_media}}>media</options>\
+                </select>\
+              {{/current_list}}\
+            {{/editMode}}\
+          </div>\
+          {{#current_list}}\
+            {{#_ View.Drop}}\
+              <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>\
+                Include:\
+                {{#includeTags}}\
+                  {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}\
+                {{/includeTags}}\
+              </div>\
+            {{/_}}\
+            {{#_ View.Drop}}\
+              <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>\
+                Exclude:\
+                {{#excludeTags}}\
+                  {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}\
+                {{/excludeTags}}\
+              </div>\
+            {{/_}}\
+          {{/current_list}}\
+          <div class="list-footer">\
+            {{#editMode}}\
+              {{#current_list}}\
+                {{#canRemove}}\
+                  <div class="button danger" data-action-click="RemoveList">Remove</div>\
+                {{/canRemove}}\
+              {{/current_list}}\
+              <div class="clear"></div>\
+            {{/editMode}}\
+          </div>\
+        </div>\
+      {{/_}}\
     </div>\
-    {{#_ View}}\
-      <div class="pane current-list{{#editMode}} edit-mode{{/editMode}}" data-action-click="EditList">\
-        <div class="list-header">\
-          <div class="title">\
-            {{^editMode}}{{#current_list}}{{title}}{{/current_list}}{{/editMode}}\
-            {{#editMode}}{{#current_list View.Input}}<input {{{input_attributes}}} value="{{title}}" name="title">{{/current_list}}{{/editMode}}\
-          </div>\
-        </div>\
-        <div class="viz">Visual: \
-          {{^editMode}}\
-            {{#current_list}}\
-              <span class="tag">{{viz}}</span>\
-            {{/current_list}}\
-          {{/editMode}}\
-          {{#editMode}}\
-            {{#current_list View}}\
-              <select data-action-change="ChangeViz">\
-                <option value="list" {{viz_list}}>list</option>\
-                <option value="stack" {{viz_stack}}>stack</options>\
-                <option value="media" {{viz_media}}>media</options>\
-              </select>\
-            {{/current_list}}\
-          {{/editMode}}\
-        </div>\
-        {{#current_list}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropInclude" {{{drop_attributes}}}>\
-              Include:\
-              {{#includeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillInclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/includeTags}}\
-            </div>\
-          {{/_}}\
-          {{#_ View.Drop}}\
-            <div class="list-tags{{#dropzone}} dropzone{{/dropzone}}" data-action-drop="DropExclude" {{{drop_attributes}}}>\
-              Exclude:\
-              {{#excludeTags}}\
-                {{#tag View}}<div class="kill-tag" data-action-click="KillExclude"><div class="tag">{{title}}</div></div>{{/tag}}\
-              {{/excludeTags}}\
-            </div>\
-          {{/_}}\
-        {{/current_list}}\
-        <div class="list-footer">\
-          {{#editMode}}\
-            {{#current_list}}\
-              {{#canRemove}}\
-                <div class="button danger" data-action-click="RemoveList">Remove</div>\
-              {{/canRemove}}\
-            {{/current_list}}\
-            <div class="clear"></div>\
-          {{/editMode}}\
-        </div>\
-      </div>\
-    {{/_}}\
   </div>\
   <div class="col left">\
     <div class="pane">\
@@ -228,26 +230,15 @@ var __resources = {
     </div>\
   </div>\
 </div>',
-'media': '{{#retweet}}\
-  {{#embed_photo_url}}\
-    {{#_ View}}\
-      <div class="media-box">\
-        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
-      </div>\
-    {{/_}}\
-  {{/embed_photo_url}}\
-{{/retweet}}\
-{{^retweet}}\
-  {{#embed_photo_url}}\
-    {{#_ View}}\
-      <div class="media-box">\
-        <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
-      </div>\
-    {{/_}}\
-  {{/embed_photo_url}}\
-{{/retweet}}',
-'readability': '<div class="dialog readability{{#show}} show{{/show}}">\
-  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward"  data-action-close="Close" data-action-click="Ignore">\
+'media': '{{#embed_photo_url}}\
+  {{#_ View}}\
+    <div class="media-box">\
+      <div class="photo" data-action-click="Image" data-href="{{embed_photo_url}}" style="background-image: url(\'{{embed_photo_url_small}}\')"></div>\
+    </div>\
+  {{/_}}\
+{{/embed_photo_url}}',
+'readability': '<div class="dialog readability{{#show}} show{{/show}}" data-action-orientationchange="OrientationChange">\
+  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="Ignore">\
     {{#title}}\
       <div class="title">{{{title}}}</div>\
     {{/title}}\
