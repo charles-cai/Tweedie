@@ -11561,7 +11561,6 @@ var TweetFetcher = xo.Class(Events,
 
   tweet: function(m)
   {
-    throw new Error();
     return this._ajaxWithRetry(
     {
       method: "POST",
