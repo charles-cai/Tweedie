@@ -12,6 +12,8 @@
 		2217040E14F6262A0097D266 /* ChildBrowserViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2217040D14F6262A0097D266 /* ChildBrowserViewController.xib */; };
 		228F59A2150F128C00F3E560 /* icon-144.png in Resources */ = {isa = PBXBuildFile; fileRef = 228F59A1150F128C00F3E560 /* icon-144.png */; };
 		228F59A4150F12A800F3E560 /* Default-Portrait@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 228F59A3150F12A800F3E560 /* Default-Portrait@2x.png */; };
+		22DC172D1521943C000A7D35 /* Default-Landscape@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 22DC172C1521943C000A7D35 /* Default-Landscape@2x.png */; };
+		22DC1730152194F4000A7D35 /* Default-Landscape.png in Resources */ = {isa = PBXBuildFile; fileRef = 22DC172F152194F4000A7D35 /* Default-Landscape.png */; };
 		22E0ECC21510585200CE1F2C /* index.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 22E0ECC01510584500CE1F2C /* index.html */; };
 		22E0ECC7151058D900CE1F2C /* img in CopyFiles */ = {isa = PBXBuildFile; fileRef = 22E0ECC6151058D900CE1F2C /* img */; };
 		22E0ECC91510592700CE1F2C /* css in CopyFiles */ = {isa = PBXBuildFile; fileRef = 22E0ECC81510592700CE1F2C /* css */; };
@@ -70,6 +72,8 @@
 		2217040D14F6262A0097D266 /* ChildBrowserViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ChildBrowserViewController.xib; sourceTree = "<group>"; };
 		228F59A1150F128C00F3E560 /* icon-144.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-144.png"; path = "Resources/icons/icon-144.png"; sourceTree = "<group>"; };
 		228F59A3150F12A800F3E560 /* Default-Portrait@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-Portrait@2x.png"; path = "Resources/splash/Default-Portrait@2x.png"; sourceTree = "<group>"; };
+		22DC172C1521943C000A7D35 /* Default-Landscape@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-Landscape@2x.png"; path = "Resources/splash/Default-Landscape@2x.png"; sourceTree = "<group>"; };
+		22DC172F152194F4000A7D35 /* Default-Landscape.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-Landscape.png"; path = "Resources/splash/Default-Landscape.png"; sourceTree = "<group>"; };
 		22E0ECC01510584500CE1F2C /* index.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = index.html; path = www/index.html; sourceTree = "<group>"; };
 		22E0ECC6151058D900CE1F2C /* img */ = {isa = PBXFileReference; lastKnownFileType = folder; name = img; path = www/img; sourceTree = "<group>"; };
 		22E0ECC81510592700CE1F2C /* css */ = {isa = PBXFileReference; lastKnownFileType = folder; name = css; path = www/css; sourceTree = "<group>"; };
@@ -272,6 +276,8 @@
 		22EC03E914F61B1700205358 /* splash */ = {
 			isa = PBXGroup;
 			children = (
+				22DC172F152194F4000A7D35 /* Default-Landscape.png */,
+				22DC172C1521943C000A7D35 /* Default-Landscape@2x.png */,
 				22EC03EA14F61B1700205358 /* Default-Portrait.png */,
 				228F59A3150F12A800F3E560 /* Default-Portrait@2x.png */,
 			);
@@ -368,6 +374,8 @@
 				2217040E14F6262A0097D266 /* ChildBrowserViewController.xib in Resources */,
 				228F59A2150F128C00F3E560 /* icon-144.png in Resources */,
 				228F59A4150F12A800F3E560 /* Default-Portrait@2x.png in Resources */,
+				22DC172D1521943C000A7D35 /* Default-Landscape@2x.png in Resources */,
+				22DC1730152194F4000A7D35 /* Default-Landscape.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
