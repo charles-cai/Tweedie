@@ -21,7 +21,7 @@ var Tweet = Model.create(
   _reduce: function(values)
   {
     return {
-      id_str: values.id_str,
+      id_str: values.retweeted_status ? values.retweeted_status.id_str : values.id_str,
       entities: values.entities,
       text: values.text,
       user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
@@ -259,17 +259,24 @@ var Tweet = Model.create(
     if (this._embed_photo_url_small === undefined)
     {
       this._embed_photo_url_small = null;
-      var media = this._getFirstMediaType("photo");
-      if (media)
+      if (this.is_retweet())
       {
-        this._embed_photo_url_small = media.media_url + (media.sizes ? ":small" : "");
+        this._embed_photo_url_small = this.retweet().embed_photo_url_small();
       }
       else
       {
-        media = this._getFirstMediaType("video");
+        var media = this._getFirstMediaType("photo");
         if (media)
         {
-          this._embed_photo_url_small = media.media_url;
+          this._embed_photo_url_small = media.media_url + (media.sizes ? ":small" : "");
+        }
+        else
+        {
+          media = this._getFirstMediaType("video");
+          if (media)
+          {
+            this._embed_photo_url_small = media.media_url;
+          }
         }
       }
     }
@@ -281,17 +288,24 @@ var Tweet = Model.create(
     if (this._embed_photo_url === undefined)
     {
       this._embed_photo_url = null;
-      var media = this._getFirstMediaType("photo");
-      if (media)
+      if (this.is_retweet())
       {
-        this._embed_photo_url = media.media_url;
+        this._embed_photo_url = this.retweet().embed_photo_url();
       }
       else
       {
-        media = this._getFirstMediaType("video");
+        var media = this._getFirstMediaType("photo");
         if (media)
         {
           this._embed_photo_url = media.media_url;
+        }
+        else
+        {
+          media = this._getFirstMediaType("video");
+          if (media)
+          {
+            this._embed_photo_url = media.media_url;
+          }
         }
       }
     }
@@ -702,14 +716,13 @@ var Tweet = Model.create(
     {
       return 0;
     }
-    else if (aid.length < bid.length || aid < bid)
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
     {
       return 1;
     }
-    else
-    {
-      return -1;
-    }
+    return -1;
   },
 
   compareRawTweets: function(a, b)
@@ -720,14 +733,28 @@ var Tweet = Model.create(
     {
       return 0;
     }
-    else if (aid.length < bid.length || aid < bid)
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
     {
       return 1;
     }
-    else
+    return -1;
+  },
+
+  compareTweetIds: function(aid, bid)
+  {
+    if (aid === bid)
     {
-      return -1;
+      return 0;
     }
+    var aidl = aid.length;
+    var bidl = bid.length;
+    if (aidl < bidl || (aidl === bidl && aid < bid))
+    {
+      return 1;
+    }
+    return -1;
   },
 
   TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
