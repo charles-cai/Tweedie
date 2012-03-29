@@ -336,7 +336,7 @@ var __resources = {
 </div>',
 'welcome': '<div class="dialog welcome">\
   <div class="inner">\
-    <div class="welcome-title">Welcome to Tweed</div>\
+    <div class="welcome-title">Welcome to Tweedie</div>\
     <div class="welcome-body">To start, hit the button and log into Twitter.</div>\
     <div class="button" data-action-click="Start">Start</div>\
   </div>\
