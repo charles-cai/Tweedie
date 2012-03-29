@@ -223,6 +223,13 @@ var FilteredTweetsModel = Model.create(
     }
   },
 
+  markAllAsRead: function()
+  {
+    var last = this.tweets().models[0];
+    this.lastRead(last && last.id());
+    this.updateUnreadAndVelocity();
+  },
+
   updateUnreadAndVelocity: function()
   {
     this._updateUnread();
@@ -249,11 +256,17 @@ var FilteredTweetsModel = Model.create(
         if (Tweet.compareTweetIds(id, oid) <= 0)
         {
           this.lastRead(oid);
-          break;
+          this.unread(i);
+          return;
         }
       }
+      this.lastRead("0");
+      this.unread(len);
     }
-    this.unread(i);
+    else
+    {
+      this.unread(i);
+    }
   },
 
   remove: function()
