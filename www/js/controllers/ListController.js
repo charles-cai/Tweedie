@@ -25,9 +25,7 @@ var ListController = xo.Controller.create(
     document.getElementById("filter").value = "";
     PrimaryFetcher && PrimaryFetcher.abortSearch();
     models.current_list(m);
-    var last = m.tweets().models[0];
-    m.lastRead(last && last.id());
-    m.velocity(0);
+    m.markAllAsRead();
     this._editList(null, null);
     if (!this._selectedListView)
     {
@@ -85,7 +83,7 @@ var ListController = xo.Controller.create(
     var listName = e.target.value;
     if (listName)
     {
-      models.account().tweetLists.createList(listName);
+      models.account().tweetLists.createList(listName, true);
     }
     e.target.value = "";
   },

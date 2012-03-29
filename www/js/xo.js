@@ -1420,37 +1420,49 @@ var ModelSet = exports.ModelSet = Class(Model,
   {
     if (Array.isArray(model))
     {
+      var fidx = -1;
       var count = 0;
-      var nidx = -1;
-      var removed = [];
+      var total = 0;
       model.forEach(function(m)
       {
         var idx = this.indexOf(m);
         if (idx !== -1)
         {
-          removed.push(m);
-          this.models.splice(idx, 1);
-          if (nidx === -1 || nidx === idx)
+          total++;
+          if (fidx === -1)
           {
-            nidx = idx + 1;
+            fidx = idx;
+            count = 1;
+          }
+          else if (idx === fidx + count)
+          {
+            count++;
           }
           else
           {
-            nidx = undefined;
+            var removed = this.models.splice(fidx, count);
+            this.emit("remove",
+            {
+              index: fidx,
+              count: count,
+              models: removed
+            });
+            fidx = idx < fidx ? idx : idx - count;
+            count = 1;
           }
-          count++;
         }
       }, this);
       if (count)
       {
+        var removed = this.models.splice(fidx, count);
         this.emit("remove",
         {
-          index: nidx === undefined ? undefined : nidx - count,
+          index: fidx,
           count: count,
           models: removed
         });
-        return count;
       }
+      return total;
     }
     else
     {
@@ -2466,7 +2478,7 @@ var LiveListViewMixin =
         if (args.count && args.index === 0)
         {
           var container = this._scrollContainer();
-      
+
           if (!node.childElementCount)
           {
             var count = Math.min(this._liveList._count + args.count, this._liveList._page);
@@ -2686,7 +2698,11 @@ var LiveListViewMixin =
     this.addListener(container, "scroll", function()
     {
       var node = self.node();
-      if (container.scrollTop + container.offsetHeight * 2 > container.scrollHeight)
+      if (container.scrollTop === 0)
+      {
+        self._scrollIn(0);
+      }
+      else if (container.scrollTop + container.offsetHeight * 2 > container.scrollHeight)
       {
         var offset = self._liveList._length + self._liveList._count;
         var limit = offset + self._liveList._page;
@@ -2702,10 +2718,6 @@ var LiveListViewMixin =
           self._liveList._length += count;
           self.action("scroll-insert-below", { count: count });
         }
-      }
-      else if (container.scrollTop === 0)
-      {
-        self._scrollIn(0);
       }
     });
   }
@@ -2815,7 +2827,7 @@ var TextFilterViewMixin =
       });
       if (evt === "remove")
       {
-        self._textFilter(self._srcModels.models);
+        self._tgtModels.remove(info.models);
       }
     });
   },
@@ -2836,22 +2848,18 @@ var TextFilterViewMixin =
 
   _textFilter: function(models)
   {
-    if (models === this._srcModels.models)
-    {
-      this._tgtModels.removeAll();
-    }
-
     var keys = this._keys;
     var lookups = this._lookups;
     var filter = this._filterText;
 
-    var include = [];
+    var include;
     if (!filter)
     {
       include = models;
     }
     else
     {
+      include = [];
       models.forEach(function(model)
       {
         var id = Model.identity(model);
@@ -2870,6 +2878,10 @@ var TextFilterViewMixin =
           include.push(model);
         }
       });
+    }
+    if (models === this._srcModels.models)
+    {
+      this._tgtModels.removeAll();
     }
     if (include.length)
     {

@@ -25,5 +25,6 @@ var FilterController = xo.Controller.create(
     this._filterInput && (this._filterInput.value = "");
     models.filter("");
     RootView.getViewByName("tweets").filterText("");
+    models.current_list().markAllAsRead();
   }
 });

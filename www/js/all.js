@@ -5634,37 +5634,49 @@ var ModelSet = exports.ModelSet = Class(Model,
   {
     if (Array.isArray(model))
     {
+      var fidx = -1;
       var count = 0;
-      var nidx = -1;
-      var removed = [];
+      var total = 0;
       model.forEach(function(m)
       {
         var idx = this.indexOf(m);
         if (idx !== -1)
         {
-          removed.push(m);
-          this.models.splice(idx, 1);
-          if (nidx === -1 || nidx === idx)
+          total++;
+          if (fidx === -1)
           {
-            nidx = idx + 1;
+            fidx = idx;
+            count = 1;
+          }
+          else if (idx === fidx + count)
+          {
+            count++;
           }
           else
           {
-            nidx = undefined;
+            var removed = this.models.splice(fidx, count);
+            this.emit("remove",
+            {
+              index: fidx,
+              count: count,
+              models: removed
+            });
+            fidx = idx < fidx ? idx : idx - count;
+            count = 1;
           }
-          count++;
         }
       }, this);
       if (count)
       {
+        var removed = this.models.splice(fidx, count);
         this.emit("remove",
         {
-          index: nidx === undefined ? undefined : nidx - count,
+          index: fidx,
           count: count,
           models: removed
         });
-        return count;
       }
+      return total;
     }
     else
     {
@@ -6680,7 +6692,7 @@ var LiveListViewMixin =
         if (args.count && args.index === 0)
         {
           var container = this._scrollContainer();
-      
+
           if (!node.childElementCount)
           {
             var count = Math.min(this._liveList._count + args.count, this._liveList._page);
@@ -6900,7 +6912,11 @@ var LiveListViewMixin =
     this.addListener(container, "scroll", function()
     {
       var node = self.node();
-      if (container.scrollTop + container.offsetHeight * 2 > container.scrollHeight)
+      if (container.scrollTop === 0)
+      {
+        self._scrollIn(0);
+      }
+      else if (container.scrollTop + container.offsetHeight * 2 > container.scrollHeight)
       {
         var offset = self._liveList._length + self._liveList._count;
         var limit = offset + self._liveList._page;
@@ -6916,10 +6932,6 @@ var LiveListViewMixin =
           self._liveList._length += count;
           self.action("scroll-insert-below", { count: count });
         }
-      }
-      else if (container.scrollTop === 0)
-      {
-        self._scrollIn(0);
       }
     });
   }
@@ -7029,7 +7041,7 @@ var TextFilterViewMixin =
       });
       if (evt === "remove")
       {
-        self._textFilter(self._srcModels.models);
+        self._tgtModels.remove(info.models);
       }
     });
   },
@@ -7050,22 +7062,18 @@ var TextFilterViewMixin =
 
   _textFilter: function(models)
   {
-    if (models === this._srcModels.models)
-    {
-      this._tgtModels.removeAll();
-    }
-
     var keys = this._keys;
     var lookups = this._lookups;
     var filter = this._filterText;
 
-    var include = [];
+    var include;
     if (!filter)
     {
       include = models;
     }
     else
     {
+      include = [];
       models.forEach(function(model)
       {
         var id = Model.identity(model);
@@ -7084,6 +7092,10 @@ var TextFilterViewMixin =
           include.push(model);
         }
       });
+    }
+    if (models === this._srcModels.models)
+    {
+      this._tgtModels.removeAll();
     }
     if (include.length)
     {
@@ -10229,51 +10241,38 @@ var Tweet = Model.create(
 
   compareTweets: function(a, b)
   {
-    var aid = a.id();
-    var bid = b.id();
-    if (aid === bid)
-    {
-      return 0;
-    }
-    var aidl = aid.length;
-    var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
-    {
-      return 1;
-    }
-    return -1;
+    return Tweet.compareTweetIds(a.id(), b.id());
   },
 
   compareRawTweets: function(a, b)
   {
-    var aid = a.id_str;
-    var bid = b.id_str;
-    if (aid === bid)
-    {
-      return 0;
-    }
-    var aidl = aid.length;
-    var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
-    {
-      return 1;
-    }
-    return -1;
+    return Tweet.compareTweetIds(a.id_str, b.id_str);
   },
 
   compareTweetIds: function(aid, bid)
   {
-    if (aid === bid)
-    {
-      return 0;
-    }
     var aidl = aid.length;
     var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
+    if (aidl < bidl)
     {
       return 1;
     }
-    return -1;
+    else if (aidl > bidl)
+    {
+      return -1;
+    }
+    else if (aid < bid)
+    {
+      return 1;
+    }
+    else if (aid > bid)
+    {
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
   },
 
   TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
@@ -10511,6 +10510,13 @@ var FilteredTweetsModel = Model.create(
     }
   },
 
+  markAllAsRead: function()
+  {
+    var last = this.tweets().models[0];
+    this.lastRead(last && last.id());
+    this.updateUnreadAndVelocity();
+  },
+
   updateUnreadAndVelocity: function()
   {
     this._updateUnread();
@@ -10537,11 +10543,17 @@ var FilteredTweetsModel = Model.create(
         if (Tweet.compareTweetIds(id, oid) <= 0)
         {
           this.lastRead(oid);
-          break;
+          this.unread(i);
+          return;
         }
       }
+      this.lastRead("0");
+      this.unread(len);
     }
-    this.unread(i);
+    else
+    {
+      this.unread(i);
+    }
   },
 
   remove: function()
@@ -13453,9 +13465,7 @@ var ListController = xo.Controller.create(
     document.getElementById("filter").value = "";
     PrimaryFetcher && PrimaryFetcher.abortSearch();
     models.current_list(m);
-    var last = m.tweets().models[0];
-    m.lastRead(last && last.id());
-    m.velocity(0);
+    m.markAllAsRead();
     this._editList(null, null);
     if (!this._selectedListView)
     {
@@ -13513,7 +13523,7 @@ var ListController = xo.Controller.create(
     var listName = e.target.value;
     if (listName)
     {
-      models.account().tweetLists.createList(listName);
+      models.account().tweetLists.createList(listName, true);
     }
     e.target.value = "";
   },
@@ -13615,6 +13625,7 @@ var FilterController = xo.Controller.create(
     this._filterInput && (this._filterInput.value = "");
     models.filter("");
     RootView.getViewByName("tweets").filterText("");
+    models.current_list().markAllAsRead();
   }
 });
 var GlobalController = xo.Controller.create(
@@ -13638,10 +13649,7 @@ var GlobalController = xo.Controller.create(
 
   onInsertAtTop: function(_, _, _, models)
   {
-    var m = models.current_list();
-    var last = m.tweets().models[0];
-    m.lastRead(last && last.id());
-    m.updateUnreadAndVelocity();
+    models.current_list().markAllAsRead();
   }
 });
 var AccountController = xo.Controller.create(
@@ -14016,7 +14024,7 @@ var AccountController = xo.Controller.create(
 </div>',
 'welcome': '<div class="dialog welcome">\
   <div class="inner">\
-    <div class="welcome-title">Welcome to Tweed</div>\
+    <div class="welcome-title">Welcome to Tweedie</div>\
     <div class="welcome-body">To start, hit the button and log into Twitter.</div>\
     <div class="button" data-action-click="Start">Start</div>\
   </div>\

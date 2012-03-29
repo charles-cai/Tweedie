@@ -19,9 +19,6 @@ var GlobalController = xo.Controller.create(
 
   onInsertAtTop: function(_, _, _, models)
   {
-    var m = models.current_list();
-    var last = m.tweets().models[0];
-    m.lastRead(last && last.id());
-    m.updateUnreadAndVelocity();
+    models.current_list().markAllAsRead();
   }
 });
