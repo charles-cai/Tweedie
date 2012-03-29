@@ -710,51 +710,38 @@ var Tweet = Model.create(
 
   compareTweets: function(a, b)
   {
-    var aid = a.id();
-    var bid = b.id();
-    if (aid === bid)
-    {
-      return 0;
-    }
-    var aidl = aid.length;
-    var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
-    {
-      return 1;
-    }
-    return -1;
+    return Tweet.compareTweetIds(a.id(), b.id());
   },
 
   compareRawTweets: function(a, b)
   {
-    var aid = a.id_str;
-    var bid = b.id_str;
-    if (aid === bid)
-    {
-      return 0;
-    }
-    var aidl = aid.length;
-    var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
-    {
-      return 1;
-    }
-    return -1;
+    return Tweet.compareTweetIds(a.id_str, b.id_str);
   },
 
   compareTweetIds: function(aid, bid)
   {
-    if (aid === bid)
-    {
-      return 0;
-    }
     var aidl = aid.length;
     var bidl = bid.length;
-    if (aidl < bidl || (aidl === bidl && aid < bid))
+    if (aidl < bidl)
     {
       return 1;
     }
-    return -1;
+    else if (aidl > bidl)
+    {
+      return -1;
+    }
+    else if (aid < bid)
+    {
+      return 1;
+    }
+    else if (aid > bid)
+    {
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
   },
 
   TweetTag: { title: "Tweet", type: "tweet", key: "tweet", hashkey: "tweet:tweet" },
