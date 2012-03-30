@@ -95,17 +95,21 @@ var Account = Class(Events,
         }, this);
 
         var self = this;
-        function retry()
+        function online()
         {
+          self._fetcher.abortFetch();
+          self._fetcher.abortSearch();
           self.fetch();
         }
-        document.addEventListener("online", retry);
-        document.addEventListener("resume", retry);
-        document.addEventListener("pause", function()
+        function offline()
         {
-          self._fetcher.fetchAbort();
-          self._fetcher.searchAbort();
-        });
+          self._fetcher.abortFetch();
+          self._fetcher.abortSearch();
+        }
+        document.addEventListener("online", online);
+        document.addEventListener("offline", offline);
+        document.addEventListener("resume", online);
+        document.addEventListener("pause", offline);
         this.fetch();
 
         return true;

@@ -11091,13 +11091,13 @@ var TweetFetcher = xo.Class(Events,
         }
         this.emit("login", { screen_name: r.screen_name, user_id: r.user_id });
 
-        this.fetchAbort();
+        this.abortFetch();
         this._startFetchLoop();
       }
     );
   },
 
-  fetchAbort: function()
+  abortFetch: function()
   {
     if (this._loop)
     {
@@ -11110,6 +11110,7 @@ var TweetFetcher = xo.Class(Events,
   _startFetchLoop: function()
   {
     this._loop = this._runUserStreamer();
+    var loop = this._loop;
     var running = false;
     var tweets;
     var tweetId = "1";
@@ -11121,7 +11122,7 @@ var TweetFetcher = xo.Class(Events,
     Co.Forever(this,
       function()
       {
-        if (this._loop.terminated)
+        if (loop.terminated)
         {
           return Co.Break();
         }
@@ -11289,7 +11290,7 @@ var TweetFetcher = xo.Class(Events,
         if (!running)
         {
           running = true;
-          this._loop.run();
+          loop.run();
         }
         return Co.Sleep(120);
       }
@@ -11920,17 +11921,21 @@ var Account = Class(Events,
         }, this);
 
         var self = this;
-        function retry()
+        function online()
         {
+          self._fetcher.abortFetch();
+          self._fetcher.abortSearch();
           self.fetch();
         }
-        document.addEventListener("online", retry);
-        document.addEventListener("resume", retry);
-        document.addEventListener("pause", function()
+        function offline()
         {
-          self._fetcher.fetchAbort();
-          self._fetcher.searchAbort();
-        });
+          self._fetcher.abortFetch();
+          self._fetcher.abortSearch();
+        }
+        document.addEventListener("online", online);
+        document.addEventListener("offline", offline);
+        document.addEventListener("resume", online);
+        document.addEventListener("pause", offline);
         this.fetch();
 
         return true;
@@ -14032,15 +14037,15 @@ var AccountController = xo.Controller.create(
 '_':null};
 function main()
 {
-  Log.time("runtime");
-  document.addEventListener("resume", function()
-  {
-    Log.time("runtime");
-  });
-  document.addEventListener("pause", function()
-  {
-    Log.timeEnd("runtime");
-  });
+  //Log.time("runtime");
+  //document.addEventListener("resume", function()
+  //{
+  //  Log.time("runtime");
+  //});
+  //document.addEventListener("pause", function()
+  //{
+  //  Log.timeEnd("runtime");
+  //});
 
   var RootModel = Model.create(
   {

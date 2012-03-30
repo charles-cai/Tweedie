@@ -1,14 +1,14 @@
 function main()
 {
-  Log.time("runtime");
-  document.addEventListener("resume", function()
-  {
-    Log.time("runtime");
-  });
-  document.addEventListener("pause", function()
-  {
-    Log.timeEnd("runtime");
-  });
+  //Log.time("runtime");
+  //document.addEventListener("resume", function()
+  //{
+  //  Log.time("runtime");
+  //});
+  //document.addEventListener("pause", function()
+  //{
+  //  Log.timeEnd("runtime");
+  //});
 
   var RootModel = Model.create(
   {
