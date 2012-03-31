@@ -62,7 +62,7 @@ var TweetFetcher = xo.Class(Events,
   {
     this._loop = this._runUserStreamer();
     var loop = this._loop;
-    var running = false;
+    var running;
     var tweets;
     var tweetId = "1";
     var mentionId = "1";
@@ -78,10 +78,10 @@ var TweetFetcher = xo.Class(Events,
           return Co.Break();
         }
 
-        failed = false;
+        failed = [];
         tweets = [];
 
-        this.emit("fetchStatus", true);
+        this.emit("fetchStatus", []);
         this.emit("networkActivity", true);
 
         var lists = this._account.tweetLists;
@@ -127,7 +127,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-tweet" });
           Log.exception("Tweet fetch failed", e);
         }
 
@@ -152,7 +152,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-favorite" });
           Log.exception("Fav fetch failed", e);
         }
 
@@ -177,7 +177,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-mention" });
           Log.exception("Mentions fetch failed", e);
         }
 
@@ -223,7 +223,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-dm" });
           Log.exception("DM fetch failed", e);
         }
 
@@ -236,9 +236,9 @@ var TweetFetcher = xo.Class(Events,
         this.emit("tweets", tweets);
         Log.timeEnd("TweetLoad");
 
-        this.emit("fetchStatus", !failed);
+        this.emit("fetchStatus", failed);
 
-        if (!running)
+        if (!running && !failed.length)
         {
           running = true;
           loop.run();

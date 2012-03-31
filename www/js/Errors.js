@@ -37,37 +37,33 @@ var Errors = Model.create(
     return this._errors.length;
   },
 
-  add: function(op, details)
+  add: function(op, type, details)
   {
-    this._add(op, details);
+    this._add({ op: op, type: type || "none", details: details || {} });
     this._runq();
   },
 
-  _add: function(op, details)
+  _add: function(error)
   {
-    var error =
-    {
-      op: op,
-      details: details || {}
-    };
     this._errors.push(error);
     this._save();
   },
 
-  remove: function(error)
+  remove: function(errors)
   {
-    var idx = this._errors.indexOf(error);
-    if (idx !== -1)
+    var change = false;
+    errors.forEach(function(error)
     {
-      this._errors.splice(idx, 1);
-      this.emit("update");
-      this._save();
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+      var idx = this._errors.indexOf(error);
+      if (idx !== -1)
+      {
+        this._errors.splice(idx, 1);
+        change = true;
+      }
+    }, this);
+    this.emit("update");
+    change && this._save();
+    return change;
   },
 
   find: function(op)
@@ -85,10 +81,10 @@ var Errors = Model.create(
 
   _runq: function()
   {
+    this.emit("update");
     if (!this._running && this._errors.length)
     {
       this._running = true;
-      this.emit("update");
       Co.Forever(this,
         function()
         {
@@ -123,6 +119,7 @@ var Errors = Model.create(
         {
           var errors = this._errors;
           this._errors = [];
+          this.emit("update");
           return Co.Loop(this, errors.length,
             function(idx)
             {
@@ -159,7 +156,7 @@ var Errors = Model.create(
     {
       this._lgrid.write("/errors", this._errors.map(function(error)
       {
-        return { op: error.op, details: error.details ? error.details.serialize() : null };
+        return { op: error.op, type: error.type, details: error.details ? error.details.serialize() : null };
       }));
     }
     catch (e)
@@ -187,12 +184,14 @@ var Errors = Model.create(
 
             // Retweets are real tweet objects
             case "retweet":
-              this._add(error.op, new Tweet(error.details, this._account, false));
+              error.details = new Tweet(error.details, this._account, false);
+              this._add(error);
               break;
 
             // Everything else is a tweetbox model
             default:
-              this._add(error.op, new NewTweetModel(error.details));
+              error.details = new NewTweetModel(error.details);
+              this._add(error);
               break;
           }
         }, this);

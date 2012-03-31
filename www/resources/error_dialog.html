@@ -6,12 +6,10 @@
       <div class="errors">
         {{#errors}}
           {{#_ View}}
-            <div class="error error-{{op}}">
-              {{#details}}
-                <div class="error-title"></div>
-                <div class="error-close" data-action-click="RemoveError"></div>
-                {{#text}}<div class="error-text">{{text}}</div>{{/text}}
-              {{/details}}
+            <div class="error error-{{type}}">
+              <div class="error-title"></div>
+              <div class="error-close" data-action-click="RemoveError"></div>
+              {{#details}}{{#text}}<div class="error-text">{{text}}</div>{{/text}}{{/details}}
             </div>
           {{/_}}
         {{/errors}}

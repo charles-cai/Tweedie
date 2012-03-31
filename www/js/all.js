@@ -4496,7 +4496,7 @@ var Log = exports.Log = Mixin({}, Events,
 
   timeEnd: function(key)
   {
-    Log.timing(key, Date.now() - (Log._times[key] || 0));
+    Log._times[key] && Log.timing(key, Date.now() - Log._times[key]);
     delete Log._times[key];
   },
 
@@ -11111,7 +11111,7 @@ var TweetFetcher = xo.Class(Events,
   {
     this._loop = this._runUserStreamer();
     var loop = this._loop;
-    var running = false;
+    var running;
     var tweets;
     var tweetId = "1";
     var mentionId = "1";
@@ -11127,10 +11127,10 @@ var TweetFetcher = xo.Class(Events,
           return Co.Break();
         }
 
-        failed = false;
+        failed = [];
         tweets = [];
 
-        this.emit("fetchStatus", true);
+        this.emit("fetchStatus", []);
         this.emit("networkActivity", true);
 
         var lists = this._account.tweetLists;
@@ -11176,7 +11176,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-tweet" });
           Log.exception("Tweet fetch failed", e);
         }
 
@@ -11201,7 +11201,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-favorite" });
           Log.exception("Fav fetch failed", e);
         }
 
@@ -11226,7 +11226,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-mention" });
           Log.exception("Mentions fetch failed", e);
         }
 
@@ -11272,7 +11272,7 @@ var TweetFetcher = xo.Class(Events,
         }
         catch (e)
         {
-          failed = true;
+          failed.push({ op: "fetch", type: "fetch-dm" });
           Log.exception("DM fetch failed", e);
         }
 
@@ -11285,9 +11285,9 @@ var TweetFetcher = xo.Class(Events,
         this.emit("tweets", tweets);
         Log.timeEnd("TweetLoad");
 
-        this.emit("fetchStatus", !failed);
+        this.emit("fetchStatus", failed);
 
-        if (!running)
+        if (!running && !failed.length)
         {
           running = true;
           loop.run();
@@ -11870,17 +11870,13 @@ var Account = Class(Events,
         this._fetcher.on("login", function(evt, info)
         {
           this.errors.open();
-          this._fetcher.on("fetchStatus", function(evt, okay)
+          this._fetcher.on("fetchStatus", function(evt, statuses)
           {
-            var fetch = this.errors.find("fetch");
-            if (okay && fetch.length)
+            this.errors.remove(this.errors.find("fetch"));
+            statuses.forEach(function(status)
             {
-              this.errors.remove(fetch[0]);
-            }
-            else if (!okay && !fetch.length)
-            {
-              this.errors.add("fetch");
-            }
+              this.errors.add(status.op, status.type, status.details);
+            }, this);
           }, this);
           if (!this.userInfo || info.screen_name !== this.userInfo.screen_name || info.user_id !== this.userInfo.user_id)
           {
@@ -11950,28 +11946,8 @@ var Account = Class(Events,
 
   fetch: function()
   {
-    return Co.Routine(this,
-      function()
-      {
-        var fetch = this.errors.find("fetch");
-        if (fetch.length)
-        {
-          this.errors.remove(fetch[0]);
-        }
-        return this._fetcher.fetchTweets();
-      },
-      function(r)
-      {
-        try
-        {
-          return r();
-        }
-        catch (e)
-        {
-          this.errors.add("fetch");
-        }
-      }
-    );
+    this.errors.remove(this.errors.find("fetch"));
+    this._fetcher.fetchTweets();
   },
 
   tweet: function(tweet)
@@ -11989,7 +11965,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("tweet", tweet);
+          this.errors.add("tweet", "tweet", tweet);
         }
       }
     );
@@ -12010,7 +11986,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("retweet", tweet);
+          this.errors.add("retweet", "retweet", tweet);
           return null;
         }
       }
@@ -12032,7 +12008,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("reply", tweet);
+          this.errors.add("reply", "reply", tweet);
           return null;
         }
       }
@@ -12054,7 +12030,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("dm", tweet);
+          this.errors.add("dm", "dm", tweet);
           return null;
         }
       }
@@ -12077,7 +12053,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("favorite", tweet);
+          this.errors.add("favorite", "favorite", tweet);
           return null;
         }
       }
@@ -12100,7 +12076,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("unfavorite", tweet);
+          this.errors.add("unfavorite", "unfavorite", tweet);
           return null;
         }
       }
@@ -12122,7 +12098,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("follow", user);
+          this.errors.add("follow", "follow", user);
           return null;
         }
       }
@@ -12144,7 +12120,7 @@ var Account = Class(Events,
         }
         catch (e)
         {
-          this.errors.add("unfollow", user);
+          this.errors.add("unfollow", "unfollow", user);
           return null;
         }
       }
@@ -12204,37 +12180,33 @@ var Errors = Model.create(
     return this._errors.length;
   },
 
-  add: function(op, details)
+  add: function(op, type, details)
   {
-    this._add(op, details);
+    this._add({ op: op, type: type || "none", details: details || {} });
     this._runq();
   },
 
-  _add: function(op, details)
+  _add: function(error)
   {
-    var error =
-    {
-      op: op,
-      details: details || {}
-    };
     this._errors.push(error);
     this._save();
   },
 
-  remove: function(error)
+  remove: function(errors)
   {
-    var idx = this._errors.indexOf(error);
-    if (idx !== -1)
+    var change = false;
+    errors.forEach(function(error)
     {
-      this._errors.splice(idx, 1);
-      this.emit("update");
-      this._save();
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+      var idx = this._errors.indexOf(error);
+      if (idx !== -1)
+      {
+        this._errors.splice(idx, 1);
+        change = true;
+      }
+    }, this);
+    this.emit("update");
+    change && this._save();
+    return change;
   },
 
   find: function(op)
@@ -12252,10 +12224,10 @@ var Errors = Model.create(
 
   _runq: function()
   {
+    this.emit("update");
     if (!this._running && this._errors.length)
     {
       this._running = true;
-      this.emit("update");
       Co.Forever(this,
         function()
         {
@@ -12290,6 +12262,7 @@ var Errors = Model.create(
         {
           var errors = this._errors;
           this._errors = [];
+          this.emit("update");
           return Co.Loop(this, errors.length,
             function(idx)
             {
@@ -12326,7 +12299,7 @@ var Errors = Model.create(
     {
       this._lgrid.write("/errors", this._errors.map(function(error)
       {
-        return { op: error.op, details: error.details ? error.details.serialize() : null };
+        return { op: error.op, type: error.type, details: error.details ? error.details.serialize() : null };
       }));
     }
     catch (e)
@@ -12354,12 +12327,14 @@ var Errors = Model.create(
 
             // Retweets are real tweet objects
             case "retweet":
-              this._add(error.op, new Tweet(error.details, this._account, false));
+              error.details = new Tweet(error.details, this._account, false);
+              this._add(error);
               break;
 
             // Everything else is a tweetbox model
             default:
-              this._add(error.op, new NewTweetModel(error.details));
+              error.details = new NewTweetModel(error.details);
+              this._add(error);
               break;
           }
         }, this);
@@ -13466,9 +13441,13 @@ var ListController = xo.Controller.create(
     {
       RootView.getViewByName("tweets").scrollToTop();
     }
+
     models.filter("");
     document.getElementById("filter").value = "";
+    RootView.getViewByName("tweets").filterText("");
+
     PrimaryFetcher && PrimaryFetcher.abortSearch();
+
     models.current_list(m);
     m.markAllAsRead();
     this._editList(null, null);
@@ -13685,7 +13664,7 @@ var AccountController = xo.Controller.create(
         {
           if (m.op !== "fetch")
           {
-            models.account().errors.remove(m);
+            models.account().errors.remove([ m ]);
           }
         }
       }
@@ -13774,12 +13753,10 @@ var AccountController = xo.Controller.create(
       <div class="errors">\
         {{#errors}}\
           {{#_ View}}\
-            <div class="error error-{{op}}">\
-              {{#details}}\
-                <div class="error-title"></div>\
-                <div class="error-close" data-action-click="RemoveError"></div>\
-                {{#text}}<div class="error-text">{{text}}</div>{{/text}}\
-              {{/details}}\
+            <div class="error error-{{type}}">\
+              <div class="error-title"></div>\
+              <div class="error-close" data-action-click="RemoveError"></div>\
+              {{#details}}{{#text}}<div class="error-text">{{text}}</div>{{/text}}{{/details}}\
             </div>\
           {{/_}}\
         {{/errors}}\

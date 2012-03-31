@@ -282,7 +282,7 @@ var Log = exports.Log = Mixin({}, Events,
 
   timeEnd: function(key)
   {
-    Log.timing(key, Date.now() - (Log._times[key] || 0));
+    Log._times[key] && Log.timing(key, Date.now() - Log._times[key]);
     delete Log._times[key];
   },
 

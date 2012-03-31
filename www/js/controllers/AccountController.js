@@ -26,7 +26,7 @@ var AccountController = xo.Controller.create(
         {
           if (m.op !== "fetch")
           {
-            models.account().errors.remove(m);
+            models.account().errors.remove([ m ]);
           }
         }
       }
