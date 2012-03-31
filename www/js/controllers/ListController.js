@@ -21,9 +21,13 @@ var ListController = xo.Controller.create(
     {
       RootView.getViewByName("tweets").scrollToTop();
     }
+
     models.filter("");
     document.getElementById("filter").value = "";
+    RootView.getViewByName("tweets").filterText("");
+
     PrimaryFetcher && PrimaryFetcher.abortSearch();
+
     models.current_list(m);
     m.markAllAsRead();
     this._editList(null, null);
