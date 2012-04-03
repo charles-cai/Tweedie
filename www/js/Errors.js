@@ -124,7 +124,16 @@ var Errors = Model.create(
             function(idx)
             {
               var error = errors[idx()];
-              return this._account[error.op](error.details);
+              if (error.op === "fetch")
+              {
+                // Tweet fetching retry is handled by the fetch logic.
+                this._errors.push(error);
+                return true;
+              }
+              else
+              {
+                return this._account[error.op](error.details);
+              }
             }
           );
         },
