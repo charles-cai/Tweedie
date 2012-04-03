@@ -294,6 +294,22 @@ var Log = exports.Log = Mixin({}, Events,
     }
   },
 
+  start: function()
+  {
+    Log._times.runtime = Date.now();
+    Log.emit("start");
+  },
+
+  stop: function()
+  {
+    if (Log._times.runtime)
+    {
+      Log.timing("runtime", Date.now() - Log._times.runtime);
+      delete Log._times.runtime;
+      Log.emit("stop");
+    }
+  },
+
   _out: function(type, args)
   {
     if (!Log.emit(type, args))
