@@ -201,13 +201,11 @@ var TweetController = xo.Controller.create(
     this.metric(m.favorited() ? "unfav" : "fav");
     if (m.favorited())
     {
-      m.favorited(false);
-      models.account().unfavorite(m.is_retweet() ? m.retweet() : m);
+      models.account().unfavorite(m);
     }
     else
     {
-      m.favorited(true);
-      models.account().favorite(m.is_retweet() ? m.retweet() : m);
+      models.account().favorite(m);
     }
   },
 
