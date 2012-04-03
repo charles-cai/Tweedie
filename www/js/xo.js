@@ -4026,6 +4026,18 @@ if (typeof XMLHttpRequest !== "undefined")
           });
         }
         return this._form;
+      },
+
+      toString: function()
+      {
+        if (this._status === 200)
+        {
+          return this._text;
+        }
+        else
+        {
+          return "status: " + this._status;
+        }
       }
     }),
 
@@ -5035,6 +5047,49 @@ var AjaxGridProvider = exports.AjaxGridProvider = Class(GridProvider,
   }
 });
 var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProvider,
+{
+  constructor: function(__super, grid, selector, transform, dbinfo)
+  {
+    __super(grid, selector);
+    this._dbinfo = dbinfo;
+
+    var root = dbinfo.name + ":" + dbinfo.table + ":";
+    grid.watch(selector, this, function(operation, path, data)
+    {
+      var dpath = root + (transform ? transform(selector, path) : selector.exec(path)[1]);
+      switch (operation)
+      {
+        case Grid.READ:
+            try
+            {
+              if (dpath in localStorage)
+              {
+                grid.write(path, JSON.parse(localStorage[dpath]));
+                break;
+              }
+            }
+            catch (_)
+            {
+            }
+            grid.write(path, null);
+            break;
+
+        case Grid.WRITE:
+            localStorage[dpath] = JSON.stringify(data);
+            break;
+
+        case Grid.REMOVE:
+            delete localStorage[dpath];
+            break;
+
+        default:
+          break;
+      }
+    });
+  }
+
+});
+var SQLStorageGridProvider = exports.SQLStorageGridProvider = Class(GridProvider,
 {
   _dbs: {},
 

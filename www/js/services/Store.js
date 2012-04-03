@@ -5,7 +5,9 @@ var dbinfo =
   table: "appstore"
 };
 
-new xo.LocalStorageGridProvider(
+var StorageGridProvider = Environment.isPhoneGap() ? xo.SQLStorageGridProvider : xo.LocalStorageGridProvider;
+
+new StorageGridProvider(
   grid.get(),
   /^\/accounts$/,
   function()
@@ -14,7 +16,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/tweetlist\/(.*)\/(.*)$/,
   function(selector, path)
@@ -24,7 +26,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/topics$/,
   function(selector, path)
@@ -33,7 +35,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/errors$/,
   function()
@@ -42,7 +44,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/tweets\/(.*)$/,
   function(selector, path)
