@@ -8240,6 +8240,18 @@ if (typeof XMLHttpRequest !== "undefined")
           });
         }
         return this._form;
+      },
+
+      toString: function()
+      {
+        if (this._status === 200)
+        {
+          return this._text;
+        }
+        else
+        {
+          return "status: " + this._status;
+        }
       }
     }),
 
@@ -9250,6 +9262,49 @@ var AjaxGridProvider = exports.AjaxGridProvider = Class(GridProvider,
 });
 var LocalStorageGridProvider = exports.LocalStorageGridProvider = Class(GridProvider,
 {
+  constructor: function(__super, grid, selector, transform, dbinfo)
+  {
+    __super(grid, selector);
+    this._dbinfo = dbinfo;
+
+    var root = dbinfo.name + ":" + dbinfo.table + ":";
+    grid.watch(selector, this, function(operation, path, data)
+    {
+      var dpath = root + (transform ? transform(selector, path) : selector.exec(path)[1]);
+      switch (operation)
+      {
+        case Grid.READ:
+            try
+            {
+              if (dpath in localStorage)
+              {
+                grid.write(path, JSON.parse(localStorage[dpath]));
+                break;
+              }
+            }
+            catch (_)
+            {
+            }
+            grid.write(path, null);
+            break;
+
+        case Grid.WRITE:
+            localStorage[dpath] = JSON.stringify(data);
+            break;
+
+        case Grid.REMOVE:
+            delete localStorage[dpath];
+            break;
+
+        default:
+          break;
+      }
+    });
+  }
+
+});
+var SQLStorageGridProvider = exports.SQLStorageGridProvider = Class(GridProvider,
+{
   _dbs: {},
 
   constructor: function(__super, grid, selector, transform, dbinfo)
@@ -9566,7 +9621,8 @@ var Tweet = Model.create(
       favorited: values.favorited,
       place: values.place && { full_name: values.place.full_name, id: values.place.id },
       geo: values.geo && { coordinates: values.geo.coordinates },
-      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status)
+      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status),
+      in_reply_to_status_id_str: values.in_reply_to_status_id_str
     }
   },
 
@@ -9955,23 +10011,22 @@ var Tweet = Model.create(
 
   favorited: function(nv)
   {
-    if (this.is_retweet())
+    var model = this.is_retweet() ? this.retweet() : this;
+    if (arguments.length)
     {
-      return this.favorited.apply(this.retweet(), arguments);
-    }
-    else if (arguments.length)
-    {
-      var ov = Model.updateProperty(this, "favorited", nv);
+      var ov = Model.updateProperty(model, "favorited", nv);
       if (ov !== nv)
       {
         this._tags = null;
         this._tagsHash = null;
+        this.emit("update.favorited");
+        this.emit("update");
       }
       return ov;
     }
     else
     {
-      return Model.updateProperty(this, "favorited");
+      return Model.updateProperty(model, "favorited");
     }
   },
 
@@ -10197,6 +10252,24 @@ var Tweet = Model.create(
       this._retweet = rt ? new Tweet(rt, this._account, false) : false;
     }
     return this._retweet;
+  },
+
+  in_reply_to: function()
+  {
+    if (this._replytweet === undefined)
+    {
+      this._replytweet = null;
+      var rid = this._values.in_reply_to_status_id_str;
+      if (rid)
+      {
+        var reply = this._account.tweetLists.getTweet(rid);
+        if (reply)
+        {
+          this._replytweet = reply;
+        }
+      }
+    }
+    return this._replytweet;
   },
 
   make_display_url: function(url)
@@ -11292,7 +11365,7 @@ var TweetFetcher = xo.Class(Events,
           running = true;
           loop.run();
         }
-        return Co.Sleep(120);
+        return Co.Sleep(failed.length === 0 ? 300 : Math.max(failed.length * 60, 120));
       }
     );
   },
@@ -12267,7 +12340,16 @@ var Errors = Model.create(
             function(idx)
             {
               var error = errors[idx()];
-              return this._account[error.op](error.details);
+              if (error.op === "fetch")
+              {
+                // Tweet fetching retry is handled by the fetch logic.
+                this._errors.push(error);
+                return true;
+              }
+              else
+              {
+                return this._account[error.op](error.details);
+              }
             }
           );
         },
@@ -12786,7 +12868,9 @@ var dbinfo =
   table: "appstore"
 };
 
-new xo.LocalStorageGridProvider(
+var StorageGridProvider = Environment.isPhoneGap() ? xo.SQLStorageGridProvider : xo.LocalStorageGridProvider;
+
+new StorageGridProvider(
   grid.get(),
   /^\/accounts$/,
   function()
@@ -12795,7 +12879,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/tweetlist\/(.*)\/(.*)$/,
   function(selector, path)
@@ -12805,7 +12889,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/topics$/,
   function(selector, path)
@@ -12814,7 +12898,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/errors$/,
   function()
@@ -12823,7 +12907,7 @@ new xo.LocalStorageGridProvider(
   },
   dbinfo
 );
-new xo.LocalStorageGridProvider(
+new StorageGridProvider(
   grid.get(),
   /^\/tweets\/(.*)$/,
   function(selector, path)
@@ -13288,13 +13372,11 @@ var TweetController = xo.Controller.create(
     this.metric(m.favorited() ? "unfav" : "fav");
     if (m.favorited())
     {
-      m.favorited(false);
-      models.account().unfavorite(m.is_retweet() ? m.retweet() : m);
+      models.account().unfavorite(m);
     }
     else
     {
-      m.favorited(true);
-      models.account().favorite(m.is_retweet() ? m.retweet() : m);
+      models.account().favorite(m);
     }
   },
 
@@ -13700,6 +13782,20 @@ var AccountController = xo.Controller.create(
   {{#is_retweet}}\
     <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
   {{/is_retweet}}\
+  {{^has_children}}\
+    {{#in_reply_to View}}\
+      <div class="in_reply_to">\
+        <div class="in_reply_to_text">In reply to</div>\
+        <div class="tweet">\
+          <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+          <div class="body">\
+            <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+            <div class="text">{{{entifiedText}}}</div>\
+          </div>\
+        </div>\
+      </div>\
+    {{/in_reply_to}}\
+  {{/has_children}}\
   <div class="actions">\
     {{#include_children}}\
       {{#has_children}}\

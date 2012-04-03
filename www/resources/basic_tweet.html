@@ -27,6 +27,20 @@
   {{#is_retweet}}
     <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>
   {{/is_retweet}}
+  {{^has_children}}
+    {{#in_reply_to View}}
+      <div class="in_reply_to">
+        <div class="in_reply_to_text">In reply to</div>
+        <div class="tweet">
+          <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">
+          <div class="body">
+            <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>
+            <div class="text">{{{entifiedText}}}</div>
+          </div>
+        </div>
+      </div>
+    {{/in_reply_to}}
+  {{/has_children}}
   <div class="actions">
     {{#include_children}}
       {{#has_children}}

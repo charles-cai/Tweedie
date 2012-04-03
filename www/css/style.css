@@ -566,6 +566,25 @@ body
 {
   background-position: -69px -13px;
 }
+.in_reply_to
+{
+  padding-left: 56px;
+}
+.in_reply_to .tweet
+{
+  font-size: 13px;
+  padding-top: 5px;
+  border-bottom: 0;
+}
+.in_reply_to .tweet .timestamp
+{
+  display: none;
+}
+.in_reply_to_text
+{
+  font-size: 12px;
+  color: grey;
+}
 .nested-tweets
 {
   overflow: hidden;

@@ -35,7 +35,8 @@ var Tweet = Model.create(
       favorited: values.favorited,
       place: values.place && { full_name: values.place.full_name, id: values.place.id },
       geo: values.geo && { coordinates: values.geo.coordinates },
-      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status)
+      retweeted_status: values.retweeted_status && this._reduce(values.retweeted_status),
+      in_reply_to_status_id_str: values.in_reply_to_status_id_str
     }
   },
 
@@ -424,23 +425,22 @@ var Tweet = Model.create(
 
   favorited: function(nv)
   {
-    if (this.is_retweet())
+    var model = this.is_retweet() ? this.retweet() : this;
+    if (arguments.length)
     {
-      return this.favorited.apply(this.retweet(), arguments);
-    }
-    else if (arguments.length)
-    {
-      var ov = Model.updateProperty(this, "favorited", nv);
+      var ov = Model.updateProperty(model, "favorited", nv);
       if (ov !== nv)
       {
         this._tags = null;
         this._tagsHash = null;
+        this.emit("update.favorited");
+        this.emit("update");
       }
       return ov;
     }
     else
     {
-      return Model.updateProperty(this, "favorited");
+      return Model.updateProperty(model, "favorited");
     }
   },
 
@@ -666,6 +666,24 @@ var Tweet = Model.create(
       this._retweet = rt ? new Tweet(rt, this._account, false) : false;
     }
     return this._retweet;
+  },
+
+  in_reply_to: function()
+  {
+    if (this._replytweet === undefined)
+    {
+      this._replytweet = null;
+      var rid = this._values.in_reply_to_status_id_str;
+      if (rid)
+      {
+        var reply = this._account.tweetLists.getTweet(rid);
+        if (reply)
+        {
+          this._replytweet = reply;
+        }
+      }
+    }
+    return this._replytweet;
   },
 
   make_display_url: function(url)
