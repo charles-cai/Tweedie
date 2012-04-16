@@ -61,7 +61,9 @@ var TweetBox = Class(
         isReply: type === "reply",
         isRetweet: type === "retweet",
         isTweet: type === "tweet",
-        isDM: type === "dm"
+        isDM: type === "dm",
+        usuggestions: new ModelSet(),
+        hsuggestions: new ModelSet(),
       },
       controller:
       {
@@ -108,29 +110,23 @@ var TweetBox = Class(
           var value = e.target.value;
           var curpos = e.target.selectionStart;
           var start;
-          wordStart: for (start = curpos - 1; start > 0; start--)
+          for (start = curpos - 1; start >= 0; start--)
           {
-            switch (value[start])
+            var c = value[start];
+            if (c === " " || c === "\n")
             {
-              case " ":
-              case "\n":
-                start++;
-                break wordStart;
-              default:
-                break;
+              break;
             }
           }
+          start++;
           var len = value.length;
           var end;
-          wordEnd: for (end = start; end < len; end++)
+          for (end = start; end < len; end++)
           {
-            switch (value[end])
+            var c = value[end];
+            if (c === " " || c === "\n")
             {
-              case " ":
-              case "\n":
-                break wordEnd;
-              default:
-                break;
+              break;
             }
           }
           if (end > start + 1)
@@ -139,7 +135,8 @@ var TweetBox = Class(
             switch (value[start])
             {
               case "@":
-                mv.property("usuggestions", account.userAndTags.suggestUser(word).slice(0, 10));
+                mv.usuggestions().removeAll();
+                mv.usuggestions().append(account.userAndTags.suggestUser(word));
                 target =
                 {
                   textarea: e.target,
@@ -149,7 +146,8 @@ var TweetBox = Class(
                 };
                 break;
               case "#":
-                mv.property("hsuggestions", account.userAndTags.suggestHashtag(word).slice(0, 10));
+                mv.hsuggestions().removeAll();
+                mv.hsuggestions().append(account.userAndTags.suggestHashtag(word));
                 target =
                 {
                   textarea: e.target,
@@ -159,20 +157,18 @@ var TweetBox = Class(
                 };
                 break;
               default:
-                mv.property("usuggestions", null);
-                mv.property("hsuggestions", null);
+                mv.usuggestions().removeAll();
+                mv.hsuggestions().removeAll();
                 target = null;
                 break;
             }
           }
           else
           {
-            mv.property("usuggestions", null);
-            mv.property("hsuggestions", null);
+            mv.usuggestions().removeAll();
+            mv.hsuggestions().removeAll();
             target = null;
           }
-
-          m[e.target.name](e.target.value);
         },
         onSuggestion: function(m)
         {
@@ -186,8 +182,8 @@ var TweetBox = Class(
             var cur = target.start + name.length + 2;
             target.textarea.selectionStart = cur;
             target.textarea.selectionEnd = cur;
-            mv.property("usuggestions", null);
-            mv.property("hsuggestions", null);
+            mv.usuggestions().removeAll();
+            mv.hsuggestions().removeAll();
             target = null;
           }
         }

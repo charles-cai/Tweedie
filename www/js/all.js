@@ -8962,7 +8962,10 @@ var OAuth2 = exports.OAuth2 = Class(
       },
       function(r)
       {
-        this._tokens = r().json();
+        var tokens = r().json();
+        this._tokens.access_token = tokens.access_token;
+        this._tokens.token_type = tokens.token_type;
+        this._tokens.expires_in = tokens.expires_in;
         this._tokens.expiration_time = Date.now() + this._tokens.expires_in * 1000;
         return this._sign(params);
       }
@@ -12105,7 +12108,7 @@ var UsersAndTags = Class(
   {
     this._account = account;
     this._usersLRU = new xo.LRU(1000);
-    this._tagsLRU = new xo.LRU(100);
+    this._tagsLRU = new xo.LRU(1000);
   },
 
   addUser: function(screenname, name)
@@ -12114,7 +12117,8 @@ var UsersAndTags = Class(
     {
       key: screenname.toLowerCase(),
       name: name,
-      screenname: screenname
+      screenname: screenname,
+      image: "http://api.twitter.com/1/users/profile_image/" + screenname + ".png?size=mini"
     };
     this._usersLRU.add(name.toLowerCase(), val);
     this._usersLRU.add(val.key, val);
@@ -12141,7 +12145,7 @@ var UsersAndTags = Class(
 
   addHashtag: function(tag)
   {
-    this._tagsLRU.add(tag, { name: tag });
+    this._tagsLRU.add(tag.toLowerCase(), { name: tag });
   },
 
   suggestHashtag: function(partialTag)
@@ -12966,7 +12970,9 @@ var TweetBox = Class(
         isReply: type === "reply",
         isRetweet: type === "retweet",
         isTweet: type === "tweet",
-        isDM: type === "dm"
+        isDM: type === "dm",
+        usuggestions: new ModelSet(),
+        hsuggestions: new ModelSet(),
       },
       controller:
       {
@@ -13013,29 +13019,23 @@ var TweetBox = Class(
           var value = e.target.value;
           var curpos = e.target.selectionStart;
           var start;
-          wordStart: for (start = curpos - 1; start > 0; start--)
+          for (start = curpos - 1; start >= 0; start--)
           {
-            switch (value[start])
+            var c = value[start];
+            if (c === " " || c === "\n")
             {
-              case " ":
-              case "\n":
-                start++;
-                break wordStart;
-              default:
-                break;
+              break;
             }
           }
+          start++;
           var len = value.length;
           var end;
-          wordEnd: for (end = start; end < len; end++)
+          for (end = start; end < len; end++)
           {
-            switch (value[end])
+            var c = value[end];
+            if (c === " " || c === "\n")
             {
-              case " ":
-              case "\n":
-                break wordEnd;
-              default:
-                break;
+              break;
             }
           }
           if (end > start + 1)
@@ -13044,7 +13044,8 @@ var TweetBox = Class(
             switch (value[start])
             {
               case "@":
-                mv.property("usuggestions", account.userAndTags.suggestUser(word).slice(0, 10));
+                mv.usuggestions().removeAll();
+                mv.usuggestions().append(account.userAndTags.suggestUser(word));
                 target =
                 {
                   textarea: e.target,
@@ -13054,7 +13055,8 @@ var TweetBox = Class(
                 };
                 break;
               case "#":
-                mv.property("hsuggestions", account.userAndTags.suggestHashtag(word).slice(0, 10));
+                mv.hsuggestions().removeAll();
+                mv.hsuggestions().append(account.userAndTags.suggestHashtag(word));
                 target =
                 {
                   textarea: e.target,
@@ -13064,20 +13066,18 @@ var TweetBox = Class(
                 };
                 break;
               default:
-                mv.property("usuggestions", null);
-                mv.property("hsuggestions", null);
+                mv.usuggestions().removeAll();
+                mv.hsuggestions().removeAll();
                 target = null;
                 break;
             }
           }
           else
           {
-            mv.property("usuggestions", null);
-            mv.property("hsuggestions", null);
+            mv.usuggestions().removeAll();
+            mv.hsuggestions().removeAll();
             target = null;
           }
-
-          m[e.target.name](e.target.value);
         },
         onSuggestion: function(m)
         {
@@ -13091,8 +13091,8 @@ var TweetBox = Class(
             var cur = target.start + name.length + 2;
             target.textarea.selectionStart = cur;
             target.textarea.selectionEnd = cur;
-            mv.property("usuggestions", null);
-            mv.property("hsuggestions", null);
+            mv.usuggestions().removeAll();
+            mv.hsuggestions().removeAll();
             target = null;
           }
         }
@@ -14324,23 +14324,28 @@ var AccountController = xo.Controller.create(
       {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}\
     </div>\
     <div class="tweet-dialog-footer">\
-      <div class="suggestions">\
-        <div class="inside">\
-          {{#usuggestions}}\
+      <div class="outer-suggestions">\
+        <div class="suggestions">\
+          <div class="inside">\
+          {{#usuggestions ViewSet}}\
             {{#_ View className:\'user-suggestion\'}}\
               <div data-action-click="Suggestion">\
-                <div class="name">{{name}}</div>\
-                <div class="screenname">@{{screenname}}</div>\
+                <img class="pic" src="{{image}}">\
+                <div class="info">\
+                  <div class="name">{{name}}</div>\
+                  <div class="screenname">@{{screenname}}</div>\
+                </div>\
               </div>\
             {{/_}}\
           {{/usuggestions}}\
-          {{#hsuggestions}}\
+          {{#hsuggestions ViewSet}}\
             {{#_ View className:\'hashtag-suggestion\'}}\
               <div data-action-click="Suggestion">\
-                {{name}}\
+                #{{name}}\
               </div>\
             {{/_}}\
           {{/hsuggestions}}\
+        </div>\
         </div>\
       </div>\
       <div class="controls">\

@@ -282,23 +282,28 @@ var __resources = {
       {{^isEdit}}<div class="tweet-text" data-action-click="Edit">{{text}}</div>{{/isEdit}}\
     </div>\
     <div class="tweet-dialog-footer">\
-      <div class="suggestions">\
-        <div class="inside">\
-          {{#usuggestions}}\
+      <div class="outer-suggestions">\
+        <div class="suggestions">\
+          <div class="inside">\
+          {{#usuggestions ViewSet}}\
             {{#_ View className:\'user-suggestion\'}}\
               <div data-action-click="Suggestion">\
-                <div class="name">{{name}}</div>\
-                <div class="screenname">@{{screenname}}</div>\
+                <img class="pic" src="{{image}}">\
+                <div class="info">\
+                  <div class="name">{{name}}</div>\
+                  <div class="screenname">@{{screenname}}</div>\
+                </div>\
               </div>\
             {{/_}}\
           {{/usuggestions}}\
-          {{#hsuggestions}}\
+          {{#hsuggestions ViewSet}}\
             {{#_ View className:\'hashtag-suggestion\'}}\
               <div data-action-click="Suggestion">\
-                {{name}}\
+                #{{name}}\
               </div>\
             {{/_}}\
           {{/hsuggestions}}\
+        </div>\
         </div>\
       </div>\
       <div class="controls">\

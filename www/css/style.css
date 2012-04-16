@@ -785,6 +785,7 @@ body
 }
 .tweet-dialog-footer
 {
+  position: relative;
   height: 28px;
   background-color: #f5f5f5;
   border-top: 1px solid #ddd;
@@ -807,10 +808,14 @@ body
 {
   margin-bottom: 5px;
 }
+.tweet-dialog-footer .outer-suggestions
+{
+  margin-right: 200px;
+}
 .tweet-dialog-footer .suggestions
 {
   display: inline-block;
-  width: 410px;
+  width: 100%;
   height: 32px;
   overflow-x: scroll;
   overflow-y: hidden;
@@ -832,19 +837,40 @@ body
   border: 1px solid rgba(0,0,0,0.5);
   border-radius: 3px;
   font-size: 10px;
+  line-height: 9px;
   padding: 2px;
+}
+.tweet-dialog-footer .suggestions .hashtag-suggestion
+{
+  line-height: 15px;
 }
 .tweet-dialog-footer .suggestions .user-suggestion:active, .tweet-dialog-footer .suggestions .hashtag-suggestion:active
 {
   background-color: grey;
 }
+.tweet-dialog-footer .suggestions .user-suggestion .pic
+{
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+.tweet-dialog-footer .suggestions .user-suggestion .info
+{
+  display: inline-block;
+  vertical-align: top;
+}
 .tweet-dialog-footer .suggestions .user-suggestion .screenname
 {
   font-size: 8px;
+  line-height: 12px;
 }
 .tweet-dialog-footer .controls
 {
-  float: right;
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  xpadding: 10px;
+  xbackground-color: #f5f5f5;
 }
 .button
 {
@@ -919,7 +945,7 @@ body
   -webkit-transform: translate3d(0,0,1px);
   -webkit-transition: -webkit-transform 0.2s ease;
 }
-@media (orientation:landscape)
+@media (min-width: 1024px)
 {
   .readability > .inner > .text
   {

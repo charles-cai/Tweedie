@@ -4,7 +4,7 @@ var UsersAndTags = Class(
   {
     this._account = account;
     this._usersLRU = new xo.LRU(1000);
-    this._tagsLRU = new xo.LRU(100);
+    this._tagsLRU = new xo.LRU(1000);
   },
 
   addUser: function(screenname, name)
@@ -13,7 +13,8 @@ var UsersAndTags = Class(
     {
       key: screenname.toLowerCase(),
       name: name,
-      screenname: screenname
+      screenname: screenname,
+      image: "http://api.twitter.com/1/users/profile_image/" + screenname + ".png?size=mini"
     };
     this._usersLRU.add(name.toLowerCase(), val);
     this._usersLRU.add(val.key, val);
@@ -40,7 +41,7 @@ var UsersAndTags = Class(
 
   addHashtag: function(tag)
   {
-    this._tagsLRU.add(tag, { name: tag });
+    this._tagsLRU.add(tag.toLowerCase(), { name: tag });
   },
 
   suggestHashtag: function(partialTag)

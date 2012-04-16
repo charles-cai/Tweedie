@@ -4748,7 +4748,10 @@ var OAuth2 = exports.OAuth2 = Class(
       },
       function(r)
       {
-        this._tokens = r().json();
+        var tokens = r().json();
+        this._tokens.access_token = tokens.access_token;
+        this._tokens.token_type = tokens.token_type;
+        this._tokens.expires_in = tokens.expires_in;
         this._tokens.expiration_time = Date.now() + this._tokens.expires_in * 1000;
         return this._sign(params);
       }
