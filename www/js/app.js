@@ -50,7 +50,8 @@ function main()
       open: true,
       include_children: true,
       include_tags: true,
-      include_media: true
+      include_media: true,
+      include_replies: true
     },
     controllers:
     [
