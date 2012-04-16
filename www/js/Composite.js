@@ -81,7 +81,7 @@ var Composite =
       function()
       {
         var i = document.createElement("img");
-        i.src = networkProxy ? networkProxy + escape(url) : url;
+        i.src = Environment._networkProxyTransform(url);
         if (i.complete)
         {
           return i;
