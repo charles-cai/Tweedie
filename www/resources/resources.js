@@ -16,7 +16,7 @@ var __resources = {
   {{^retweet}}\
     <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
     <div class="body">\
-      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+      <span class="fullname">{{conversation_name}}</span> <span class="screenname">@{{conversation_screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
       <div class="text">{{{entifiedText}}}</div>\
       {{#include_media}}\
         {{#embed_photo_url}}\
@@ -29,18 +29,20 @@ var __resources = {
     <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
   {{/is_retweet}}\
   {{^has_children}}\
-    {{#in_reply_to View}}\
-      <div class="in_reply_to">\
-        <div class="in_reply_to_text">In reply to</div>\
-        <div class="tweet">\
-          <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-          <div class="body">\
-            <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-            <div class="text">{{{entifiedText}}}</div>\
+    {{#include_replies}}\
+      {{#in_reply_to View}}\
+        <div class="in_reply_to">\
+          <div class="in_reply_to_text">In reply to</div>\
+          <div class="tweet">\
+            <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+            <div class="body">\
+              <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+              <div class="text">{{{entifiedText}}}</div>\
+            </div>\
           </div>\
         </div>\
-      </div>\
-    {{/in_reply_to}}\
+      {{/in_reply_to}}\
+    {{/include_replies}}\
   {{/has_children}}\
   <div class="actions">\
     {{#include_children}}\
@@ -163,7 +165,7 @@ var __resources = {
           </div>\
           <div class="viz">Visual: \
             {{^editMode}}\
-              {{#current_list}}\
+              {{#current_list View}}\
                 <span class="tag">{{viz}}</span>\
               {{/current_list}}\
             {{/editMode}}\
@@ -228,7 +230,7 @@ var __resources = {
             {{/tweets}}\
           {{/viz_list}}\
           {{#viz_stack}}\
-            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
+            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation_screen_name" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
               {{>basic_tweet}}\
             {{/tweets}}\
           {{/viz_stack}}\
@@ -250,7 +252,7 @@ var __resources = {
   {{/_}}\
 {{/embed_photo_url}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}" data-action-orientationchange="OrientationChange">\
-  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="Ignore">\
+  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="IgnoreOrSwipe">\
     {{#title}}\
       <div class="title">{{{title}}}</div>\
     {{/title}}\

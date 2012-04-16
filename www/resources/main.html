@@ -44,7 +44,7 @@
           </div>
           <div class="viz">Visual: 
             {{^editMode}}
-              {{#current_list}}
+              {{#current_list View}}
                 <span class="tag">{{viz}}</span>
               {{/current_list}}
             {{/editMode}}
@@ -109,7 +109,7 @@
             {{/tweets}}
           {{/viz_list}}
           {{#viz_stack}}
-            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}
+            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation_screen_name" filterKeys:["text","at_screen_name","name","tagkeys"] }}
               {{>basic_tweet}}
             {{/tweets}}
           {{/viz_stack}}
