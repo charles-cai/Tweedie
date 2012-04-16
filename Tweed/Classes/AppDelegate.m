@@ -65,7 +65,9 @@
     if (url && [url isKindOfClass:[NSURL class]]) {
         self.invokeString = [url absoluteString];
 		NSLog(@"Tweed launchOptions = %@", url);
-    }    
+    }
+  
+    //[NSClassFromString(@"WebView") _enableRemoteInspector];
     
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     self.window = [[[UIWindow alloc] initWithFrame:screenBounds] autorelease];
