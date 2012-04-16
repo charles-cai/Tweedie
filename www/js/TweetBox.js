@@ -39,10 +39,33 @@ var TweetBox = Class(
     {
       tweet = tweet.retweet();
     }
-    var text = type === "reply" ? tweet.at_screen_name() + " " : type === "retweet" ? tweet.text() : "";
+    var text = "";
+    var stext = "";
+    switch (type)
+    {
+      case "reply":
+        text = tweet.at_screen_name() + " ";
+        tweet.tags().forEach(function(tag)
+        {
+          if (tag.type === "screenname")
+          {
+            var screen_name = tag.title + " ";
+            if (screen_name !== text)
+            {
+              stext += screen_name;
+            }
+          }
+        });
+        break;
+      case "retweet":
+        text = tweet.text();
+        break;
+      default:
+        break;
+    }
     var send = new NewTweetModel(
     {
-      text: text,
+      text: text + stext,
       replyId: tweet && tweet.id(),
       screen_name: tweet && tweet.conversation_screen_name(),
       target: tweet && tweet.conversation_screen_name()
@@ -207,7 +230,8 @@ var TweetBox = Class(
     if (text)
     {
       var ta = mv.node().querySelector("textarea");
-      ta.selectionStart = ta.selectionEnd = text.length;
+      ta.selectionStart = text.length;
+      ta.selectionEnd = text.length + stext.length;
     }
   }
 });
