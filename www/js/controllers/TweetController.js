@@ -81,12 +81,20 @@ var TweetController = xo.Controller.create(
             },
             onOpenWeb: function()
             {
-              var browser = ChildBrowser.install();
-              browser.onClose = function()
+              if (window.ChildBrowser)
+              {
+                var browser = ChildBrowser.install();
+                browser.onClose = function()
+                {
+                  mv.close();
+                };
+                browser.showWebPage(url);
+              }
+              else
               {
                 mv.close();
-              };
-              browser.showWebPage(url);
+                window.open(url);
+              }
               this.metric("browser:open");
             },
             onOrientationChange: function()
@@ -96,6 +104,20 @@ var TweetController = xo.Controller.create(
             onClose: function()
             {
               this.metric("close");
+            },
+            onIgnoreOrSwipe: function(_, v, e)
+            {
+              if (!Environment.isTouch())
+              {
+                if (e.clientX > v.node().clientWidth / 2)
+                {
+                  this.onForward()
+                }
+                else
+                {
+                  this.onBackward();
+                }
+              }
             }
           }))
         });
@@ -159,8 +181,16 @@ var TweetController = xo.Controller.create(
 
     if (furl.indexOf("http://www.youtube.com/watch") === 0 || furl.indexOf("http://youtube.com/watch") === 0)
     {
-      // Open Safari
-      location = furl;
+      if (window.ChildBrowser)
+      {
+        // Open Safari
+        location = furl;
+      }
+      else
+      {
+        // Open desktop browser
+        window.open(furl);
+      }
       return;
     }
     new ModalView(
