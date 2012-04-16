@@ -4431,6 +4431,8 @@ var Events = exports.Events =
 };
 var Environment = exports.Environment =
 {
+  _proxy: null,
+
   isTouch: function()
   {
     if (this._isTouch === undefined)
@@ -4448,6 +4450,16 @@ var Environment = exports.Environment =
   isRetina: function()
   {
     return window.devicePixelRatio > 1 ? true : false;
+  },
+
+  setNetworkProxy: function(proxy)
+  {
+    Environment._proxy = proxy;
+  },
+
+  _networkProxyTransform: function(url)
+  {
+    return Environment._proxy ? Environment._proxy(url) : url;
   }
 };
 var Log = exports.Log = Mixin({}, Events,
@@ -4584,6 +4596,21 @@ else if (typeof process !== "undefiend")
   {
     Log.exception("uncaughtException", e);
   });
+}
+if (!window.JSON)
+{
+  window.JSON =
+  {
+    parse: function(s)
+    {
+      return eval("(" + s + ")");
+    },
+
+    stringify: function(o)
+    {
+      throw new Error("JSON.stringify not implemented");
+    }
+  };
 }
 /**
  * @fileOverview Co.Routine
@@ -7378,128 +7405,78 @@ var RootView = exports.RootView = Class(View,
         return true;
       };
       var target = document.body;
+
       target.addEventListener("click", eventHandler);
       target.addEventListener("keypress", eventHandler);
-      target.addEventListener("dragstart", eventHandler);
-      target.addEventListener("dragend", eventHandler);
-      target.addEventListener("dragenter", eventHandler);
-      target.addEventListener("dragleave", eventHandler);
-      target.addEventListener("drop", eventHandler);
       target.addEventListener("change", eventHandler);
       target.addEventListener("input", eventHandler);
 
-      // Drag and drop emulation for touch devices
-      if (Environment.isTouch())
+      // Drag-n-Drop + click emulation support
+      var _maybeClick = null;
+      var _maybeDrag = null;
+      var _maybeSwipe = null;
+      var _swipeStart = null;
+      var _dragContainer = null;
+      var _dragOffset = null;
+      var _dropTargets = null;
+      var _dropLastTarget = null;
+      function _doDrag(touch)
       {
-        var _maybeClick = null;
-        var _maybeDrag = null;
-        var _maybeSwipe = null;
-        var _swipeStart = null;
-        var _dragContainer = null;
-        var _dragOffset = null;
-        var _dropTargets = null;
-        var _dropLastTarget = null;
-        function doDrag(touch)
+        if (!_dragContainer)
         {
-          if (!_dragContainer)
+          _dragContainer = document.createElement("div");
+          _dragContainer.className = "xo-drag-container";
+          document.body.appendChild(_dragContainer);
+        }
+        if (!_dragContainer.firstChild)
+        {
+          var area = _maybeDrag.getClientRects()[0];
+          _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 25 : 0) };
+          _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+          _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+          _dragContainer.appendChild(_maybeDrag.cloneNode(true));
+          eventHandler(
           {
-            _dragContainer = document.createElement("div");
-            _dragContainer.className = "xo-drag-container";
-            document.body.appendChild(_dragContainer);
-          }
-          if (!_dragContainer.firstChild)
+            type: "dragstart",
+            target: _maybeDrag
+          });
+        }
+        else
+        {
+          _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+          _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+        }
+      }
+      function doDragStart(touch, isTouch)
+      {
+        var target = touch.target;
+        for (var dtarget = target; dtarget; dtarget = dtarget.parentElement)
+        {
+          if (getComputedStyle(dtarget, null).WebkitUserDrag === "element")
           {
-            var area = _maybeDrag.getClientRects()[0];
-            _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 25 : 0) };
-            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
-            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
-            _dragContainer.appendChild(_maybeDrag.cloneNode(true));
-            eventHandler(
-            {
-              type: "dragstart",
-              target: _maybeDrag
-            });
-          }
-          else
-          {
-            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
-            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+            _maybeDrag = dtarget;
+            _dropTargets = document.querySelectorAll("[ondragover]");
+            _dropLastTarget = null;
+            _doDrag(touch);
+            return;
           }
         }
-        target.addEventListener("touchstart", function(evt)
+        if (isTouch)
         {
-          if (evt.targetTouches.length === 1)
-          {
-            var touch = evt.targetTouches[0];
-            var target = touch.target;
-            for (var dtarget = target; dtarget; dtarget = dtarget.parentElement)
-            {
-              if (getComputedStyle(dtarget, null).WebkitUserDrag === "element")
-              {
-                _maybeDrag = dtarget;
-                _dropTargets = document.querySelectorAll("[ondragover]");
-                _dropLastTarget = null;
-                doDrag(touch);
-                return;
-              }
-            }
-            _maybeClick = target;
-            _maybeSwipe = RootView._findSwipeTarget(target);
-            _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
-          }
-        });
-        target.addEventListener("touchend", function(evt)
+          _maybeClick = target;
+          _maybeSwipe = RootView._findSwipeTarget(target);
+          _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
+        }
+      }
+      function doDragMove(evt, touch)
+      {
+        _maybeClick = null;
+        if (_maybeDrag)
         {
-          if (evt.targetTouches.length === 0)
+          _doDrag(touch);
+          var newTarget = RootView._findTargetMatch(_dragContainer, _dropTargets);
+          if (newTarget != _dropLastTarget)
           {
-            if (_maybeClick)
-            {
-              switch (_maybeClick.nodeName)
-              {
-                case "INPUT":
-                case "TEXTAREA":
-                  break;
-                default:
-                  var cevt = document.createEvent("MouseEvents");
-                  cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
-                  _maybeClick.dispatchEvent(cevt);
-                  evt.preventDefault();
-                  evt.stopPropagation();
-                  break;
-              }
-            }
-            else if (_maybeSwipe)
-            {
-              eventHandler(
-              {
-                type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
-                target: _maybeSwipe
-              });
-            }
-          }
-          _maybeClick = null;
-          _maybeSwipe = null;
-          if (_maybeDrag)
-          {
-            while (_dragContainer.firstChild)
-            {
-              _dragContainer.removeChild(_dragContainer.firstChild);
-            }
-            if (_dropLastTarget)
-            {
-              eventHandler(
-              {
-                type: "drop",
-                target: _dropLastTarget
-              });
-            }
-            eventHandler(
-            {
-              type: "dragend",
-              target: _maybeDrag
-            });
-            _maybeDrag = null;
-            _dropTargets = null;
             if (_dropLastTarget)
             {
               eventHandler(
@@ -7507,53 +7484,137 @@ var RootView = exports.RootView = Class(View,
                 type: "dragleave",
                 target: _dropLastTarget
               });
-              _dropLastTarget = null;
             }
+            _dropLastTarget = newTarget;
+            if (_dropLastTarget)
+            {
+              eventHandler(
+              {
+                type: "dragenter",
+                target: _dropLastTarget
+              });
+            }
+          }
+          evt.preventDefault();
+        }
+        else if (_maybeSwipe)
+        {
+          if (_maybeSwipe !== RootView._findSwipeTarget(touch.target))
+          {
+            _maybeSwipe = null;
+          }
+          else
+          {
+            _swipeStart.hdir = evt.pageX > _swipeStart.x ? "l2r" : "r2l";
+          }
+        }
+      }
+      function doDragEnd(evt)
+      {
+        if (_maybeClick)
+        {
+          switch (_maybeClick.nodeName)
+          {
+            case "INPUT":
+            case "TEXTAREA":
+              break;
+            default:
+              var cevt = document.createEvent("MouseEvents");
+              cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
+              _maybeClick.dispatchEvent(cevt);
+              evt.preventDefault();
+              evt.stopPropagation();
+              break;
+          }
+        }
+        else if (_maybeSwipe)
+        {
+          eventHandler(
+          {
+            type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
+            target: _maybeSwipe
+          });
+        }
+        _maybeClick = null;
+        _maybeSwipe = null;
+        if (_maybeDrag)
+        {
+          while (_dragContainer.firstChild)
+          {
+            _dragContainer.removeChild(_dragContainer.firstChild);
+          }
+          if (_dropLastTarget)
+          {
+            eventHandler(
+            {
+              type: "drop",
+              target: _dropLastTarget
+            });
+          }
+          eventHandler(
+          {
+            type: "dragend",
+            target: _maybeDrag
+          });
+          _maybeDrag = null;
+          _dropTargets = null;
+          if (_dropLastTarget)
+          {
+            eventHandler(
+            {
+              type: "dragleave",
+              target: _dropLastTarget
+            });
+            _dropLastTarget = null;
+          }
+        }
+      }
+
+      // Drag and drop emulation for touch devices
+      if (Environment.isTouch())
+      {
+        target.addEventListener("touchstart", function(evt)
+        {
+          if (evt.targetTouches.length === 1)
+          {
+            doDragStart(evt.targetTouches[0], true);
+          }
+        });
+        target.addEventListener("touchend", function(evt)
+        {
+          if (evt.targetTouches.length === 0)
+          {
+            doDragEnd(evt);
           }
         });
         target.addEventListener("touchmove", function(evt)
         {
           if (evt.targetTouches.length === 1)
           {
-            _maybeClick = null;
-            if (_maybeDrag)
-            {
-              doDrag(evt.targetTouches[0]);
-              var newTarget = RootView._findTargetMatch(_dragContainer, _dropTargets);
-              if (newTarget != _dropLastTarget)
-              {
-                if (_dropLastTarget)
-                {
-                  eventHandler(
-                  {
-                    type: "dragleave",
-                    target: _dropLastTarget
-                  });
-                }
-                _dropLastTarget = newTarget;
-                if (_dropLastTarget)
-                {
-                  eventHandler(
-                  {
-                    type: "dragenter",
-                    target: _dropLastTarget
-                  });
-                }
-              }
-              evt.preventDefault();
-            }
-            else if (_maybeSwipe)
-            {
-              if (_maybeSwipe !== RootView._findSwipeTarget(evt.targetTouches[0].target))
-              {
-                _maybeSwipe = null;
-              }
-              else
-              {
-                _swipeStart.hdir = evt.pageX > _swipeStart.x ? "l2r" : "r2l";
-              }
-            }
+            doDragMove(evt, evt.targetTouches[0]);
           }
+        });
+      }
+      // Drag and drop emulation for non-touch.
+      // NOTE. Drag and drop proved problematic to get working in OSX WebView so using
+      // the same mechanism designed for touch
+      else
+      {
+        target.addEventListener("dragstart", function(evt)
+        {
+          evt.preventDefault(); // Prevent native dnd
+        });
+        target.addEventListener("mousedown", function(evt)
+        {
+          doDragStart(evt, false);
+        });
+        target.addEventListener("mouseup", function()
+        {
+          doDragEnd();
+        });
+        target.addEventListener("mousemove", function(evt)
+        {
+          doDragMove(evt, evt);
         });
       }
     }
@@ -8285,18 +8346,23 @@ if (typeof XMLHttpRequest !== "undefined")
             config.headers["Content-Type"] = "application/x-www-form-urlencoded";
           }
 
-          config.auth && config.auth.sign(config);
-
-          var req = this._req = new XMLHttpRequest();
-          var url;
-          if (config.proxy)
+          if (config.auth)
           {
-            url = config.proxy + escape(config.url);
+            return config.auth.sign(config);
           }
           else
           {
-            url = config.url;
+            return true;
           }
+        },
+        function()
+        {
+          var req = this._req = new XMLHttpRequest();
+
+          var url = exports.Ajax.buildUrl(config.url, config.method !== "POST" ? config.parameters : null);
+
+          url = Environment._networkProxyTransform(url);
+
           req.open(config.method, url, true);
 
           // Define any headers
@@ -8328,16 +8394,44 @@ if (typeof XMLHttpRequest !== "undefined")
             }
           });
 
-          var data = config.data;
-          if (config.json)
+          var data;
+          if (config.method === "POST")
           {
-            data = JSON.stringify(config.json);
+            data = config.data;
+            if (config.json)
+            {
+              data = JSON.stringify(config.json);
+            }
+            var params = config.parameters;
+            if (params)
+            {
+              data = "";
+              for (var key in params)
+              {
+                data += encodeURIComponent(key) + "=" + encodeURIComponent(params[key]) + "&";
+              }
+              data = data.slice(0, -1);
+            }
           }
 
           // Initiate the request, together with any data we want to send (for a POST or PUT)
           req.send(data);
         }
       );
+    },
+
+    buildUrl: function(url, params)
+    {
+      if (params)
+      {
+        url += url.indexOf("?") === -1 ? "?" : "&";
+        for (var key in params)
+        {
+          url += key + "=" + encodeURIComponent(params[key]) + "&";
+        }
+        url = url.slice(0, -1);
+      }
+      return url;
     }
   }
 }
@@ -8357,17 +8451,9 @@ if (typeof XMLHttpRequest !== "undefined")
           config.auth && config.auth.sign(config);
 
           var req = this._req = new XMLHttpRequest();
-          var url;
-          if (config.proxy)
-          {
-            url = config.proxy + escape(config.url);
-          }
-          else
-          {
-            url = config.url;
-          }
+          var url = Environment._networkProxyTransform(config.url);
           req.open(config.method, url, true);
-    
+
           // Define any headers
           for (var key in config.headers)
           {
@@ -8657,6 +8743,8 @@ var OAuth = exports.OAuth = Class(
       // Add it
       (params.headers || (params.headers = {})).Authorization = oauth.slice(0, -1);
     }
+
+    return true;
   },
 
   _encode: function(str)
@@ -8693,7 +8781,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
     this._request = oauth.request;
     this._authorize = oauth.authorize;
     this._access = oauth.access;
-    this._proxy = oauth.proxy;
   },
 
   login: function()
@@ -8707,7 +8794,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
           method: "GET" in this._request ? "GET" : "POST",
           url: this._request.GET || this._request.POST,
           auth: this,
-          proxy: this._proxy
         });
       },
       function(r)
@@ -8796,7 +8882,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
           method: "GET" in this._access ? "GET" : "POST",
           url: this._access.GET || this._access.POST,
           auth: this,
-          proxy: this._proxy,
           data: "oauth_verifier=" + args.oauth_verifier
         });
       },
@@ -8807,6 +8892,157 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
         this._config.oauth_token_secret = args.oauth_token_secret;
 
         return args;
+      }
+    );
+  }
+});
+var OAuth2 = exports.OAuth2 = Class(
+{
+  _leeway: 30000,
+
+  constructor: function(config)
+  {
+    this._config = config;
+    if (config.refresh_token)
+    {
+      this._tokens =
+      {
+        refresh_token: config.refresh_token,
+        expiration_time: 0
+      };
+    }
+    else
+    {
+      this._tokens = {};
+    }
+  },
+
+  serialize: function()
+  {
+    var c = this._config;
+    return {
+      authorize: c.authorize,
+      access: c.access,
+      client_id: c.client_id,
+      client_secret: c.client_secret,
+      redirect_uri: c.redirect_uri,
+      scope: c.scope,
+      refresh_token: this._tokens.refresh_token
+    };
+  },
+
+  _sign: function(params)
+  {
+    (params.headers || (params.headers = {})).Authorization = this._tokens.token_type + " " + this._tokens.access_token;
+    return true;
+  },
+
+  sign: function(params)
+  {
+    if (Date.now() + this._leeway < this._tokens.expiration_time)
+    {
+      return this._sign(params);
+    }
+    return Co.Routine(this,
+      function()
+      {
+        var c = this._config;
+        return exports.Ajax.create(
+        {
+          method: "POST",
+          url: c.access,
+          parameters:
+          {
+            client_id: c.client_id,
+            client_secret: c.client_secret,
+            refresh_token: this._tokens.refresh_token,
+            grant_type: "refresh_token"
+          }
+        });
+      },
+      function(r)
+      {
+        this._tokens = r().json();
+        this._tokens.expiration_time = Date.now() + this._tokens.expires_in * 1000;
+        return this._sign(params);
+      }
+    );
+  }
+});
+var OAuth2Login = exports.OAuth2Login = Class(OAuth2,
+{
+  login: function()
+  {
+    var c = this._config;
+    return Co.Routine(this,
+      function()
+      {
+        var url = exports.Ajax.buildUrl(c.authorize,
+        {
+            response_type: c.response_type || "code",
+            client_id: c.client_id,
+            redirect_uri: c.redirect_uri,
+            scope: c.scope,
+            state: c.state || "",
+            access_type: c.access_type || "offline",
+            approval_prompt: c.approval_prompt || "force"
+        });
+
+        if (window.open)
+        {
+          var win = window.open(url, "Login", "location=yes,resizable=yes,scrollbars=yes");
+          if (!win)
+          {
+            throw new Error("Cannot open window for login");
+          }
+          return Co.Forever(this,
+            function()
+            {
+              var origin = win.location.origin + win.location.pathname;
+              if (origin === c.redirect_uri)
+              {
+                var url = new Url(win.location.href);
+                win.close();
+                var error = url.getParameter("error");
+                if (error)
+                {
+                  throw new Error("OAuth2: " + error);
+                }
+                return Co.Break({
+                  code: url.getParameter("code")
+                });
+              }
+              return Co.Sleep(0.1);
+            }
+          );
+        }
+        else
+        {
+          throw new Error("Cannot open window for login");
+        }
+      },
+      function(r)
+      {
+        r = r();
+        return xo.Ajax.create(
+        {
+          method: "POST",
+          url: c.access,
+          parameters:
+          {
+            code: r.code,
+            client_id: c.client_id,
+            client_secret: c.client_secret,
+            redirect_uri: c.redirect_uri,
+            grant_type: "authorization_code"
+          }
+        });
+      },
+      function(r)
+      {
+        this._tokens = r().json();
+        this._tokens.expiration_time = Date.now() + this._tokens.expires_in;
+        return true;
       }
     );
   }
@@ -9467,7 +9703,8 @@ var KEYS =
   {
     oauth_consumer_key: "wFdo3SPtTYOAHgjoizKpug",
     oauth_consumer_secret: "DtWtTnewJLINEmnshVG47lyivxlyeDD68h2w6LqotY",
-    callback: xo.Environment.isTouch() ? "http://aanon4.github.com/callback/" : location.origin + "/callback",
+    callback: location.protocol === "file:" ? "http://aanon4.github.com/callback/" : location.origin + "/callback",
+    Xcallback: "http://aanon4.github.com/callback/",
   },
   twitterResolve:
   {
@@ -9789,7 +10026,30 @@ var Tweet = Model.create(
     return "@" + this.screen_name();
   },
 
-  conversation: function()
+  conversation_name: function()
+  {
+    if (this._values.user)
+    {
+      return this._values.user.name;
+    }
+    else if (this._values.sender)
+    {
+      if ("@" + this._values.sender.screen_name.toLowerCase() === this._account.tweetLists.screenname)
+      {
+        return this._values.recipient.name;
+      }
+      else
+      {
+        return this._values.sender.name;
+      }
+    }
+    else
+    {
+      return this._values.from_user_name;
+    }
+  },
+
+  conversation_screen_name: function()
   {
     if (this._values.user)
     {
@@ -9814,10 +10074,6 @@ var Tweet = Model.create(
   
   profile_image_url: function()
   {
-    if (!this._profile_image_url)
-    {
-      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
-    }
     return this._profile_image_url;
   },
 
@@ -9859,6 +10115,10 @@ var Tweet = Model.create(
           this.emit("update");
         }
       );
+    }
+    else
+    {
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
     }
   },
 
@@ -11161,9 +11421,7 @@ var TweetFetcher = xo.Class(Events,
 
       request: { POST: "https://api.twitter.com/oauth/request_token" },
       authorize: { GET: "https://api.twitter.com/oauth/authorize?force_login=true" },
-      access: { POST: "https://api.twitter.com/oauth/access_token" },
-
-      proxy: networkProxy
+      access: { POST: "https://api.twitter.com/oauth/access_token" }
     });
     this._account = account;
     this._loop = null;
@@ -11235,8 +11493,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + page()) + "&since_id=" + tweetId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           },
           function(r)
@@ -11278,8 +11535,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=200&since_id=" + favId,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -11303,8 +11559,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/statuses/mentions.json?include_entities=true&count=200&since_id=" + mentionId,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -11331,8 +11586,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/direct_messages.json?include_entities=true&count=100&since_id=" + dmRecvId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           },
           function()
@@ -11341,8 +11595,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/direct_messages/sent.json?include_entities=true&count=100&since_id=" + dmSendId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           }
         );
@@ -11403,7 +11656,6 @@ var TweetFetcher = xo.Class(Events,
       method: "GET",
       url: "https://userstream.twitter.com/2/user.json",
       auth: this._auth,
-      proxy: networkProxy,
       onText: function(chunk)
       {
         count += chunk.length;
@@ -11540,8 +11792,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "GET",
       url: "https://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     };
     return Co.Routine(this,
       function()
@@ -11586,7 +11837,6 @@ var TweetFetcher = xo.Class(Events,
       method: "GET",
       url: "https://stream.twitter.com/1/statuses/filter.json?track=" + query.map(encodeURIComponent).join(","),
       auth: this._auth,
-      proxy: networkProxy,
       onText: function(chunk)
       {
         count += chunk.length;
@@ -11681,7 +11931,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "status=" + encodeURIComponent(m.text())
     });
   },
@@ -11692,8 +11941,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/statuses/retweet/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -11704,7 +11952,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "status=" + encodeURIComponent(m.text()) + "&in_reply_to_status_id=" + m.replyId()
     });
   },
@@ -11716,7 +11963,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/direct_messages/new.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "text=" + encodeURIComponent(m.text()) + "&screen_name=" + encodeURIComponent(m.target())
     });
   },
@@ -11727,8 +11973,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/create/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -11738,8 +11983,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/destroy/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -11749,8 +11993,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/create.json?user_id=" + id,
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -11760,8 +12003,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/destroy.json?user_id=" + id,
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -11775,8 +12017,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/users/show.json?include_entities=true&" + key,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -11796,8 +12037,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -11816,8 +12056,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -12474,8 +12713,7 @@ var UrlExpander = Class(Events,
               {
                 return "urls%5B%5D=" + escape(url)
               }).join("&"),
-              headers: KEYS.twitterResolve,
-              proxy: networkProxy
+              headers: KEYS.twitterResolve
             });
           },
           function(r)
@@ -12645,7 +12883,7 @@ var Composite =
       function()
       {
         var i = document.createElement("img");
-        i.src = networkProxy ? networkProxy + escape(url) : url;
+        i.src = Environment._networkProxyTransform(url);
         if (i.complete)
         {
           return i;
@@ -12706,13 +12944,13 @@ var TweetBox = Class(
     {
       tweet = tweet.retweet();
     }
-    var text = type === "reply" ? tweet.at_screen_name() : type === "retweet" ? tweet.text() : "";
+    var text = type === "reply" ? tweet.at_screen_name() + " " : type === "retweet" ? tweet.text() : "";
     var send = new NewTweetModel(
     {
       text: text,
       replyId: tweet && tweet.id(),
-      screen_name: tweet && tweet.conversation(),
-      target: tweet && tweet.conversation()
+      screen_name: tweet && tweet.conversation_screen_name(),
+      target: tweet && tweet.conversation_screen_name()
     });
     var target = null;
     var mv = new ModalView(
@@ -12889,7 +13127,7 @@ var dbinfo =
   table: "appstore"
 };
 
-var StorageGridProvider = Environment.isPhoneGap() ? xo.SQLStorageGridProvider : xo.LocalStorageGridProvider;
+var StorageGridProvider = xo.SQLStorageGridProvider;
 
 new StorageGridProvider(
   grid.get(),
@@ -12973,7 +13211,6 @@ new StorageGridProvider(
             method: "POST",
             url: "http://www.readability.com/articles/queue",
             data: "url=" + url,
-            proxy: networkProxy,
             _gridPath: path
           };
           return Ajax.create(pending);
@@ -13273,12 +13510,20 @@ var TweetController = xo.Controller.create(
             },
             onOpenWeb: function()
             {
-              var browser = ChildBrowser.install();
-              browser.onClose = function()
+              if (window.ChildBrowser)
+              {
+                var browser = ChildBrowser.install();
+                browser.onClose = function()
+                {
+                  mv.close();
+                };
+                browser.showWebPage(url);
+              }
+              else
               {
                 mv.close();
-              };
-              browser.showWebPage(url);
+                window.open(url);
+              }
               this.metric("browser:open");
             },
             onOrientationChange: function()
@@ -13288,6 +13533,20 @@ var TweetController = xo.Controller.create(
             onClose: function()
             {
               this.metric("close");
+            },
+            onIgnoreOrSwipe: function(_, v, e)
+            {
+              if (!Environment.isTouch())
+              {
+                if (e.clientX > v.node().clientWidth / 2)
+                {
+                  this.onForward()
+                }
+                else
+                {
+                  this.onBackward();
+                }
+              }
             }
           }))
         });
@@ -13351,8 +13610,16 @@ var TweetController = xo.Controller.create(
 
     if (furl.indexOf("http://www.youtube.com/watch") === 0 || furl.indexOf("http://youtube.com/watch") === 0)
     {
-      // Open Safari
-      location = furl;
+      if (window.ChildBrowser)
+      {
+        // Open Safari
+        location = furl;
+      }
+      else
+      {
+        // Open desktop browser
+        window.open(furl);
+      }
       return;
     }
     new ModalView(
@@ -13791,7 +14058,7 @@ var AccountController = xo.Controller.create(
   {{^retweet}}\
     <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
     <div class="body">\
-      <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+      <span class="fullname">{{conversation_name}}</span> <span class="screenname">@{{conversation_screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
       <div class="text">{{{entifiedText}}}</div>\
       {{#include_media}}\
         {{#embed_photo_url}}\
@@ -13804,18 +14071,20 @@ var AccountController = xo.Controller.create(
     <div class="retweetedby">Retweeted by {{name}} <span class="retweetby-screenname">@{{screen_name}}</span></div>\
   {{/is_retweet}}\
   {{^has_children}}\
-    {{#in_reply_to View}}\
-      <div class="in_reply_to">\
-        <div class="in_reply_to_text">In reply to</div>\
-        <div class="tweet">\
-          <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
-          <div class="body">\
-            <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
-            <div class="text">{{{entifiedText}}}</div>\
+    {{#include_replies}}\
+      {{#in_reply_to View}}\
+        <div class="in_reply_to">\
+          <div class="in_reply_to_text">In reply to</div>\
+          <div class="tweet">\
+            <img class="icon" src={{profile_image_url}} data-action-click="ProfilePic">\
+            <div class="body">\
+              <span class="fullname">{{name}}</span> <span class="screenname">@{{screen_name}}</span><span class="timestamp" data-timestamp="{{created_at}}">{{created_since}}</span>\
+              <div class="text">{{{entifiedText}}}</div>\
+            </div>\
           </div>\
         </div>\
-      </div>\
-    {{/in_reply_to}}\
+      {{/in_reply_to}}\
+    {{/include_replies}}\
   {{/has_children}}\
   <div class="actions">\
     {{#include_children}}\
@@ -13938,7 +14207,7 @@ var AccountController = xo.Controller.create(
           </div>\
           <div class="viz">Visual: \
             {{^editMode}}\
-              {{#current_list}}\
+              {{#current_list View}}\
                 <span class="tag">{{viz}}</span>\
               {{/current_list}}\
             {{/editMode}}\
@@ -14003,7 +14272,7 @@ var AccountController = xo.Controller.create(
             {{/tweets}}\
           {{/viz_list}}\
           {{#viz_stack}}\
-            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
+            {{#tweets ViewSet.TextFilter.StackedList.LiveList name:"tweets" stackKey:"conversation_screen_name" filterKeys:["text","at_screen_name","name","tagkeys"] }}\
               {{>basic_tweet}}\
             {{/tweets}}\
           {{/viz_stack}}\
@@ -14025,7 +14294,7 @@ var AccountController = xo.Controller.create(
   {{/_}}\
 {{/embed_photo_url}}',
 'readability': '<div class="dialog readability{{#show}} show{{/show}}" data-action-orientationchange="OrientationChange">\
-  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="Ignore">\
+  <div class="inner" id="readability-scroller" data-action-swipe-left="Forward" data-action-swipe-right="Backward" data-action-close="Close" data-action-click="IgnoreOrSwipe">\
     {{#title}}\
       <div class="title">{{{title}}}</div>\
     {{/title}}\
@@ -14181,7 +14450,8 @@ function main()
       open: true,
       include_children: true,
       include_tags: true,
-      include_media: true
+      include_media: true,
+      include_replies: true
     },
     controllers:
     [

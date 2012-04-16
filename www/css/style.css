@@ -1,3 +1,7 @@
+*
+{
+  -webkit-user-drag: none;
+}
 html, body
 {
   overflow: hidden;
@@ -12,6 +16,7 @@ body
   width: 100%;
   min-width: 693px;
   font-family: "Helvetica Neue", "Helvetica";
+  font-size: 16px;
   background-color: hsl(183, 65%, 25%);
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
@@ -20,6 +25,7 @@ body
 {
   position: absolute;
   z-index: 1000;
+  cursor: move;
 }
 .xo-drag-container .tag
 {
@@ -110,6 +116,10 @@ body
   vertical-align: top;
   font-size: 15px;
 }
+.desktop .col.left .filter input
+{
+  font-size: 18px;
+}
 .col.left .filter .filter-clear
 {
   position: absolute;
@@ -122,6 +132,10 @@ body
   background-size: 400px 40px;
   background-position: -30px -11px;
   opacity: 1;
+}
+.desktop .col.left .filter .filter-clear
+{
+  margin: 7px 7px 0px 0px;
 }
 .col.left .filter .filter-clear:active
 {
@@ -395,6 +409,7 @@ body
   height: 48px;
   float: left;
   border-radius: 5px;
+  cursor: pointer;
 }
 .icon:active
 {
@@ -429,6 +444,7 @@ body
 {
   color: #196DA9;
   text-decoration: none;
+  cursor: pointer;
 }
 .tweet .text .url:active, .tweet .text .user_mention:active, .tweet .text .media:active
 {
@@ -464,11 +480,18 @@ body
   -webkit-user-drag: element;
   padding: 7px 0px;
   margin: -7px 0px;
+  cursor: move;
+}
+.desktop .tags .tag-wrapper
+{
+  padding: 0px;
+  margin: 0px;
+  font-size: 9px;
 }
 .tag
 {
   display: inline-block;
-  margin-top: 1px;
+  xmargin-top: 1px;
   padding: 1px 3px;
   border: 1px solid rgba(0,0,0,0.5);
   font-size: 9px;
@@ -796,6 +819,7 @@ body
 .tweet-dialog-footer .suggestions::-webkit-scrollbar
 {
   width: 0;
+  height: 0;
 }
 .tweet-dialog-footer .suggestions .inside
 {

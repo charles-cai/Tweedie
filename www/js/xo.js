@@ -217,6 +217,8 @@ var Events = exports.Events =
 };
 var Environment = exports.Environment =
 {
+  _proxy: null,
+
   isTouch: function()
   {
     if (this._isTouch === undefined)
@@ -234,6 +236,16 @@ var Environment = exports.Environment =
   isRetina: function()
   {
     return window.devicePixelRatio > 1 ? true : false;
+  },
+
+  setNetworkProxy: function(proxy)
+  {
+    Environment._proxy = proxy;
+  },
+
+  _networkProxyTransform: function(url)
+  {
+    return Environment._proxy ? Environment._proxy(url) : url;
   }
 };
 var Log = exports.Log = Mixin({}, Events,
@@ -370,6 +382,21 @@ else if (typeof process !== "undefiend")
   {
     Log.exception("uncaughtException", e);
   });
+}
+if (!window.JSON)
+{
+  window.JSON =
+  {
+    parse: function(s)
+    {
+      return eval("(" + s + ")");
+    },
+
+    stringify: function(o)
+    {
+      throw new Error("JSON.stringify not implemented");
+    }
+  };
 }
 /**
  * @fileOverview Co.Routine
@@ -3164,128 +3191,78 @@ var RootView = exports.RootView = Class(View,
         return true;
       };
       var target = document.body;
+
       target.addEventListener("click", eventHandler);
       target.addEventListener("keypress", eventHandler);
-      target.addEventListener("dragstart", eventHandler);
-      target.addEventListener("dragend", eventHandler);
-      target.addEventListener("dragenter", eventHandler);
-      target.addEventListener("dragleave", eventHandler);
-      target.addEventListener("drop", eventHandler);
       target.addEventListener("change", eventHandler);
       target.addEventListener("input", eventHandler);
 
-      // Drag and drop emulation for touch devices
-      if (Environment.isTouch())
+      // Drag-n-Drop + click emulation support
+      var _maybeClick = null;
+      var _maybeDrag = null;
+      var _maybeSwipe = null;
+      var _swipeStart = null;
+      var _dragContainer = null;
+      var _dragOffset = null;
+      var _dropTargets = null;
+      var _dropLastTarget = null;
+      function _doDrag(touch)
       {
-        var _maybeClick = null;
-        var _maybeDrag = null;
-        var _maybeSwipe = null;
-        var _swipeStart = null;
-        var _dragContainer = null;
-        var _dragOffset = null;
-        var _dropTargets = null;
-        var _dropLastTarget = null;
-        function doDrag(touch)
+        if (!_dragContainer)
         {
-          if (!_dragContainer)
+          _dragContainer = document.createElement("div");
+          _dragContainer.className = "xo-drag-container";
+          document.body.appendChild(_dragContainer);
+        }
+        if (!_dragContainer.firstChild)
+        {
+          var area = _maybeDrag.getClientRects()[0];
+          _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 25 : 0) };
+          _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+          _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+          _dragContainer.appendChild(_maybeDrag.cloneNode(true));
+          eventHandler(
           {
-            _dragContainer = document.createElement("div");
-            _dragContainer.className = "xo-drag-container";
-            document.body.appendChild(_dragContainer);
-          }
-          if (!_dragContainer.firstChild)
+            type: "dragstart",
+            target: _maybeDrag
+          });
+        }
+        else
+        {
+          _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
+          _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+        }
+      }
+      function doDragStart(touch, isTouch)
+      {
+        var target = touch.target;
+        for (var dtarget = target; dtarget; dtarget = dtarget.parentElement)
+        {
+          if (getComputedStyle(dtarget, null).WebkitUserDrag === "element")
           {
-            var area = _maybeDrag.getClientRects()[0];
-            _dragOffset = { left: area.left - touch.pageX, top: area.top - touch.pageY - (Environment.isTouch() ? 25 : 0) };
-            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
-            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
-            _dragContainer.appendChild(_maybeDrag.cloneNode(true));
-            eventHandler(
-            {
-              type: "dragstart",
-              target: _maybeDrag
-            });
-          }
-          else
-          {
-            _dragContainer.style.left = (_dragOffset.left + touch.pageX) + "px";
-            _dragContainer.style.top = (_dragOffset.top + touch.pageY) + "px";
+            _maybeDrag = dtarget;
+            _dropTargets = document.querySelectorAll("[ondragover]");
+            _dropLastTarget = null;
+            _doDrag(touch);
+            return;
           }
         }
-        target.addEventListener("touchstart", function(evt)
+        if (isTouch)
         {
-          if (evt.targetTouches.length === 1)
-          {
-            var touch = evt.targetTouches[0];
-            var target = touch.target;
-            for (var dtarget = target; dtarget; dtarget = dtarget.parentElement)
-            {
-              if (getComputedStyle(dtarget, null).WebkitUserDrag === "element")
-              {
-                _maybeDrag = dtarget;
-                _dropTargets = document.querySelectorAll("[ondragover]");
-                _dropLastTarget = null;
-                doDrag(touch);
-                return;
-              }
-            }
-            _maybeClick = target;
-            _maybeSwipe = RootView._findSwipeTarget(target);
-            _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
-          }
-        });
-        target.addEventListener("touchend", function(evt)
+          _maybeClick = target;
+          _maybeSwipe = RootView._findSwipeTarget(target);
+          _swipeStart = { x: touch.pageX, y: touch.pageY, hdir: null };
+        }
+      }
+      function doDragMove(evt, touch)
+      {
+        _maybeClick = null;
+        if (_maybeDrag)
         {
-          if (evt.targetTouches.length === 0)
+          _doDrag(touch);
+          var newTarget = RootView._findTargetMatch(_dragContainer, _dropTargets);
+          if (newTarget != _dropLastTarget)
           {
-            if (_maybeClick)
-            {
-              switch (_maybeClick.nodeName)
-              {
-                case "INPUT":
-                case "TEXTAREA":
-                  break;
-                default:
-                  var cevt = document.createEvent("MouseEvents");
-                  cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
-                  _maybeClick.dispatchEvent(cevt);
-                  evt.preventDefault();
-                  evt.stopPropagation();
-                  break;
-              }
-            }
-            else if (_maybeSwipe)
-            {
-              eventHandler(
-              {
-                type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
-                target: _maybeSwipe
-              });
-            }
-          }
-          _maybeClick = null;
-          _maybeSwipe = null;
-          if (_maybeDrag)
-          {
-            while (_dragContainer.firstChild)
-            {
-              _dragContainer.removeChild(_dragContainer.firstChild);
-            }
-            if (_dropLastTarget)
-            {
-              eventHandler(
-              {
-                type: "drop",
-                target: _dropLastTarget
-              });
-            }
-            eventHandler(
-            {
-              type: "dragend",
-              target: _maybeDrag
-            });
-            _maybeDrag = null;
-            _dropTargets = null;
             if (_dropLastTarget)
             {
               eventHandler(
@@ -3293,53 +3270,137 @@ var RootView = exports.RootView = Class(View,
                 type: "dragleave",
                 target: _dropLastTarget
               });
-              _dropLastTarget = null;
             }
+            _dropLastTarget = newTarget;
+            if (_dropLastTarget)
+            {
+              eventHandler(
+              {
+                type: "dragenter",
+                target: _dropLastTarget
+              });
+            }
+          }
+          evt.preventDefault();
+        }
+        else if (_maybeSwipe)
+        {
+          if (_maybeSwipe !== RootView._findSwipeTarget(touch.target))
+          {
+            _maybeSwipe = null;
+          }
+          else
+          {
+            _swipeStart.hdir = evt.pageX > _swipeStart.x ? "l2r" : "r2l";
+          }
+        }
+      }
+      function doDragEnd(evt)
+      {
+        if (_maybeClick)
+        {
+          switch (_maybeClick.nodeName)
+          {
+            case "INPUT":
+            case "TEXTAREA":
+              break;
+            default:
+              var cevt = document.createEvent("MouseEvents");
+              cevt.initMouseEvent("click", true, true, window, -1, 0, 0, 0, 0, false, false, false, false, 0, null);
+              _maybeClick.dispatchEvent(cevt);
+              evt.preventDefault();
+              evt.stopPropagation();
+              break;
+          }
+        }
+        else if (_maybeSwipe)
+        {
+          eventHandler(
+          {
+            type: _swipeStart.hdir === "l2r" ? "swipe-right" : "swipe-left",
+            target: _maybeSwipe
+          });
+        }
+        _maybeClick = null;
+        _maybeSwipe = null;
+        if (_maybeDrag)
+        {
+          while (_dragContainer.firstChild)
+          {
+            _dragContainer.removeChild(_dragContainer.firstChild);
+          }
+          if (_dropLastTarget)
+          {
+            eventHandler(
+            {
+              type: "drop",
+              target: _dropLastTarget
+            });
+          }
+          eventHandler(
+          {
+            type: "dragend",
+            target: _maybeDrag
+          });
+          _maybeDrag = null;
+          _dropTargets = null;
+          if (_dropLastTarget)
+          {
+            eventHandler(
+            {
+              type: "dragleave",
+              target: _dropLastTarget
+            });
+            _dropLastTarget = null;
+          }
+        }
+      }
+
+      // Drag and drop emulation for touch devices
+      if (Environment.isTouch())
+      {
+        target.addEventListener("touchstart", function(evt)
+        {
+          if (evt.targetTouches.length === 1)
+          {
+            doDragStart(evt.targetTouches[0], true);
+          }
+        });
+        target.addEventListener("touchend", function(evt)
+        {
+          if (evt.targetTouches.length === 0)
+          {
+            doDragEnd(evt);
           }
         });
         target.addEventListener("touchmove", function(evt)
         {
           if (evt.targetTouches.length === 1)
           {
-            _maybeClick = null;
-            if (_maybeDrag)
-            {
-              doDrag(evt.targetTouches[0]);
-              var newTarget = RootView._findTargetMatch(_dragContainer, _dropTargets);
-              if (newTarget != _dropLastTarget)
-              {
-                if (_dropLastTarget)
-                {
-                  eventHandler(
-                  {
-                    type: "dragleave",
-                    target: _dropLastTarget
-                  });
-                }
-                _dropLastTarget = newTarget;
-                if (_dropLastTarget)
-                {
-                  eventHandler(
-                  {
-                    type: "dragenter",
-                    target: _dropLastTarget
-                  });
-                }
-              }
-              evt.preventDefault();
-            }
-            else if (_maybeSwipe)
-            {
-              if (_maybeSwipe !== RootView._findSwipeTarget(evt.targetTouches[0].target))
-              {
-                _maybeSwipe = null;
-              }
-              else
-              {
-                _swipeStart.hdir = evt.pageX > _swipeStart.x ? "l2r" : "r2l";
-              }
-            }
+            doDragMove(evt, evt.targetTouches[0]);
           }
+        });
+      }
+      // Drag and drop emulation for non-touch.
+      // NOTE. Drag and drop proved problematic to get working in OSX WebView so using
+      // the same mechanism designed for touch
+      else
+      {
+        target.addEventListener("dragstart", function(evt)
+        {
+          evt.preventDefault(); // Prevent native dnd
+        });
+        target.addEventListener("mousedown", function(evt)
+        {
+          doDragStart(evt, false);
+        });
+        target.addEventListener("mouseup", function()
+        {
+          doDragEnd();
+        });
+        target.addEventListener("mousemove", function(evt)
+        {
+          doDragMove(evt, evt);
         });
       }
     }
@@ -4071,18 +4132,23 @@ if (typeof XMLHttpRequest !== "undefined")
             config.headers["Content-Type"] = "application/x-www-form-urlencoded";
           }
 
-          config.auth && config.auth.sign(config);
-
-          var req = this._req = new XMLHttpRequest();
-          var url;
-          if (config.proxy)
+          if (config.auth)
           {
-            url = config.proxy + escape(config.url);
+            return config.auth.sign(config);
           }
           else
           {
-            url = config.url;
+            return true;
           }
+        },
+        function()
+        {
+          var req = this._req = new XMLHttpRequest();
+
+          var url = exports.Ajax.buildUrl(config.url, config.method !== "POST" ? config.parameters : null);
+
+          url = Environment._networkProxyTransform(url);
+
           req.open(config.method, url, true);
 
           // Define any headers
@@ -4114,16 +4180,44 @@ if (typeof XMLHttpRequest !== "undefined")
             }
           });
 
-          var data = config.data;
-          if (config.json)
+          var data;
+          if (config.method === "POST")
           {
-            data = JSON.stringify(config.json);
+            data = config.data;
+            if (config.json)
+            {
+              data = JSON.stringify(config.json);
+            }
+            var params = config.parameters;
+            if (params)
+            {
+              data = "";
+              for (var key in params)
+              {
+                data += encodeURIComponent(key) + "=" + encodeURIComponent(params[key]) + "&";
+              }
+              data = data.slice(0, -1);
+            }
           }
 
           // Initiate the request, together with any data we want to send (for a POST or PUT)
           req.send(data);
         }
       );
+    },
+
+    buildUrl: function(url, params)
+    {
+      if (params)
+      {
+        url += url.indexOf("?") === -1 ? "?" : "&";
+        for (var key in params)
+        {
+          url += key + "=" + encodeURIComponent(params[key]) + "&";
+        }
+        url = url.slice(0, -1);
+      }
+      return url;
     }
   }
 }
@@ -4143,17 +4237,9 @@ if (typeof XMLHttpRequest !== "undefined")
           config.auth && config.auth.sign(config);
 
           var req = this._req = new XMLHttpRequest();
-          var url;
-          if (config.proxy)
-          {
-            url = config.proxy + escape(config.url);
-          }
-          else
-          {
-            url = config.url;
-          }
+          var url = Environment._networkProxyTransform(config.url);
           req.open(config.method, url, true);
-    
+
           // Define any headers
           for (var key in config.headers)
           {
@@ -4443,6 +4529,8 @@ var OAuth = exports.OAuth = Class(
       // Add it
       (params.headers || (params.headers = {})).Authorization = oauth.slice(0, -1);
     }
+
+    return true;
   },
 
   _encode: function(str)
@@ -4479,7 +4567,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
     this._request = oauth.request;
     this._authorize = oauth.authorize;
     this._access = oauth.access;
-    this._proxy = oauth.proxy;
   },
 
   login: function()
@@ -4493,7 +4580,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
           method: "GET" in this._request ? "GET" : "POST",
           url: this._request.GET || this._request.POST,
           auth: this,
-          proxy: this._proxy
         });
       },
       function(r)
@@ -4582,7 +4668,6 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
           method: "GET" in this._access ? "GET" : "POST",
           url: this._access.GET || this._access.POST,
           auth: this,
-          proxy: this._proxy,
           data: "oauth_verifier=" + args.oauth_verifier
         });
       },
@@ -4593,6 +4678,157 @@ var OAuthLogin = exports.OAuthLogin = Class(OAuth,
         this._config.oauth_token_secret = args.oauth_token_secret;
 
         return args;
+      }
+    );
+  }
+});
+var OAuth2 = exports.OAuth2 = Class(
+{
+  _leeway: 30000,
+
+  constructor: function(config)
+  {
+    this._config = config;
+    if (config.refresh_token)
+    {
+      this._tokens =
+      {
+        refresh_token: config.refresh_token,
+        expiration_time: 0
+      };
+    }
+    else
+    {
+      this._tokens = {};
+    }
+  },
+
+  serialize: function()
+  {
+    var c = this._config;
+    return {
+      authorize: c.authorize,
+      access: c.access,
+      client_id: c.client_id,
+      client_secret: c.client_secret,
+      redirect_uri: c.redirect_uri,
+      scope: c.scope,
+      refresh_token: this._tokens.refresh_token
+    };
+  },
+
+  _sign: function(params)
+  {
+    (params.headers || (params.headers = {})).Authorization = this._tokens.token_type + " " + this._tokens.access_token;
+    return true;
+  },
+
+  sign: function(params)
+  {
+    if (Date.now() + this._leeway < this._tokens.expiration_time)
+    {
+      return this._sign(params);
+    }
+    return Co.Routine(this,
+      function()
+      {
+        var c = this._config;
+        return exports.Ajax.create(
+        {
+          method: "POST",
+          url: c.access,
+          parameters:
+          {
+            client_id: c.client_id,
+            client_secret: c.client_secret,
+            refresh_token: this._tokens.refresh_token,
+            grant_type: "refresh_token"
+          }
+        });
+      },
+      function(r)
+      {
+        this._tokens = r().json();
+        this._tokens.expiration_time = Date.now() + this._tokens.expires_in * 1000;
+        return this._sign(params);
+      }
+    );
+  }
+});
+var OAuth2Login = exports.OAuth2Login = Class(OAuth2,
+{
+  login: function()
+  {
+    var c = this._config;
+    return Co.Routine(this,
+      function()
+      {
+        var url = exports.Ajax.buildUrl(c.authorize,
+        {
+            response_type: c.response_type || "code",
+            client_id: c.client_id,
+            redirect_uri: c.redirect_uri,
+            scope: c.scope,
+            state: c.state || "",
+            access_type: c.access_type || "offline",
+            approval_prompt: c.approval_prompt || "force"
+        });
+
+        if (window.open)
+        {
+          var win = window.open(url, "Login", "location=yes,resizable=yes,scrollbars=yes");
+          if (!win)
+          {
+            throw new Error("Cannot open window for login");
+          }
+          return Co.Forever(this,
+            function()
+            {
+              var origin = win.location.origin + win.location.pathname;
+              if (origin === c.redirect_uri)
+              {
+                var url = new Url(win.location.href);
+                win.close();
+                var error = url.getParameter("error");
+                if (error)
+                {
+                  throw new Error("OAuth2: " + error);
+                }
+                return Co.Break({
+                  code: url.getParameter("code")
+                });
+              }
+              return Co.Sleep(0.1);
+            }
+          );
+        }
+        else
+        {
+          throw new Error("Cannot open window for login");
+        }
+      },
+      function(r)
+      {
+        r = r();
+        return xo.Ajax.create(
+        {
+          method: "POST",
+          url: c.access,
+          parameters:
+          {
+            code: r.code,
+            client_id: c.client_id,
+            client_secret: c.client_secret,
+            redirect_uri: c.redirect_uri,
+            grant_type: "authorization_code"
+          }
+        });
+      },
+      function(r)
+      {
+        this._tokens = r().json();
+        this._tokens.expiration_time = Date.now() + this._tokens.expires_in;
+        return true;
       }
     );
   }
