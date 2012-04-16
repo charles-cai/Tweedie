@@ -48,5 +48,10 @@
 @property (nonatomic, retain) IBOutlet UIWindow* window;
 @property (nonatomic, retain) IBOutlet PGViewController* viewController;
 
+/* 
+ * Returns YES if it is at least version specified as NSString(X)
+ */
+#define IsAtLeastiOSVersion(X) ([[[UIDevice currentDevice] systemVersion] compare:X options:NSNumericSearch] !=      NSOrderedAscending)
+
 @end
 
