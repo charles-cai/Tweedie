@@ -236,7 +236,7 @@ var TweetFetcher = xo.Class(Events,
           running = true;
           loop.run();
         }
-        return Co.Sleep(failed.length === 0 ? 300 : Math.max(failed.length * 60, 120));
+        return Co.Sleep(failed.length === 0 && loop.pushRunning ? 300 : Math.max(failed.length * 60, 120));
       }
     );
   },
@@ -343,10 +343,12 @@ var TweetFetcher = xo.Class(Events,
         Co.Forever(this,
           function()
           {
+            config.pushRunning = true;
             return AjaxStream.create(config);
           },
           function(r)
           {
+            config.pushRunning = false;
             var reason;
             try
             {
