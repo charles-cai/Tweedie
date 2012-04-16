@@ -192,6 +192,8 @@ var TweetBox = Class(
             mv.hsuggestions().removeAll();
             target = null;
           }
+
+          m[e.target.name](e.target.value);
         },
         onSuggestion: function(m)
         {
