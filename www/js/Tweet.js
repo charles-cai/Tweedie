@@ -182,7 +182,30 @@ var Tweet = Model.create(
     return "@" + this.screen_name();
   },
 
-  conversation: function()
+  conversation_name: function()
+  {
+    if (this._values.user)
+    {
+      return this._values.user.name;
+    }
+    else if (this._values.sender)
+    {
+      if ("@" + this._values.sender.screen_name.toLowerCase() === this._account.tweetLists.screenname)
+      {
+        return this._values.recipient.name;
+      }
+      else
+      {
+        return this._values.sender.name;
+      }
+    }
+    else
+    {
+      return this._values.from_user_name;
+    }
+  },
+
+  conversation_screen_name: function()
   {
     if (this._values.user)
     {
@@ -207,10 +230,6 @@ var Tweet = Model.create(
   
   profile_image_url: function()
   {
-    if (!this._profile_image_url)
-    {
-      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
-    }
     return this._profile_image_url;
   },
 
@@ -252,6 +271,10 @@ var Tweet = Model.create(
           this.emit("update");
         }
       );
+    }
+    else
+    {
+      this._profile_image_url = "http://api.twitter.com/1/users/profile_image/" + this.screen_name() + Tweet.profileImgExt;
     }
   },
 

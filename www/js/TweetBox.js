@@ -39,13 +39,13 @@ var TweetBox = Class(
     {
       tweet = tweet.retweet();
     }
-    var text = type === "reply" ? tweet.at_screen_name() : type === "retweet" ? tweet.text() : "";
+    var text = type === "reply" ? tweet.at_screen_name() + " " : type === "retweet" ? tweet.text() : "";
     var send = new NewTweetModel(
     {
       text: text,
       replyId: tweet && tweet.id(),
-      screen_name: tweet && tweet.conversation(),
-      target: tweet && tweet.conversation()
+      screen_name: tweet && tweet.conversation_screen_name(),
+      target: tweet && tweet.conversation_screen_name()
     });
     var target = null;
     var mv = new ModalView(
