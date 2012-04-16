@@ -5,7 +5,7 @@ var dbinfo =
   table: "appstore"
 };
 
-var StorageGridProvider = Environment.isPhoneGap() ? xo.SQLStorageGridProvider : xo.LocalStorageGridProvider;
+var StorageGridProvider = xo.SQLStorageGridProvider;
 
 new StorageGridProvider(
   grid.get(),
