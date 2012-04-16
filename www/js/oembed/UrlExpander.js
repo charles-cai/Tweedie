@@ -26,8 +26,7 @@ var UrlExpander = Class(Events,
               {
                 return "urls%5B%5D=" + escape(url)
               }).join("&"),
-              headers: KEYS.twitterResolve,
-              proxy: networkProxy
+              headers: KEYS.twitterResolve
             });
           },
           function(r)

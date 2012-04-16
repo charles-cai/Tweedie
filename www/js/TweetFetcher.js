@@ -18,9 +18,7 @@ var TweetFetcher = xo.Class(Events,
 
       request: { POST: "https://api.twitter.com/oauth/request_token" },
       authorize: { GET: "https://api.twitter.com/oauth/authorize?force_login=true" },
-      access: { POST: "https://api.twitter.com/oauth/access_token" },
-
-      proxy: networkProxy
+      access: { POST: "https://api.twitter.com/oauth/access_token" }
     });
     this._account = account;
     this._loop = null;
@@ -92,8 +90,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/statuses/home_timeline.json?include_entities=true&count=200&page=" + (1 + page()) + "&since_id=" + tweetId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           },
           function(r)
@@ -135,8 +132,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/favorites.json?include_entities=true&count=200&since_id=" + favId,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -160,8 +156,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/statuses/mentions.json?include_entities=true&count=200&since_id=" + mentionId,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -188,8 +183,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/direct_messages.json?include_entities=true&count=100&since_id=" + dmRecvId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           },
           function()
@@ -198,8 +192,7 @@ var TweetFetcher = xo.Class(Events,
             {
               method: "GET",
               url: "https://api.twitter.com/1/direct_messages/sent.json?include_entities=true&count=100&since_id=" + dmSendId,
-              auth: this._auth,
-              proxy: networkProxy
+              auth: this._auth
             });
           }
         );
@@ -260,7 +253,6 @@ var TweetFetcher = xo.Class(Events,
       method: "GET",
       url: "https://userstream.twitter.com/2/user.json",
       auth: this._auth,
-      proxy: networkProxy,
       onText: function(chunk)
       {
         count += chunk.length;
@@ -397,8 +389,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "GET",
       url: "https://search.twitter.com/search.json?include_entities=true&rpp=100&q=" + encodeURIComponent(query),
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     };
     return Co.Routine(this,
       function()
@@ -443,7 +434,6 @@ var TweetFetcher = xo.Class(Events,
       method: "GET",
       url: "https://stream.twitter.com/1/statuses/filter.json?track=" + query.map(encodeURIComponent).join(","),
       auth: this._auth,
-      proxy: networkProxy,
       onText: function(chunk)
       {
         count += chunk.length;
@@ -538,7 +528,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "status=" + encodeURIComponent(m.text())
     });
   },
@@ -549,8 +538,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/statuses/retweet/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -561,7 +549,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/statuses/update.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "status=" + encodeURIComponent(m.text()) + "&in_reply_to_status_id=" + m.replyId()
     });
   },
@@ -573,7 +560,6 @@ var TweetFetcher = xo.Class(Events,
       method: "POST",
       url: "https://api.twitter.com/1/direct_messages/new.json",
       auth: this._auth,
-      proxy: networkProxy,
       data: "text=" + encodeURIComponent(m.text()) + "&screen_name=" + encodeURIComponent(m.target())
     });
   },
@@ -584,8 +570,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/create/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -595,8 +580,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/favorites/destroy/" + id + ".json",
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -606,8 +590,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/create.json?user_id=" + id,
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -617,8 +600,7 @@ var TweetFetcher = xo.Class(Events,
     {
       method: "POST",
       url: "https://api.twitter.com/1/friendships/destroy.json?user_id=" + id,
-      auth: this._auth,
-      proxy: networkProxy
+      auth: this._auth
     });
   },
 
@@ -632,8 +614,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/users/show.json?include_entities=true&" + key,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -653,8 +634,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/friendships/show.json?source_id=" + this._account.userInfo.user_id + "&" + key,
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)
@@ -673,8 +653,7 @@ var TweetFetcher = xo.Class(Events,
         {
           method: "GET",
           url: "https://api.twitter.com/1/users/suggestions" + (slug ? "/" + slug : "") + ".json",
-          auth: this._auth,
-          proxy: networkProxy
+          auth: this._auth
         });
       },
       function(r)

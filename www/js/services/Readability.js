@@ -34,7 +34,6 @@
             method: "POST",
             url: "http://www.readability.com/articles/queue",
             data: "url=" + url,
-            proxy: networkProxy,
             _gridPath: path
           };
           return Ajax.create(pending);
