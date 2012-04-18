@@ -24,10 +24,29 @@ var TweetController = xo.Controller.create(
       function(readModel)
       {
         readModel = readModel();
+        var mv;
+
+        function openWebPage()
+        {
+         if (window.ChildBrowser)
+         {
+           var browser = ChildBrowser.install();
+           browser.onClose = function()
+           {
+             mv.close();
+           };
+           browser.showWebPage(url);
+         }
+         else
+         {
+           mv.close();
+           window.open(url);
+         }
+        }
 
         var pagenr = 0;
         var maxpagenr = 0;
-        var mv = new ModalView(
+        mv = new ModalView(
         {
           node: document.getElementById("root-dialog"),
           template: __resources.readability,
@@ -81,20 +100,7 @@ var TweetController = xo.Controller.create(
             },
             onOpenWeb: function()
             {
-              if (window.ChildBrowser)
-              {
-                var browser = ChildBrowser.install();
-                browser.onClose = function()
-                {
-                  mv.close();
-                };
-                browser.showWebPage(url);
-              }
-              else
-              {
-                mv.close();
-                window.open(url);
-              }
+              openWebPage();
               this.metric("browser:open");
             },
             onOrientationChange: function()
@@ -127,41 +133,50 @@ var TweetController = xo.Controller.create(
         });
         readModel.on("update", function()
         {
-          Co.Routine(this,
-            function()
-            {
-              Co.Yield();
-            },
-            function()
-            {
-              var r = document.querySelector("#readability-scroller .text");
-              var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-              var images = r.querySelectorAll("img");
-              function recalc()
+          if (readModel.error() === true)
+          {
+            // If we error, open the webpage instead
+            openWebPage();
+            this.metric("browser:open_on_error");
+          }
+          else
+          {
+            Co.Routine(this,
+              function()
               {
-                maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-                mv.pages(Math.min(10, maxpagenr));
-              }
-              function hide()
+                Co.Yield();
+              },
+              function()
               {
-                this.parentNode.removeChild(this);
-                recalc();
-              }
-              for (var i = 0; i < images.length; i++)
-              {
-                var img = images[i];
-                img.onload = recalc;
-                img.onerror = hide;
-                if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0)
+                var r = document.querySelector("#readability-scroller .text");
+                var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+                var images = r.querySelectorAll("img");
+                function recalc()
                 {
-                  img.onerror();
+                  maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+                  mv.pages(Math.min(10, maxpagenr));
                 }
+                function hide()
+                {
+                  this.parentNode.removeChild(this);
+                  recalc();
+                }
+                for (var i = 0; i < images.length; i++)
+                {
+                  var img = images[i];
+                  img.onload = recalc;
+                  img.onerror = hide;
+                  if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0)
+                  {
+                    img.onerror();
+                  }
+                }
+                recalc();
+                mv.translate("-webkit-transform: translate3d(0,0,1px)");
+                mv.pagenr(0);
               }
-              recalc();
-              mv.translate("-webkit-transform: translate3d(0,0,1px)");
-              mv.pagenr(0);
-            }
-          );
+            );
+          }
         }, this);
         // Force layout if we have text already (cached)
         if (readModel.text())
