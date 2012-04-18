@@ -24,9 +24,9 @@ var Tweet = Model.create(
       id_str: values.retweeted_status ? values.retweeted_status.id_str : values.id_str,
       entities: values.entities,
       text: values.text,
-      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
-      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str, lang: values.sender.lang },
-      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str, lang: values.recipient.lang },
+      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, id_str: values.user.id_str, lang: values.user.lang },
+      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, id_str: values.sender.id_str, lang: values.sender.lang },
+      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, id_str: values.recipient.id_str, lang: values.recipient.lang },
       from_user_name: values.from_user_name,
       from_user: values.from_user,
       iso_language_code: values.iso_language_code,
@@ -264,6 +264,7 @@ var Tweet = Model.create(
         function()
         {
           return Composite.mergeIcons(this._values.recipient.profile_image_url, this._values.sender.profile_image_url, 48, 32, 5);
+          return Composite.mergeIcons("http://api.twitter.com/1/users/profile_image/" + this._values.receipient.screen_name + Tweet.profileImgExt, "http://api.twitter.com/1/users/profile_image/" + this._values.sender.screen_name + Tweet.profileImgExt, 48, 32, 5);
         },
         function(url)
         {

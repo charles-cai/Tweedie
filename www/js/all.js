@@ -9871,9 +9871,9 @@ var Tweet = Model.create(
       id_str: values.retweeted_status ? values.retweeted_status.id_str : values.id_str,
       entities: values.entities,
       text: values.text,
-      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, profile_image_url: values.user.profile_image_url, id_str: values.user.id_str, lang: values.user.lang },
-      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, profile_image_url: values.sender.profile_image_url, id_str: values.sender.id_str, lang: values.sender.lang },
-      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, profile_image_url: values.recipient.profile_image_url, id_str: values.recipient.id_str, lang: values.recipient.lang },
+      user: values.user && { name: values.user.name, screen_name: values.user.screen_name, id_str: values.user.id_str, lang: values.user.lang },
+      sender: values.sender && { name: values.sender.name, screen_name: values.sender.screen_name, id_str: values.sender.id_str, lang: values.sender.lang },
+      recipient: values.recipient && { name: values.recipient.name, screen_name: values.recipient.screen_name, id_str: values.recipient.id_str, lang: values.recipient.lang },
       from_user_name: values.from_user_name,
       from_user: values.from_user,
       iso_language_code: values.iso_language_code,
@@ -10111,6 +10111,7 @@ var Tweet = Model.create(
         function()
         {
           return Composite.mergeIcons(this._values.recipient.profile_image_url, this._values.sender.profile_image_url, 48, 32, 5);
+          return Composite.mergeIcons("http://api.twitter.com/1/users/profile_image/" + this._values.receipient.screen_name + Tweet.profileImgExt, "http://api.twitter.com/1/users/profile_image/" + this._values.sender.screen_name + Tweet.profileImgExt, 48, 32, 5);
         },
         function(url)
         {
@@ -13208,14 +13209,14 @@ new StorageGridProvider(
   var ReadabilityModel = Model.create(
   {
     title: Model.Property,
-    text: Model.Property
+    text: Model.Property,
+    error: Model.Property
   });
 
   var lgrid = grid.get({ lru: 5 });
   var selector = /^\/readable=(.*)$/;
   var pending = null;
   var stage = document.createElement("div");
-
 
   lgrid.watch(selector, function(op, path)
   {
@@ -13238,7 +13239,7 @@ new StorageGridProvider(
           {
             method: "POST",
             url: "http://www.readability.com/articles/queue",
-            data: "url=" + url,
+            data: "read=1&url=" + url,
             _gridPath: path
           };
           return Ajax.create(pending);
@@ -13262,6 +13263,7 @@ new StorageGridProvider(
             {
               this.title("Failed");
               this.text(url);
+              this.error(true);
             });
             lgrid.remove(path);
           }
@@ -13481,10 +13483,29 @@ var TweetController = xo.Controller.create(
       function(readModel)
       {
         readModel = readModel();
+        var mv;
+
+        function openWebPage()
+        {
+         if (window.ChildBrowser)
+         {
+           var browser = ChildBrowser.install();
+           browser.onClose = function()
+           {
+             mv.close();
+           };
+           browser.showWebPage(url);
+         }
+         else
+         {
+           mv.close();
+           window.open(url);
+         }
+        }
 
         var pagenr = 0;
         var maxpagenr = 0;
-        var mv = new ModalView(
+        mv = new ModalView(
         {
           node: document.getElementById("root-dialog"),
           template: __resources.readability,
@@ -13538,20 +13559,7 @@ var TweetController = xo.Controller.create(
             },
             onOpenWeb: function()
             {
-              if (window.ChildBrowser)
-              {
-                var browser = ChildBrowser.install();
-                browser.onClose = function()
-                {
-                  mv.close();
-                };
-                browser.showWebPage(url);
-              }
-              else
-              {
-                mv.close();
-                window.open(url);
-              }
+              openWebPage();
               this.metric("browser:open");
             },
             onOrientationChange: function()
@@ -13584,41 +13592,50 @@ var TweetController = xo.Controller.create(
         });
         readModel.on("update", function()
         {
-          Co.Routine(this,
-            function()
-            {
-              Co.Yield();
-            },
-            function()
-            {
-              var r = document.querySelector("#readability-scroller .text");
-              var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
-              var images = r.querySelectorAll("img");
-              function recalc()
+          if (readModel.error() === true)
+          {
+            // If we error, open the webpage instead
+            openWebPage();
+            this.metric("browser:open_on_error");
+          }
+          else
+          {
+            Co.Routine(this,
+              function()
               {
-                maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
-                mv.pages(Math.min(10, maxpagenr));
-              }
-              function hide()
+                Co.Yield();
+              },
+              function()
               {
-                this.parentNode.removeChild(this);
-                recalc();
-              }
-              for (var i = 0; i < images.length; i++)
-              {
-                var img = images[i];
-                img.onload = recalc;
-                img.onerror = hide;
-                if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0)
+                var r = document.querySelector("#readability-scroller .text");
+                var gap = parseInt(getComputedStyle(r).WebkitColumnGap);
+                var images = r.querySelectorAll("img");
+                function recalc()
                 {
-                  img.onerror();
+                  maxpagenr = Math.ceil((r.scrollWidth + gap) / (r.offsetWidth + gap));
+                  mv.pages(Math.min(10, maxpagenr));
                 }
+                function hide()
+                {
+                  this.parentNode.removeChild(this);
+                  recalc();
+                }
+                for (var i = 0; i < images.length; i++)
+                {
+                  var img = images[i];
+                  img.onload = recalc;
+                  img.onerror = hide;
+                  if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0)
+                  {
+                    img.onerror();
+                  }
+                }
+                recalc();
+                mv.translate("-webkit-transform: translate3d(0,0,1px)");
+                mv.pagenr(0);
               }
-              recalc();
-              mv.translate("-webkit-transform: translate3d(0,0,1px)");
-              mv.pagenr(0);
-            }
-          );
+            );
+          }
         }, this);
         // Force layout if we have text already (cached)
         if (readModel.text())
