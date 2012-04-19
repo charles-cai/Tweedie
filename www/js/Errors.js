@@ -165,7 +165,7 @@ var Errors = Model.create(
     {
       this._lgrid.write("/errors", this._errors.map(function(error)
       {
-        return { op: error.op, type: error.type, details: error.details ? error.details.serialize() : null };
+        return { op: error.op, type: error.type, details: error.details.serialize  ? error.details.serialize() : null };
       }));
     }
     catch (e)
