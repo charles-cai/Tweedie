@@ -263,8 +263,7 @@ var Tweet = Model.create(
       Co.Routine(this,
         function()
         {
-          return Composite.mergeIcons(this._values.recipient.profile_image_url, this._values.sender.profile_image_url, 48, 32, 5);
-          return Composite.mergeIcons("http://api.twitter.com/1/users/profile_image/" + this._values.receipient.screen_name + Tweet.profileImgExt, "http://api.twitter.com/1/users/profile_image/" + this._values.sender.screen_name + Tweet.profileImgExt, 48, 32, 5);
+          return Composite.mergeIcons("http://api.twitter.com/1/users/profile_image/" + this._values.recipient.screen_name + Tweet.profileImgExt, "http://api.twitter.com/1/users/profile_image/" + this._values.sender.screen_name + Tweet.profileImgExt, 48, 32, 5);
         },
         function(url)
         {
